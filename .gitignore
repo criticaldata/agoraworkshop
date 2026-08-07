@@ -9,3 +9,4 @@ phase0_validation/
 .env
 .env.local
 .DS_Store
+.playwright-mcp/

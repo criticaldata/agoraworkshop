@@ -5,7 +5,26 @@ import { runsPage, runDetailPage, provenancePage } from '../src/server/pages.js'
 import { renderReplayHtml } from '../src/export/replayHtml.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { readEvents } from '../src/events/recorder.js';
-import { getInvocations, getMessages, getRun, runConfig, runSummaries } from '../src/db/queries.js';
+import {
+  getInvocations,
+  getMessages,
+  getOpportunities,
+  getRun,
+  runConfig,
+  runSummaries,
+} from '../src/db/queries.js';
+import { parseExplorerQuery, renderExplorer, toFilters } from '../src/server/explorer.js';
+import { structurePage, parseStructureQuery } from '../src/server/structure.js';
+import { agentPage } from '../src/server/agentPage.js';
+import { comparePage } from '../src/server/compare.js';
+import { apiPage } from '../src/server/apiPage.js';
+import {
+  agentTrajectory,
+  buildTimeline,
+  compareRuns,
+  interactionMatrix,
+  runMeasures,
+} from '../src/analytics/interaction.js';
 import { computeAnalytics } from '../src/analytics/summary.js';
 import { evaluateGates, finalizeReport } from '../src/acceptance/gates.js';
 import { frozen, tempDb } from './helpers.js';
@@ -73,30 +92,103 @@ async function renderedPages(): Promise<Array<[string, string]>> {
 
   const failed = input.invocations.find((i) => i.outcome === 'infra_failure')!;
 
+  const explorerQuery = parseExplorerQuery({ infra: '1' });
+  const timeline = buildTimeline({
+    config: input.config,
+    events: input.events,
+    messages: input.messages,
+    filters: toFilters(explorerQuery),
+  });
+  const explorer = renderExplorer({
+    run,
+    config: input.config,
+    timeline,
+    events: input.events,
+    messages: input.messages,
+    invocations: input.invocations,
+    query: { ...explorerQuery, selected: timeline.markers[0]?.sequence ?? null },
+  });
+
   return [
     ['overview', homePage({ latestRun: run, latestEvents: input.events, runCount: 1 })],
     ['documentation', docsPage()],
     [
       'runs list',
-      runsPage(
-        [
+      runsPage({
+        groups: [
           {
             configHash: run.config_hash,
             experimentId: run.experiment_id,
             model: run.model,
+            moderatorMode: 'llm',
             topic: input.config.workshop.topic,
             runs: [run],
           },
         ],
-        runSummaries(db, [runId]),
-        ['agora_phase0_v1.yaml'],
-        'a notice',
-        1,
-      ),
+        summaries: runSummaries(db, [runId]),
+        configs: ['agora_phase0_v1.yaml'],
+        notice: 'a notice',
+        totalRuns: 1,
+        shownRuns: 1,
+        filter: { q: '', model: 'mock-deterministic-v1', status: null, comparableOnly: false },
+        models: ['mock-deterministic-v1'],
+        statuses: ['COMPLETED'],
+      }),
     ],
-    ['run page', runDetailPage({ ...input, isRunning: false })],
+    ['run page', runDetailPage({ ...input, isRunning: false, explorer })],
     ['provenance', provenancePage(run, failed)],
     ['replay', renderReplayHtml(input)],
+    [
+      'interaction structure',
+      structurePage({
+        run,
+        config: input.config,
+        matrix: interactionMatrix(input.config, input.messages, input.invocations),
+        messages: input.messages,
+        query: parseStructureQuery({ pair: 'agent_1>agent_2' }),
+        phases: [...new Set(input.messages.map((m) => m.workshop_state))],
+      }),
+    ],
+    [
+      'agent trajectory',
+      agentPage(
+        run,
+        input.config,
+        agentTrajectory(
+          input.config,
+          'agent_1',
+          input.events,
+          input.messages,
+          getOpportunities(db, runId),
+          input.invocations,
+        ),
+      ),
+    ],
+    [
+      'compare',
+      comparePage({
+        comparison: compareRuns([
+          runMeasures(
+            run,
+            input.config,
+            input.messages,
+            getOpportunities(db, runId),
+            input.invocations,
+          ),
+        ]),
+        timelines: [{ runId, config: input.config, timeline }],
+        groups: [
+          {
+            configHash: run.config_hash,
+            experimentId: run.experiment_id,
+            model: run.model,
+            moderatorMode: 'llm',
+            runIds: [runId, 'run_other'],
+          },
+        ],
+      }),
+    ],
+    ['raw api', apiPage(run)],
   ];
 }
 

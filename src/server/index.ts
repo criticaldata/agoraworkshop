@@ -15,6 +15,7 @@ import {
   runConfig,
   runsWithConfigHash,
   runSummaries,
+  type RunRow,
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
 import { computeAnalytics } from '../analytics/summary.js';
@@ -29,6 +30,18 @@ import { codeProvenance, describeProvenance } from '../core/provenance.js';
 import { reconcileInterruptedRuns } from '../orchestrator/reconcile.js';
 import { buildValidationSet } from '../acceptance/validationSet.js';
 import { validationPage } from './validation.js';
+import { parseExplorerQuery, renderExplorer, toFilters } from './explorer.js';
+import { agentPage } from './agentPage.js';
+import { parseStructureQuery, structurePage } from './structure.js';
+import { comparePage, type ComparePageInput } from './compare.js';
+import { apiPage } from './apiPage.js';
+import {
+  agentTrajectory,
+  buildTimeline,
+  compareRuns,
+  interactionMatrix,
+  runMeasures,
+} from '../analytics/interaction.js';
 import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
@@ -86,34 +99,62 @@ app.get('/docs', (_req, res) => {
 
 app.get('/runs', (req, res) => {
   const notice = typeof req.query['notice'] === 'string' ? req.query['notice'] : null;
-  const runs = listRuns(db);
+  const q = String(req.query['q'] ?? '').trim();
+  const model = typeof req.query['model'] === 'string' ? req.query['model'] : null;
+  const status = typeof req.query['status'] === 'string' ? req.query['status'] : null;
+  const comparableOnly = req.query['comparable'] === '1';
+
+  const all = listRuns(db, 500);
+  const needle = q.toLowerCase();
+  const matches = all.filter((run) => {
+    if (model && run.model !== model) return false;
+    if (status && run.status !== status) return false;
+    if (!needle) return true;
+    return (
+      run.run_id.toLowerCase().includes(needle) ||
+      run.experiment_id.toLowerCase().includes(needle) ||
+      run.config_hash.toLowerCase().includes(needle)
+    );
+  });
 
   // Group by settings fingerprint, newest group first. Runs sharing a fingerprint were
   // carried out under identical conditions, which is the comparison that matters.
   const byHash = new Map<string, RunGroup>();
-  for (const run of runs) {
-    let group = byHash.get(run.config_hash);
-    if (!group) {
-      group = {
-        configHash: run.config_hash,
-        experimentId: run.experiment_id,
-        model: run.model,
-        topic: runConfig(run).workshop.topic,
-        runs: [],
-      };
-      byHash.set(run.config_hash, group);
+  for (const run of matches) {
+    const existing = byHash.get(run.config_hash);
+    if (existing) {
+      existing.runs.push(run);
+      continue;
     }
-    group.runs.push(run);
+    const config = runConfig(run);
+    byHash.set(run.config_hash, {
+      configHash: run.config_hash,
+      experimentId: run.experiment_id,
+      model: run.model,
+      moderatorMode: config.moderator.mode ?? 'llm',
+      topic: config.workshop.topic,
+      runs: [run],
+    });
   }
 
+  const groups = [...byHash.values()].filter(
+    (group) =>
+      !comparableOnly || group.runs.filter((r) => r.status === 'COMPLETED').length >= 2,
+  );
+  const shown = groups.flatMap((g) => g.runs);
+
   res.type('html').send(
-    runsPage(
-      [...byHash.values()],
-      runSummaries(db, runs.map((r) => r.run_id)),
-      availableConfigs(),
+    runsPage({
+      groups,
+      summaries: runSummaries(db, shown.map((r) => r.run_id)),
+      configs: availableConfigs(),
       notice,
-      runs.length,
-    ),
+      totalRuns: all.length,
+      shownRuns: shown.length,
+      filter: { q, model, status, comparableOnly },
+      models: [...new Set(all.map((r) => r.model))].sort(),
+      statuses: [...new Set(all.map((r) => r.status))].sort(),
+    }),
   );
 });
 
@@ -151,17 +192,154 @@ app.get('/runs/:runId', (req, res) => {
     return;
   }
 
+  const config = runConfig(run);
+  const events = readEvents(db, runId);
+  const messages = getMessages(db, runId);
+  const invocations = getInvocations(db, runId);
+  const query = parseExplorerQuery(req.query as Record<string, unknown>);
+  const timeline = buildTimeline({ config, events, messages, filters: toFilters(query) });
+
   res.type('html').send(
     runDetailPage({
       run,
-      config: runConfig(run),
-      events: readEvents(db, runId),
-      messages: getMessages(db, runId),
-      invocations: getInvocations(db, runId),
+      config,
+      events,
+      messages,
+      invocations,
       analytics: computeAnalytics(db, runId),
       acceptance: finalizeReport(evaluateGates({ db, runId })),
       isRunning: run.status === 'RUNNING' || active.has(runId),
+      explorer: renderExplorer({ run, config, timeline, events, messages, invocations, query }),
     }),
+  );
+});
+
+/**
+ * Comparable groups: one settings fingerprint with two or more completed runs. Anything
+ * with fewer cannot show run-to-run variation, so it is not offered as a comparison.
+ */
+function comparableGroups(): ComparePageInput['groups'] {
+  const byHash = new Map<string, RunRow[]>();
+  for (const run of listRuns(db, 500)) {
+    if (run.status !== 'COMPLETED') continue;
+    byHash.set(run.config_hash, [...(byHash.get(run.config_hash) ?? []), run]);
+  }
+  return [...byHash.entries()]
+    .filter(([, runs]) => runs.length >= 2)
+    .map(([configHash, runs]) => {
+      const config = runConfig(runs[0]!);
+      return {
+        configHash,
+        experimentId: runs[0]!.experiment_id,
+        model: runs[0]!.model,
+        moderatorMode: config.moderator.mode ?? 'llm',
+        runIds: runs.map((r) => r.run_id),
+      };
+    });
+}
+
+app.get('/compare', (req, res) => {
+  const requested = String(req.query['runs'] ?? '')
+    .split(',')
+    .filter(Boolean);
+  const hash = typeof req.query['hash'] === 'string' ? req.query['hash'] : null;
+
+  const runs = hash
+    ? runsWithConfigHash(db, hash).filter((r) => r.status === 'COMPLETED')
+    : requested.map((id) => getRun(db, id)).filter((r): r is RunRow => r !== null);
+
+  const measures = runs.map((run) =>
+    runMeasures(
+      run,
+      runConfig(run),
+      getMessages(db, run.run_id),
+      getOpportunities(db, run.run_id),
+      getInvocations(db, run.run_id),
+    ),
+  );
+
+  // Only the first few timelines are drawn: past that the page stops being readable and
+  // the measures table carries the comparison anyway.
+  const timelines = runs.slice(0, 3).map((run) => {
+    const config = runConfig(run);
+    return {
+      runId: run.run_id,
+      config,
+      timeline: buildTimeline({
+        config,
+        events: readEvents(db, run.run_id),
+        messages: getMessages(db, run.run_id),
+      }),
+    };
+  });
+
+  res.type('html').send(
+    comparePage({
+      comparison: compareRuns(measures),
+      timelines,
+      groups: comparableGroups(),
+    }),
+  );
+});
+
+app.get('/runs/:runId/structure', (req, res) => {
+  const runId = String(req.params['runId']);
+  const run = getRun(db, runId);
+  if (!run) {
+    res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
+    return;
+  }
+  const config = runConfig(run);
+  const messages = getMessages(db, runId);
+  const query = parseStructureQuery(req.query as Record<string, unknown>);
+  const matrix = interactionMatrix(config, messages, getInvocations(db, runId), query.metric, {
+    channel: query.channel,
+    phase: query.phase,
+  });
+
+  res.type('html').send(
+    structurePage({
+      run,
+      config,
+      matrix,
+      messages,
+      query,
+      phases: [...new Set(messages.map((m) => m.workshop_state))],
+    }),
+  );
+});
+
+app.get('/runs/:runId/agents/:agentId', (req, res) => {
+  const runId = String(req.params['runId']);
+  const agentId = String(req.params['agentId']);
+  const run = getRun(db, runId);
+  if (!run) {
+    res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
+    return;
+  }
+  const config = runConfig(run);
+  const known = [config.moderator.id, ...config.participants.map((p) => p.id)];
+  if (!known.includes(agentId)) {
+    res
+      .status(404)
+      .type('html')
+      .send(page('Not found', '<h1>No such participant in this run</h1>'));
+    return;
+  }
+
+  res.type('html').send(
+    agentPage(
+      run,
+      config,
+      agentTrajectory(
+        config,
+        agentId,
+        readEvents(db, runId),
+        getMessages(db, runId),
+        getOpportunities(db, runId),
+        getInvocations(db, runId),
+      ),
+    ),
   );
 });
 
@@ -228,6 +406,10 @@ app.get('/runs/:runId/invocations/:invocationId', (req, res) => {
 });
 
 // -------------------------------------------------------------------- api
+
+app.get('/api', (_req, res) => {
+  res.type('html').send(apiPage(listRuns(db, 1)[0] ?? null));
+});
 
 app.get('/api/configs', (_req, res) => res.json({ configs: availableConfigs() }));
 app.get('/api/runs', (_req, res) => res.json({ runs: listRuns(db) }));

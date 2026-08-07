@@ -117,8 +117,8 @@ export function renderGates(acceptance: AcceptanceReport, runId?: string): strin
     <p class="verdict ${acceptance.ready_for_controlled_behavioral_experiment ? 'ok' : 'bad'}">
       ${
         acceptance.ready_for_controlled_behavioral_experiment
-          ? 'All three checks pass. This run can support a controlled behavioural experiment.'
-          : 'Not all checks pass. This run cannot yet support a controlled behavioural experiment.'
+          ? 'This run satisfies all applicable Phase 0 apparatus checks.'
+          : 'This run does not yet satisfy every applicable Phase 0 apparatus check.'
       }
     </p>`;
 }

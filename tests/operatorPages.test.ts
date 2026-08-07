@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { runsPage, runDetailPage, provenancePage, type RunGroup } from '../src/server/pages.js';
+import { parseExplorerQuery, renderExplorer, toFilters } from '../src/server/explorer.js';
+import { buildTimeline } from '../src/analytics/interaction.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { readEvents } from '../src/events/recorder.js';
 import {
@@ -43,12 +45,23 @@ describe('runs list', () => {
         configHash: run.config_hash,
         experimentId: run.experiment_id,
         model: run.model,
+        moderatorMode: 'llm',
         topic: runConfig(run).workshop.topic,
         runs: [run],
       },
     ];
 
-    const html = runsPage(groups, runSummaries(db, [runId]), ['a.yaml'], null, 1);
+    const html = runsPage({
+      groups,
+      summaries: runSummaries(db, [runId]),
+      configs: ['a.yaml'],
+      notice: null,
+      totalRuns: 1,
+      shownRuns: 1,
+      filter: { q: '', model: null, status: null, comparableOnly: false },
+      models: [],
+      statuses: [],
+    });
     expect(html).toContain('grouped by the fingerprint');
     expect(html).toContain(run.experiment_id);
     expect(html).toContain(runConfig(run).workshop.topic);
@@ -65,50 +78,81 @@ describe('runs list', () => {
     expect(summary.public_messages).toBeGreaterThan(0);
     expect(summary.private_messages).toBeGreaterThan(0);
 
-    const html = runsPage(
-      [
+    const html = runsPage({
+      groups: [
         {
           configHash: run.config_hash,
           experimentId: run.experiment_id,
           model: run.model,
+          moderatorMode: 'llm',
           topic: 'topic',
           runs: [run],
         },
       ],
       summaries,
-      [],
-      null,
-      1,
-    );
+      configs: [],
+      notice: null,
+      totalRuns: 1,
+      shownRuns: 1,
+      filter: { q: '', model: null, status: null, comparableOnly: false },
+      models: [],
+      statuses: [],
+    });
     expect(html).toContain(`<b>${summary.public_messages}</b> public`);
     expect(html).toContain(`<b>${summary.private_messages}</b> private`);
   });
 
   it('gives a direction rather than a blank space when there are no runs', () => {
-    const html = runsPage([], new Map(), ['a.yaml'], null, 0);
+    const html = runsPage({
+      groups: [],
+      summaries: new Map(),
+      configs: ['a.yaml'],
+      notice: null,
+      totalRuns: 0,
+      shownRuns: 0,
+      filter: { q: '', model: null, status: null, comparableOnly: false },
+      models: [],
+      statuses: [],
+    });
     expect(html).toContain('No runs recorded yet');
     expect(html).toContain('Start run');
   });
 });
 
 describe('run page', () => {
-  it('leads with the checks, then statistics, timeline and turns', async () => {
+  it('leads with the timeline, then statistics, checks, transcript and turns', async () => {
     const { db, runId } = await completedRun();
     const run = getRun(db, runId)!;
+    const config = runConfig(run);
+    const events = readEvents(db, runId);
+    const messages = getMessages(db, runId);
+    const invocations = getInvocations(db, runId);
+    const query = parseExplorerQuery({});
     const html = runDetailPage({
       run,
-      config: runConfig(run),
-      events: readEvents(db, runId),
-      messages: getMessages(db, runId),
-      invocations: getInvocations(db, runId),
+      config,
+      events,
+      messages,
+      invocations,
       analytics: computeAnalytics(db, runId),
       acceptance: finalizeReport(evaluateGates({ db, runId })),
       isRunning: false,
+      explorer: renderExplorer({
+        run,
+        config,
+        timeline: buildTimeline({ config, events, messages, filters: toFilters(query) }),
+        events,
+        messages,
+        invocations,
+        query,
+      }),
     });
 
-    expect(html.indexOf('id="checks"')).toBeLessThan(html.indexOf('id="statistics"'));
-    expect(html.indexOf('id="statistics"')).toBeLessThan(html.indexOf('id="timeline"'));
-    expect(html.indexOf('id="timeline"')).toBeLessThan(html.indexOf('id="turns"'));
+    // The interaction is the default view; the chronological record stays below it.
+    expect(html.indexOf('id="explorer"')).toBeLessThan(html.indexOf('id="statistics"'));
+    expect(html.indexOf('id="statistics"')).toBeLessThan(html.indexOf('id="checks"'));
+    expect(html.indexOf('id="checks"')).toBeLessThan(html.indexOf('id="transcript"'));
+    expect(html.indexOf('id="transcript"')).toBeLessThan(html.indexOf('id="turns"'));
   });
 
   it('lists every turn including failed attempts, each linking to its context', async () => {

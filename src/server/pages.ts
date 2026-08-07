@@ -8,6 +8,7 @@ import {
 } from '../export/replayHtml.js';
 import type { ReplayInput } from '../export/replayHtml.js';
 import type { RunRow, InvocationRow, RunSummary } from '../db/queries.js';
+import { EXPLORER_STYLES } from './explorer.js';
 
 /**
  * Operator views.
@@ -110,6 +111,15 @@ code { font-family: var(--mono); font-size: .88em; }
 .ctx-ids { font-family: var(--mono); font-size: .74rem; color: var(--muted);
            overflow-wrap: anywhere; line-height: 1.7; }
 
+.visually-hidden { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+                   overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.runs-search { display: flex; gap: .4rem; }
+.runs-search input { font: inherit; font-size: .85rem; padding: .2rem .5rem;
+                     border: 1px solid var(--line); border-radius: 6px; min-width: 13rem;
+                     background: var(--paper); color: var(--ink); }
+.runs-search button { font-size: .82rem; }
+.group-compare { margin: .6rem 0 0; font-size: .82rem; }
+
 @media (max-width: 52rem) {
   .run-row { grid-template-columns: 1fr auto; }
   .run-head { display: none; }
@@ -126,7 +136,7 @@ export function page(title: string, body: string, opts: { refresh?: boolean } = 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
-<style>${STYLES}${EXTRA_STYLES}</style>
+<style>${STYLES}${EXTRA_STYLES}${EXPLORER_STYLES}</style>
 </head>
 <body>
 <main>
@@ -136,7 +146,8 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
     <a href="/">Overview</a>
     <a href="/docs">Documentation</a>
     <a href="/runs">Runs</a>
-    <a href="/api/runs">API</a>
+    <a href="/compare">Compare</a>
+    <a href="/api">Raw API</a>
   </nav>
 ${body}
 </main>
@@ -151,8 +162,30 @@ export interface RunGroup {
   configHash: string;
   experimentId: string;
   model: string;
+  moderatorMode: string;
   topic: string;
   runs: RunRow[];
+}
+
+/** What the researcher narrowed the list to. Filtering never changes stored data. */
+export interface RunsFilter {
+  q: string;
+  model: string | null;
+  status: string | null;
+  /** Only groups with two or more completed runs, which are the comparable ones. */
+  comparableOnly: boolean;
+}
+
+export interface RunsPageInput {
+  groups: RunGroup[];
+  summaries: Map<string, RunSummary>;
+  configs: string[];
+  notice: string | null;
+  totalRuns: number;
+  shownRuns: number;
+  filter: RunsFilter;
+  models: string[];
+  statuses: string[];
 }
 
 /**
@@ -162,20 +195,19 @@ export interface RunGroup {
  * under the same conditions and are the ones worth comparing with one another. A flat
  * list ordered by date hides exactly that relationship.
  */
-export function runsPage(
-  groups: RunGroup[],
-  summaries: Map<string, RunSummary>,
-  configs: string[],
-  notice: string | null,
-  totalRuns: number,
-): string {
+export function runsPage(input: RunsPageInput): string {
+  const { groups, summaries, configs, notice, totalRuns, shownRuns, filter } = input;
   const options = configs.map((c) => `<option value="${esc(c)}">${esc(c)}</option>`).join('');
   const running = groups.some((g) => g.runs.some((r) => r.status === 'RUNNING'));
+  const filtered = filter.q || filter.model || filter.status || filter.comparableOnly;
 
   const body = groups.length
     ? groups.map((group) => renderGroup(group, summaries)).join('\n')
-    : `<div class="group"><p class="empty">No runs recorded yet. Choose a configuration
-       above and start one.</p></div>`;
+    : filtered
+      ? `<div class="group"><p class="empty">No runs match these filters. Every run is
+         still recorded; only this list is narrowed.</p></div>`
+      : `<div class="group"><p class="empty">No runs recorded yet. Choose a configuration
+         above and start one.</p></div>`;
 
   return page(
     'AGORA · runs',
@@ -196,19 +228,82 @@ export function runsPage(
       <select id="config" name="config">${options}</select>
       <button type="submit">Start run</button>
     </form>
+    <a href="/compare"><button type="button" class="secondary">Compare runs</button></a>
     <span class="toolbar-note">${
       running
         ? 'A run is in progress. This page refreshes automatically.'
-        : `${totalRuns} run${totalRuns === 1 ? '' : 's'} across ${groups.length} setting${
+        : `${
+            filtered ? `${shownRuns} of ${totalRuns}` : `${totalRuns}`
+          } run${totalRuns === 1 ? '' : 's'} across ${groups.length} setting${
             groups.length === 1 ? '' : 's'
           }`
     }</span>
   </div>
 
+  ${renderRunsFilter(input)}
   ${body}
 `,
     { refresh: running },
   );
+}
+
+function renderRunsFilter(input: RunsPageInput): string {
+  const { filter, models, statuses } = input;
+  const url = (patch: Partial<RunsFilter>): string => {
+    const merged = { ...filter, ...patch };
+    const params = new URLSearchParams();
+    if (merged.q) params.set('q', merged.q);
+    if (merged.model) params.set('model', merged.model);
+    if (merged.status) params.set('status', merged.status);
+    if (merged.comparableOnly) params.set('comparable', '1');
+    const search = params.toString();
+    return search ? `/runs?${search}` : '/runs';
+  };
+  const chip = (href: string, label: string, on: boolean): string =>
+    `<a class="chip${on ? ' on' : ''}" href="${href}"${on ? ' aria-current="true"' : ''}>${esc(
+      label,
+    )}</a>`;
+
+  return `<div class="ex-filters">
+    <fieldset>
+      <legend>Search</legend>
+      <form method="get" action="/runs" class="runs-search">
+        <label class="visually-hidden" for="q">Run id, experiment or settings fingerprint</label>
+        <input id="q" name="q" type="search" value="${esc(filter.q)}"
+               placeholder="run id, experiment, fingerprint">
+        ${filter.model ? `<input type="hidden" name="model" value="${esc(filter.model)}">` : ''}
+        ${filter.status ? `<input type="hidden" name="status" value="${esc(filter.status)}">` : ''}
+        ${filter.comparableOnly ? '<input type="hidden" name="comparable" value="1">' : ''}
+        <button type="submit">Search</button>
+      </form>
+    </fieldset>
+    <fieldset>
+      <legend>Model</legend>
+      <div class="chips">
+        ${chip(url({ model: null }), 'All', filter.model === null)}
+        ${models.map((m) => chip(url({ model: m }), m, filter.model === m)).join('')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Status</legend>
+      <div class="chips">
+        ${chip(url({ status: null }), 'All', filter.status === null)}
+        ${statuses.map((s) => chip(url({ status: s }), s, filter.status === s)).join('')}
+      </div>
+    </fieldset>
+    <fieldset>
+      <legend>Comparability</legend>
+      <div class="chips">
+        ${chip(
+          url({ comparableOnly: !filter.comparableOnly }),
+          'Repeated settings only',
+          filter.comparableOnly,
+        )}
+      </div>
+      <p class="ex-hint">Settings with two or more completed runs, which are the ones that
+      can show run-to-run variation.</p>
+    </fieldset>
+  </div>`;
 }
 
 function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): string {
@@ -243,6 +338,7 @@ function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): strin
       <span class="group-title">${esc(group.experimentId)}</span>
       <span class="group-meta">${esc(group.model)}</span>
       <span class="group-meta">${esc(group.configHash.slice(7, 19))}…</span>
+      <span class="group-meta">${esc(group.moderatorMode)} moderator</span>
       <span class="group-count">${group.runs.length} run${group.runs.length === 1 ? '' : 's'}</span>
     </div>
     <div class="run-row run-head">
@@ -251,6 +347,13 @@ function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): strin
     </div>
     ${rows}
     <p class="group-note">${esc(group.topic)}</p>
+    ${
+      group.runs.filter((r) => r.status === 'COMPLETED').length >= 2
+        ? `<p class="group-compare"><a class="btn-sm" href="/compare?hash=${esc(
+            group.configHash,
+          )}">Compare these runs</a></p>`
+        : '<p class="group-compare muted">One completed run so far. A second under the same settings makes run-to-run variation visible.</p>'
+    }
   </article>`;
 }
 
@@ -273,6 +376,8 @@ const tokenPair = (input: number | null, output: number | null): string =>
 
 export interface RunPageInput extends ReplayInput {
   isRunning: boolean;
+  /** The interaction timeline, rendered by the explorer module. */
+  explorer: string;
 }
 
 /**
@@ -316,6 +421,7 @@ export function runDetailPage(input: RunPageInput): string {
     <form method="post" action="/runs/${esc(run.run_id)}/rerun">
       <button type="submit">Run again with the same settings</button>
     </form>
+    <a href="/runs/${esc(run.run_id)}/structure"><button type="button" class="secondary">Interaction structure</button></a>
     <a href="/runs/${esc(run.run_id)}/validation"><button type="button" class="secondary">Phase 0 validation package</button></a>
     <a href="/runs/${esc(run.run_id)}/replay"><button type="button" class="secondary">Standalone replay</button></a>
     <form method="post" action="/runs/${esc(run.run_id)}/export">
@@ -329,11 +435,19 @@ export function runDetailPage(input: RunPageInput): string {
   </div>
 
   <nav class="sub-nav" aria-label="Sections of this run">
-    <a href="#checks">Checks</a>
+    <a href="#explorer">Timeline</a>
     <a href="#statistics">Statistics</a>
-    <a href="#timeline">Timeline</a>
+    <a href="#checks">Checks</a>
+    <a href="#transcript">Transcript</a>
     <a href="#turns">Turns</a>
   </nav>
+
+  ${input.explorer}
+
+  <section id="statistics">
+    <h2>Statistics</h2>
+    ${renderStats(analytics)}
+  </section>
 
   <section id="checks">
     <h2>Acceptance checks</h2>
@@ -345,13 +459,10 @@ export function runDetailPage(input: RunPageInput): string {
     ${renderGates(acceptance, run.run_id)}
   </section>
 
-  <section id="statistics">
-    <h2>Statistics</h2>
-    ${renderStats(analytics)}
-  </section>
-
-  <section id="timeline">
-    <h2>Timeline</h2>
+  <section id="transcript">
+    <h2>Chronological record</h2>
+    <p class="note">Every event in order, as written. The timeline above is a view of
+    this; this is the record itself.</p>
     ${renderTimeline(input)}
   </section>
 

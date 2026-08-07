@@ -38,7 +38,8 @@ export function docsPage(): string {
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>
   <a href="/runs">Runs</a>
-  <a href="/api/runs">API</a>
+  <a href="/compare">Compare</a>
+  <a href="/api">Raw API</a>
 </nav>
 
 <main>
@@ -815,33 +816,27 @@ function sectionWork(): string {
   const work: Array<[string, string, string, string]> = [
     [
       '1',
-      'Reconcile interrupted runs at startup',
-      'On boot, mark any run still recorded as running as failed, with the reason recorded as an interrupted process.',
-      'Small and self-contained. It closes the only route by which the stored record can currently be misleading, which matters more than anything below it.',
-    ],
-    [
-      '2',
       'Record cost per run',
       'Add a price table keyed by provider and model, and compute cost from the token totals already stored.',
       'Cost governs how many runs can be afforded, which governs what can be asked statistically. It should not require a spreadsheet.',
     ],
     [
-      '3',
+      '2',
       'Separate run execution from the web process',
       'Move runs onto a queue with a worker, so a deployment does not interrupt a run in progress.',
-      'This is what makes long runs safe to start. It should follow the reconciler rather than replace it, because the reconciler is also the safety net for a worker that dies.',
+      'This is what makes long runs safe to start. It should be added alongside the startup reconciler rather than replace it, because the reconciler is also the safety net for a worker that dies.',
     ],
     [
-      '4',
+      '3',
       'Introduce a context strategy that does not discard the record',
       'When a transcript grows too large, summarise into a derived artifact that links to the message identifiers it was built from, and keep the raw messages authoritative.',
       'This is the constraint that most limits run length. It has to be done in a way that preserves provenance, or the ability to reconstruct what an agent saw is lost.',
     ],
     [
-      '5',
-      'Support repeated runs and comparison',
-      'Launch a configuration n times and present the runs together, with the variation between them shown rather than averaged away.',
-      'A single run of a stochastic system supports no conclusion. This is the first piece of work that is about producing findings rather than about producing the environment.',
+      '4',
+      'Launch a configuration many times in one action',
+      'Start n runs of one configuration from a single request and queue them, rather than starting each by hand.',
+      'The comparison view already presents repeated runs together with their variation shown. What is missing is the ability to produce a sample without launching each run individually.',
     ],
     [
       '6',

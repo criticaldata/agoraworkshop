@@ -52,7 +52,8 @@ export function homePage(input: HomeInput): string {
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>
   <a href="/runs">Runs</a>
-  <a href="/api/runs">API</a>
+  <a href="/compare">Compare</a>
+  <a href="/api">Raw API</a>
 </nav>
 
 <main>
@@ -362,8 +363,9 @@ function sectionGates(): string {
       )
       .join('\n    ')}
   </div>
-  <p class="aside">A run is described as ready to support a controlled behavioural experiment only
-  if all three checks pass. If any does not, the report states which, and what is missing.</p>
+  <p class="aside">A run is described as satisfying the apparatus checks only if all three
+  pass. If any does not, the report states which, and what is missing. Passing them says
+  the instrument worked; it is not itself a behavioural result.</p>
 </section>`;
 }
 

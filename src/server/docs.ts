@@ -559,10 +559,16 @@ function sectionBundle(): string {
   return `<section id="bundle">
   <p class="eyebrow">Deliverable</p>
   <h2>Artifact bundle</h2>
-  <p class="body">A completed run exports as a self-contained directory. Every file is
-  hashed, and the hashes are stored in the database as well as written into
-  <code>manifest.json</code>, so a bundle can be checked against the instance that
-  produced it.</p>
+  <p class="body">A completed run exports itself as a self-contained directory, without
+  being asked. Every file is hashed, and the hashes are stored in the database as well as
+  written into <code>manifest.json</code>, so a bundle can be checked against the instance
+  that produced it.</p>
+
+  <p class="body">A run that did not complete is not packaged. Its partial data is
+  readable through the run pages, but a bundle is the shape a Phase 0 validation package
+  takes, and writing one for an interrupted run would give partial data the appearance of
+  evidence. Re-exporting is available from the run page for the case where a bundle needs
+  writing again.</p>
 
   <div class="scroll">
     <table class="ref">

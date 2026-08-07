@@ -268,8 +268,8 @@ export function renderNextSteps(steps: NextStep[], runId?: string): string {
 function button(step: NextStep, runId?: string): string {
   if (!runId || !step.action) return '';
   if (step.action === 'export') {
-    return `<form method="post" action="/api/runs/${esc(runId)}/export">
-      <button type="submit">Export bundle</button></form>`;
+    return `<form method="post" action="/runs/${esc(runId)}/export">
+      <button type="submit">Export bundle again</button></form>`;
   }
   if (step.action === 'rerun') {
     return `<form method="post" action="/runs/${esc(runId)}/rerun">

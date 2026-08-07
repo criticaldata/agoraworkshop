@@ -20,6 +20,7 @@ import { readEvents } from '../events/recorder.js';
 import { computeAnalytics } from '../analytics/summary.js';
 import { evaluateGates, finalizeReport } from '../acceptance/gates.js';
 import { exportRun } from '../export/exporter.js';
+import { exportOnCompletion } from '../export/autoExport.js';
 import { renderReplayHtml } from '../export/replayHtml.js';
 import { page, provenancePage, runDetailPage, runsPage, type RunGroup } from './pages.js';
 import { homePage } from './home.js';
@@ -307,6 +308,24 @@ app.get('/api/runs/:runId/acceptance', (req, res) => {
   }
 });
 
+app.post('/runs/:runId/export', (req, res) => {
+  const runId = String(req.params['runId']);
+  // Only ever back to a page of this run. A redirect target taken from a request body
+  // is an open redirect unless it is constrained, whatever else is guarding the route.
+  const requested = String(req.body?.back ?? '');
+  const back =
+    requested === `/runs/${runId}/validation` ? requested : `/runs/${runId}`;
+  try {
+    exportRun({ db, runId });
+    res.redirect(303, back);
+  } catch (error) {
+    res
+      .status(400)
+      .type('html')
+      .send(page('Export failed', `<h1>Export failed</h1><p>${message(error)}</p>`));
+  }
+});
+
 app.post('/api/runs/:runId/export', (req, res) => {
   const runId = String(req.params['runId']);
   const faultRun = req.query['fault_run'];
@@ -342,6 +361,10 @@ function launch(frozen: ReturnType<typeof freezeConfig>, sourceRunId: string | n
   active.set(runner.id, runner);
   void runner
     .execute()
+    .then((result) => {
+      // Exporting is part of finishing a run, not a chore for the operator.
+      exportOnCompletion(db, runner.id, result.status, console.error);
+    })
     .catch((error: unknown) => {
       console.error(`run ${runner.id} failed:`, message(error));
     })

@@ -283,7 +283,9 @@ function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): 
   } else {
     failures.push('no artifacts have been exported for this run');
     nextSteps.push({
-      text: 'Export the artifact bundle. Nothing is wrong with the run; this step has not been taken yet.',
+      text:
+        'Export the artifact bundle. Completed runs write it automatically, so this run ' +
+        'either finished before that was the case or its export did not succeed.',
       action: 'export',
     });
   }

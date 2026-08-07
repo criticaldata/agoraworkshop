@@ -5,6 +5,7 @@ import { executeRun } from './orchestrator/runner.js';
 import { computeAnalytics } from './analytics/summary.js';
 import { evaluateGates, finalizeReport } from './acceptance/gates.js';
 import { exportRun } from './export/exporter.js';
+import { exportOnCompletion } from './export/autoExport.js';
 import { getMessages, getRun, listRuns, runConfig } from './db/queries.js';
 import { readEvents } from './events/recorder.js';
 import { displayName } from './config/schema.js';
@@ -74,6 +75,7 @@ async function main(): Promise<number> {
       const frozen = loadConfigFile(path);
       console.error(`config hash: ${frozen.hash}`);
       const result = await executeRun({ db, frozen, provenance: codeProvenance() });
+      exportOnCompletion(db, result.runId, result.status, console.error);
       console.log(JSON.stringify(result, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;
     }
@@ -104,6 +106,7 @@ async function main(): Promise<number> {
         sourceRunId,
         provenance: codeProvenance(),
       });
+      exportOnCompletion(db, result.runId, result.status, console.error);
       console.log(JSON.stringify({ ...result, sourceRunId }, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;
     }

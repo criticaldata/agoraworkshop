@@ -114,6 +114,11 @@ model-backed config with `--config` and `--fault-config`.
 `export` and `accept` take `--fault-run <run_id>` (gate 2 evidence) and
 `--rerun <run_id>` (gate 3 evidence).
 
+A completed run writes its artifact bundle by itself, from the web UI and from the CLI
+alike. `export` is for writing it again, or to a different directory. A run that did not
+complete is not packaged: its partial data belongs on the run pages, not in a bundle that
+would look like evidence.
+
 ---
 
 ## The five design decisions that matter

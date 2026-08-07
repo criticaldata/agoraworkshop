@@ -262,8 +262,9 @@ export function validationPage(input: ValidationPageInput): string {
       <a href="/api/runs/${esc(run.run_id)}/invocations"><button type="button" class="secondary">Invocation provenance</button></a>
       <a href="/api/runs/${esc(run.run_id)}/validation"><button type="button" class="secondary">This package as JSON</button></a>
     </p>
-    <form method="post" action="/api/runs/${esc(run.run_id)}/export" style="margin-top:.6rem">
-      <button type="submit" class="secondary">Export artifact bundle</button>
+    <form method="post" action="/runs/${esc(run.run_id)}/export" style="margin-top:.6rem">
+      <input type="hidden" name="back" value="/runs/${esc(run.run_id)}/validation">
+      <button type="submit" class="secondary">Export artifact bundle again</button>
       <span class="muted" style="margin-left:.5rem;font-size:.85rem">${
         input.exportedFiles > 0
           ? `${input.exportedFiles} files exported so far`

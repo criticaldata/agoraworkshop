@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { exportRun } from '../src/export/exporter.js';
+import { exportOnCompletion } from '../src/export/autoExport.js';
 import { REQUIRED_BUNDLE_FILES, REQUIRED_BUNDLE_ITEMS } from '../src/export/bundleContract.js';
 import { evaluateGates, finalizeReport } from '../src/acceptance/gates.js';
 import { getArtifacts, getInvocations, getMessages } from '../src/db/queries.js';
@@ -140,5 +141,42 @@ describe('artifact bundle', () => {
     const report = finalizeReport(evaluateGates({ db, runId }));
     expect(report.gates.infrastructure_validated.status).toBe('FAIL');
     expect(report.gates.infrastructure_validated.failures.join(' ')).toContain('manifest.json');
+  });
+});
+
+describe('a completed run exports itself', () => {
+  it('writes the bundle without anyone asking, so gate 1 passes on its own', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    const result = await runner.execute();
+
+    expect(exportOnCompletion(db, runner.id, result.status)).toBe(true);
+
+    const report = finalizeReport(evaluateGates({ db, runId: runner.id }));
+    expect(report.gates.infrastructure_validated.status).toBe('PASS');
+    expect(report.gates.infrastructure_validated.next_steps).toEqual([]);
+  });
+
+  it('does not package a run that did not complete', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+
+    // Partial data belongs on the run pages, not in a bundle that looks like evidence.
+    expect(exportOnCompletion(db, runner.id, 'INTERRUPTED')).toBe(false);
+    expect(getArtifacts(db, runner.id)).toEqual([]);
+  });
+
+  it('reports an export failure instead of swallowing it', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    const result = await runner.execute();
+    const errors: string[] = [];
+
+    // An unknown run id is the cheapest way to make exportRun throw.
+    expect(exportOnCompletion(db, 'run_missing', result.status, (m) => errors.push(m))).toBe(
+      false,
+    );
+    expect(errors.join(' ')).toContain('run_missing');
   });
 });

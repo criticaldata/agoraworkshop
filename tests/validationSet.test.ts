@@ -166,7 +166,7 @@ describe('a failing gate says what to do about it', () => {
 
     expect(gate.status).toBe('FAIL');
     expect(gate.next_steps.map((s) => s.action)).toContain('export');
-    expect(gate.next_steps[0]!.text).toContain('Nothing is wrong with the run');
+    expect(gate.next_steps[0]!.text).toContain('write it automatically');
   });
 
   it('offers rerunning when only one run exists for the settings', async () => {
@@ -226,7 +226,8 @@ describe('a failing gate says what to do about it', () => {
     });
 
     expect(html).toContain('To resolve this');
-    expect(html).toContain(`action="/api/runs/${runner.id}/export"`);
+    // The UI route, which redirects back to the page. The JSON API is for scripts.
+    expect(html).toContain(`action="/runs/${runner.id}/export"`);
     expect(html).toContain(`action="/runs/${runner.id}/rerun"`);
     expect(html).not.toContain('${');
   });

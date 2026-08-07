@@ -60,6 +60,8 @@ export interface RunAnalytics {
   total_public_messages: number;
   total_private_messages: number;
   total_events: number;
+  /** Message deliveries, i.e. one count per recipient per message. */
+  total_deliveries: number;
   total_retries: number;
   total_infrastructure_failures: number;
   infrastructure_failures_by_category: Record<string, number>;
@@ -178,6 +180,10 @@ export function computeAnalytics(db: Db, runId: string): RunAnalytics {
     total_public_messages: messages.filter((m) => m.channel === 'public').length,
     total_private_messages: messages.filter((m) => m.channel === 'private').length,
     total_events: events.length,
+    total_deliveries: events.filter(
+      (e) =>
+        e.event_type === 'message_delivered' || e.event_type === 'private_message_delivered',
+    ).length,
     total_retries: invocations.filter((i) => i.attempt > 1).length,
     total_infrastructure_failures: invocations.filter((i) => i.outcome === 'infra_failure').length,
     infrastructure_failures_by_category: failuresByCategory,

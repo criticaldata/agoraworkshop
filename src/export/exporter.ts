@@ -244,6 +244,8 @@ export function exportRun(options: ExportOptions): ExportResult {
       runId,
       failureEvidenceRunId: options.failureEvidenceRunId ?? null,
       reproducibilityRunId: options.reproducibilityRunId ?? null,
+      // Written after this report: they exist by the time the bundle is returned.
+      pendingArtifactNames: ['acceptance_report.json', 'replay.html', 'README.md', 'manifest.json'],
     }),
   );
   write('acceptance_report.json', 'acceptance', json(acceptance));

@@ -23,6 +23,7 @@ Usage:
   agora hash --config <path>                     Print the config hash without running
   agora list                                     List recorded runs
   agora validate [--config <path>]               Run the full Phase 0 validation package
+                 [--fault-config <path>]         (defaults to the mock configs: no spend)
   agora serve                                    Start the web UI (same as npm start)
 
 Options:
@@ -231,8 +232,8 @@ async function main(): Promise<number> {
     case 'validate': {
       const result = await runValidationPackage({
         db,
-        configPath: flags['config'] ?? 'configs/agora_phase0_smoke.yaml',
-        faultConfigPath: flags['fault-config'] ?? null,
+        configPath: flags['config'] ?? 'configs/agora_phase0_mock_baseline.yaml',
+        faultConfigPath: flags['fault-config'] ?? 'configs/agora_phase0_faultdemo_mock.yaml',
         outDir: flags['out'] ?? null,
       });
       console.log(JSON.stringify(result, null, 2));

@@ -316,6 +316,7 @@ export function runDetailPage(input: RunPageInput): string {
     <form method="post" action="/runs/${esc(run.run_id)}/rerun">
       <button type="submit">Run again with the same settings</button>
     </form>
+    <a href="/runs/${esc(run.run_id)}/validation"><button type="button" class="secondary">Phase 0 validation package</button></a>
     <a href="/runs/${esc(run.run_id)}/replay"><button type="button" class="secondary">Standalone replay</button></a>
     <form method="post" action="/api/runs/${esc(run.run_id)}/export">
       <button type="submit" class="secondary">Export bundle</button>

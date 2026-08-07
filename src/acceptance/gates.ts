@@ -126,6 +126,15 @@ export interface EvaluateGatesOptions {
   failureEvidenceRunId?: string | null;
   /** A second run of the same frozen config, supplying evidence for gate 3. */
   reproducibilityRunId?: string | null;
+  /**
+   * Artifact names the caller is in the middle of writing.
+   *
+   * The acceptance report is itself part of the bundle, so it is written before the
+   * files that come after it. Without this, gate 1 would read a half-written bundle and
+   * report it incomplete. The exporter passes the names it is contractually committed
+   * to writing in the same call; a write failure throws and no bundle is produced.
+   */
+  pendingArtifactNames?: string[];
 }
 
 export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
@@ -145,7 +154,7 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
       reproducibility_run_id: options.reproducibilityRunId ?? null,
     },
     gates: {
-      infrastructure_validated: gateInfrastructure(db, runId),
+      infrastructure_validated: gateInfrastructure(db, runId, options.pendingArtifactNames ?? []),
       failure_attribution_validated: gateFailureAttribution(
         db,
         runId,
@@ -166,7 +175,7 @@ export function finalizeReport(report: AcceptanceReport): AcceptanceReport {
   };
 }
 
-function gateInfrastructure(db: Db, runId: string): GateResult {
+function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): GateResult {
   const evidence: string[] = [];
   const failures: string[] = [];
 
@@ -241,7 +250,7 @@ function gateInfrastructure(db: Db, runId: string): GateResult {
   if (artifacts.length > 0) {
     evidence.push(`${artifacts.length} artifacts exported and hashed`);
     // Exporting *something* is not the same as exporting a complete package.
-    const names = new Set(artifacts.map((a) => a.name));
+    const names = new Set([...artifacts.map((a) => a.name), ...pendingArtifacts]);
     const missing = REQUIRED_BUNDLE_FILES.filter((name) => !names.has(name));
     if (missing.length === 0) {
       evidence.push(

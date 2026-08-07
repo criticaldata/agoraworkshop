@@ -5,6 +5,7 @@ import { getDatabase } from '../db/index.js';
 import { freezeConfig, loadConfigFile } from '../config/load.js';
 import { executeRun, WorkshopRunner } from '../orchestrator/runner.js';
 import {
+  getArtifacts,
   getInvocation,
   getInvocations,
   getMessages,
@@ -12,6 +13,7 @@ import {
   getRun,
   listRuns,
   runConfig,
+  runsWithConfigHash,
   runSummaries,
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
@@ -24,6 +26,8 @@ import { homePage } from './home.js';
 import { docsPage } from './docs.js';
 import { codeProvenance, describeProvenance } from '../core/provenance.js';
 import { reconcileInterruptedRuns } from '../orchestrator/reconcile.js';
+import { buildValidationSet } from '../acceptance/validationSet.js';
+import { validationPage } from './validation.js';
 import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
@@ -158,6 +162,38 @@ app.get('/runs/:runId', (req, res) => {
       isRunning: run.status === 'RUNNING' || active.has(runId),
     }),
   );
+});
+
+app.get('/runs/:runId/validation', (req, res) => {
+  const runId = String(req.params['runId']);
+  const run = getRun(db, runId);
+  if (!run) {
+    res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
+    return;
+  }
+  const invocations = getInvocations(db, runId);
+  res.type('html').send(
+    validationPage({
+      set: buildValidationSet({ db, runId }),
+      run,
+      config: runConfig(run),
+      analytics: computeAnalytics(db, runId),
+      comparableRunIds: runsWithConfigHash(db, run.config_hash)
+        .filter((r) => r.run_id !== runId)
+        .map((r) => r.run_id),
+      sampleInvocationId: invocations[0]?.invocation_id ?? null,
+      exportedFiles: getArtifacts(db, runId).length,
+    }),
+  );
+});
+
+app.get('/api/runs/:runId/validation', (req, res) => {
+  const runId = String(req.params['runId']);
+  if (!getRun(db, runId)) {
+    res.status(404).json({ error: 'unknown run' });
+    return;
+  }
+  res.json(buildValidationSet({ db, runId }));
 });
 
 app.get('/runs/:runId/replay', (req, res) => {

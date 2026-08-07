@@ -1,6 +1,8 @@
 import type { ExperimentConfig } from '../config/schema.js';
 import { displayName } from '../config/schema.js';
 import type { RunRow, InvocationRow } from '../db/queries.js';
+import { runProvenance } from '../db/queries.js';
+import { shown, UNAVAILABLE } from '../core/provenance.js';
 import type { AgoraEvent } from '../events/types.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
 import type { RunAnalytics } from '../analytics/summary.js';
@@ -84,9 +86,24 @@ export function renderRunFacts(run: RunRow): string {
       <div><dt>Provider / model</dt><dd class="mono">${esc(run.provider)} · ${esc(run.model)}</dd></div>
       <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : run.status === 'INTERRUPTED' ? 'unproven' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
       <div><dt>Duration</dt><dd>${run.duration_ms === null ? 'not recorded' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
-      <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? 'not recorded')}</dd></div>
       <div><dt>Started</dt><dd>${esc((run.started_at ?? run.created_at).replace('T', ' ').slice(0, 19))}</dd></div>
+      ${renderProvenanceFacts(run)}
     </dl>`;
+}
+
+/**
+ * Which code produced this run. Anything genuinely absent reads "unavailable" rather
+ * than being filled in with a plausible value: a wrong commit sha is worse than none.
+ */
+export function renderProvenanceFacts(run: RunRow): string {
+  const p = runProvenance(run);
+  const commit = p.git_commit_sha
+    ? `${esc(p.git_commit_sha.slice(0, 12))}${p.commit_source ? ` <span class="muted">(${esc(p.commit_source)})</span>` : ''}`
+    : esc(UNAVAILABLE);
+  return `<div><dt>Code revision</dt><dd class="mono wrap">${commit}</dd></div>
+      <div><dt>Deployment</dt><dd class="mono wrap">${esc(shown(p.deployment_id))}</dd></div>
+      <div><dt>App version</dt><dd class="mono">${esc(shown(p.app_version))}</dd></div>
+      <div><dt>Environment</dt><dd class="mono">${esc(shown(p.environment))}</dd></div>`;
 }
 
 export function renderGates(acceptance: AcceptanceReport): string {

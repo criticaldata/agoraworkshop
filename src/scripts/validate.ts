@@ -6,6 +6,7 @@ import { executeRun } from '../orchestrator/runner.js';
 import { exportRun } from '../export/exporter.js';
 import { getRun } from '../db/queries.js';
 import { codeProvenance } from '../core/provenance.js';
+import { buildValidationSet, type ValidationSet } from '../acceptance/validationSet.js';
 
 export interface ValidationOptions {
   db: Db;
@@ -24,6 +25,7 @@ export interface ValidationResult {
   configHash: string;
   rerunConfigHash: string;
   gates: Record<string, string>;
+  validationSet: ValidationSet;
 }
 
 /**
@@ -81,6 +83,21 @@ export async function runValidationPackage(
     reproducibilityRunId: rerun.runId,
   });
 
+  // The validation set is the package-level view: which run stands behind which gate.
+  // It is written alongside the bundle rather than inside it, because it describes a
+  // set of runs while the bundle describes one.
+  const validationSet = buildValidationSet({
+    db,
+    runId: baseline.runId,
+    failureEvidenceRunId: faultRunId,
+    reproducibilityRunId: rerun.runId,
+  });
+  writeFileSync(
+    join(directory, 'validation_set.json'),
+    `${JSON.stringify(validationSet, null, 2)}\n`,
+    'utf8',
+  );
+
   writeFileSync(join(directory, 'known_issues.md'), KNOWN_ISSUES, 'utf8');
   writeFileSync(
     join(directory, 'VALIDATION.md'),
@@ -93,11 +110,13 @@ export async function runValidationPackage(
       configPath: options.configPath,
       faultConfigPath: options.faultConfigPath ?? null,
       ready: bundle.acceptance.ready_for_controlled_behavioral_experiment,
+      gates: validationSet.gates.map((g) => `${g.title}: ${g.status}`),
     }),
     'utf8',
   );
 
   return {
+    validationSet,
     ready: bundle.acceptance.ready_for_controlled_behavioral_experiment,
     directory,
     baselineRunId: baseline.runId,
@@ -120,6 +139,7 @@ function validationReadme(input: {
   configPath: string;
   faultConfigPath: string | null;
   ready: boolean;
+  gates: string[];
 }): string {
   return `# AGORA Phase 0 validation package
 
@@ -134,6 +154,7 @@ function validationReadme(input: {
 | Rerun config hash | \`${input.rerunConfigHash}\` |
 | Hashes identical | ${input.configHash === input.rerunConfigHash ? 'yes' : 'NO — investigate'} |
 | ready_for_controlled_behavioral_experiment | **${input.ready}** |
+${input.gates.map((g) => `| ${g.split(': ')[0]} | ${g.split(': ')[1]} |`).join('\n')}
 
 The artifacts in this directory describe the **baseline** run. \`acceptance_report.json\`
 draws gate 2 evidence from the failure-evidence run and gate 3 evidence from the rerun;

@@ -152,7 +152,7 @@ function validationReadme(input: {
 | Fault config | ${input.faultConfigPath ? `\`${input.faultConfigPath}\`` : 'same as baseline'} |
 | Baseline config hash | \`${input.configHash}\` |
 | Rerun config hash | \`${input.rerunConfigHash}\` |
-| Hashes identical | ${input.configHash === input.rerunConfigHash ? 'yes' : 'NO — investigate'} |
+| Hashes identical | ${input.configHash === input.rerunConfigHash ? 'yes' : 'NO, investigate'} |
 | ready_for_controlled_behavioral_experiment | **${input.ready}** |
 ${input.gates.map((g) => `| ${g.split(': ')[0]} | ${g.split(': ')[1]} |`).join('\n')}
 
@@ -196,8 +196,19 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
   means budget exhaustion and provider instability are correlated.
 - **No mid-run configuration changes.** The config is frozen at run start, by design.
 - **Single-process runtime.** Runs are executed in the web process. There is no queue,
-  and a process restart mid-run leaves the run row in RUNNING with a complete event log
-  up to the interruption.
+  so a process restart mid-run stops the run in place. Startup reconciliation marks such
+  a run \`INTERRUPTED\`, records its unresolved turns as the infrastructure category
+  \`interrupted\`, appends a \`run_interrupted\` event, and preserves every event, message
+  and invocation already written. It cannot resume the run: it has to be started again
+  from the beginning.
+- **The scripted moderator is untested in practice.** It is implemented and covered by
+  tests, but every run recorded so far used the model-backed moderator, so its effect on
+  a workshop has not been observed.
+- **Failure-evidence runs are found by searching.** When no run is named explicitly, the
+  validation set picks the most recent run that recorded infrastructure failures, which
+  may be under a different configuration than the run being validated. The package
+  always names the run it used, so the choice is visible, but it is a search result
+  rather than a stated pairing.
 
 ## Provider-specific notes
 
@@ -218,4 +229,19 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
   claim the data does not support.
 - Token counts come from the provider's usage block. When a provider does not report
   usage, the corresponding totals are zero rather than estimated.
+
+## What a Phase 0 validation package does and does not say
+
+- A package with all three gates \`PASS\` says the apparatus executed, recorded, and
+  reproduced a bounded workshop. It says nothing about what the agents did or meant.
+- \`NOT_EXERCISED\` on gate 2 means no infrastructure failure occurred in any run supplied.
+  It is missing evidence, not a pass, and it never counts towards validation.
+- A fault-injection run completing successfully is the intended outcome. Its recorded
+  failures are declared experimental conditions, not defects.
+- An interrupted run is never accepted as gate 2 evidence. Being stopped by a restart
+  shows the apparatus noticed it was stopped, not that a provider timeout is told apart
+  from an agent choosing to stay silent.
+- Code provenance is recorded, never invented. A commit sha, deployment id, app version
+  or environment that is genuinely unavailable is stored as null and displayed as
+  \`unavailable\`.
 `;

@@ -22,8 +22,10 @@ See [`docs/known-issues.md`](docs/known-issues.md) for the limits, stated explic
 ```bash
 npm install
 
-# 1. Cheap end-to-end check on the deterministic mock provider — no tokens spent.
-npm run agora -- validate --config configs/agora_phase0_smoke.yaml
+# 1. The whole Phase 0 validation package on the mock provider. No tokens spent.
+#    Produces a baseline run, a rerun of the same frozen config, a fault-injection run,
+#    an exported bundle, and the gate report.
+npm run agora -- validate
 
 # 2. The web UI.
 npm run dev            # then open http://localhost:3000
@@ -36,9 +38,20 @@ npm run dev            # then open http://localhost:3000
 | `/runs` | Operator view. Runs are grouped by settings fingerprint, because runs sharing one are the ones worth comparing. |
 | `/runs/:id` | Checks first, then statistics, timeline, and every individual turn. |
 | `/runs/:id/invocations/:id` | The exact material one agent was given before it responded. |
+| `/runs/:id/validation` | The Phase 0 validation package: configuration, execution summary, the three gates with their evidence, provenance, and links to every artifact. |
 
-The smoke config injects infrastructure faults on purpose, so a first run exercises the
-failure-attribution machinery as well as the happy path.
+Five configurations ship. Three run on the deterministic mock provider and cost nothing:
+
+| Config | Provider | Purpose |
+| --- | --- | --- |
+| `agora_phase0_mock_baseline.yaml` | mock | A normal run with nothing injected. Gate 1 and, paired with a rerun, gate 3. |
+| `agora_phase0_faultdemo_mock.yaml` | mock | Injects timeout, rate limit, provider error, and malformed response. Gate 2. |
+| `agora_phase0_smoke.yaml` | mock | Pre-flight check. Injects a few faults, so it exercises both paths at once. |
+| `agora_phase0_v1.yaml` | openai | The canonical baseline. Spends money. |
+| `agora_phase0_faultdemo.yaml` | openai | The canonical baseline plus injected faults. Spends money. |
+
+Faults are declared in the config, so a fault run carries its own config hash and can
+never be mistaken for a baseline run.
 
 ### A live run against the pinned model
 
@@ -69,9 +82,15 @@ npm run agora -- validate \
 | Structured event log + SQLite persistence | `src/events/`, `src/db/` |
 | Analytics, including infrastructure-adjusted participation | `src/analytics/summary.ts` |
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
+| The Phase 0 validation set (which run evidences which gate) | `src/acceptance/validationSet.ts` |
+| Code and deployment provenance | `src/core/provenance.ts` |
+| Startup reconciliation of interrupted runs | `src/orchestrator/reconcile.ts` |
+| Scripted neutral moderator | `src/providers/scriptedModerator.ts` |
+| Required contents of an artifact bundle | `src/export/bundleContract.ts` |
 | Artifact bundle + self-contained replay page | `src/export/` |
 | Plain-language overview page | `src/server/home.ts` |
 | Technical documentation page | `src/server/docs.ts` |
+| Phase 0 validation package view | `src/server/validation.ts` |
 | Shared visual system | `src/server/theme.ts` |
 | Web UI and JSON API | `src/server/` |
 
@@ -88,6 +107,9 @@ agora hash --config <path>         Print the config hash without running anythin
 agora list                         List recorded runs
 agora validate                     Produce the whole validation package
 ```
+
+`validate` defaults to the mock configs, so it spends nothing unless you point it at a
+model-backed config with `--config` and `--fault-config`.
 
 `export` and `accept` take `--fault-run <run_id>` (gate 2 evidence) and
 `--rerun <run_id>` (gate 3 evidence).
@@ -142,12 +164,39 @@ mistaken for a clean baseline.
 | Gate | Passes when |
 | --- | --- |
 | **1 — Infrastructure validated** | Run reached a clean terminal state; event sequence contiguous; public and private messages routed and delivered; private channel actually exercised; **zero** re-derived visibility violations; all state transitions completed; artifacts exported; no unclassified execution errors. |
-| **2 — Failure attribution validated** | No opportunity conflates infrastructure failure with abstention; no failed turn counted as behaviourally available; infrastructure events present as distinct types; retry behaviour visible. |
-| **3 — Baseline reproducible** | Config frozen and snapshotted; hash recorded; model, generation, prompt, context, retry and budget settings documented; ≥2 runs with distinct run ids and an identical config hash. |
+| **2 — Failure attribution validated** | No opportunity conflates infrastructure failure with abstention; no failed turn counted as behaviourally available; infrastructure events present as distinct types; retry behaviour visible. Reports `NOT_EXERCISED` when no failure ever occurred. |
+| **3 — Baseline reproducible** | Config frozen and snapshotted; hash recorded; model, generation, prompt, context, retry, budget settings and code revision documented; two or more runs with distinct run ids and an identical config hash. |
 
-`ready_for_controlled_behavioral_experiment` is set to `true` only when all three pass.
-A run with no observed infrastructure failure **fails gate 2** rather than passing it by
-default — which is why the fault-injection config exists.
+Each gate reports one of three statuses:
+
+| Status | Meaning |
+| --- | --- |
+| `PASS` | The gate was exercised and every check passed. |
+| `FAIL` | The gate was exercised and at least one check failed. |
+| `NOT_EXERCISED` | The conditions the gate judges never occurred in the runs supplied. Missing evidence, not a pass. |
+
+`ready_for_controlled_behavioral_experiment` is set to `true` only when all three
+**PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
+defect in the instrument and not a pass, which is why the fault-injection configs exist.
+
+### The validation set
+
+One run is not expected to demonstrate all three gates. `agora validate` and
+`/runs/:id/validation` assemble a **validation set** and name which run stands behind
+which verdict:
+
+| Evidence | Run |
+| --- | --- |
+| Infrastructure integrity | A normal run |
+| Reproducibility | A rerun of the same frozen config |
+| Failure attribution | A fault-injection run |
+
+A run-level result and Phase 0 evidence are reported separately. A fault-injection run
+full of recorded failures completed exactly as intended; that is not a failed run.
+
+An interrupted run is never accepted as gate 2 evidence. Being stopped by a restart shows
+the apparatus noticed it was stopped, not that a provider timeout is told apart from an
+agent choosing to stay silent.
 
 ---
 
@@ -197,17 +246,18 @@ Swap `model.provider` to `mock` for a deterministic, free run of the same machin
 
 ## Demo script
 
-1. `agora hash --config configs/agora_phase0_v1.yaml` — show the frozen config and hash.
+1. `agora hash --config configs/agora_phase0_v1.yaml` shows the frozen config and hash.
 2. Launch a run from the UI and watch the timeline fill in.
 3. Point at a public message and its per-recipient delivery events.
-4. Point at a breakout message — then open a non-member's invocation and show its
-   context does not contain it.
+4. Point at a breakout message, then open a non-member's invocation and show its context
+   does not contain it.
 5. Show a fault-run timeline: a timeout, a retry, a recovery, and a retry exhaustion,
    each recorded separately from abstention.
 6. Open any invocation to reconstruct the exact context that produced a message.
-7. Show `analytics.json` — naive vs infrastructure-adjusted participation.
+7. Show `analytics.json`: naive against infrastructure-adjusted participation.
 8. Rerun the frozen config: new run id, identical config hash.
-9. Show the three gates.
+9. Open `/runs/:id/validation` and walk the three gates, expanding the evidence under
+   each and following the link to the run that supplied it.
 
 ---
 
@@ -226,6 +276,13 @@ Deployed on Railway from this repository.
 | `PORT` | Set by Railway. |
 | `AGORA_AUTH_PASSWORD` | Shared credential. **Unset means run-starting and export return 503**, not that they run open. |
 | `AGORA_AUTH_SCOPE` | `write` (default) protects run-starting and export; `all` protects every route except the health check. |
+| `AGORA_APP_VERSION` | Optional. Overrides the version read from `package.json` in the provenance record. |
+| `AGORA_COMMIT_SHA` | Optional. Used when the platform does not supply a commit sha and there is no git checkout. |
+
+Railway supplies `RAILWAY_GIT_COMMIT_SHA`, `RAILWAY_DEPLOYMENT_ID` and
+`RAILWAY_ENVIRONMENT_NAME` automatically, and every run records them. Nothing is ever
+invented: a value that is genuinely unavailable is stored as null and displayed as
+`unavailable`.
 
 Health check: `GET /healthz` — always reachable without a credential.
 

@@ -1,5 +1,6 @@
 import { esc } from '../export/replayHtml.js';
 import { BASE_STYLES } from './theme.js';
+import { REQUIRED_BUNDLE_ITEMS } from '../export/bundleContract.js';
 
 /**
  * Technical documentation.
@@ -49,6 +50,7 @@ export function docsPage(): string {
     present limits and the work that would remove them, in the order it should be done.</p>
     <nav class="toc" aria-label="Contents">
       ${[
+        ['#phase0', 'What Phase 0 proves'],
         ['#shape', 'Shape of the system'],
         ['#execution', 'Execution model'],
         ['#config', 'Configuration and hashing'],
@@ -56,6 +58,9 @@ export function docsPage(): string {
         ['#events', 'Event model'],
         ['#visibility', 'Channel visibility'],
         ['#failure', 'Failure classification'],
+        ['#moderator', 'Moderator modes'],
+        ['#durability', 'Interrupted runs'],
+        ['#bundle', 'Artifact bundle'],
         ['#provider', 'Provider adapter'],
         ['#access', 'Access control'],
         ['#extending', 'Extension points'],
@@ -68,6 +73,7 @@ export function docsPage(): string {
   </header>
 
 <div class="spine">
+${sectionPhase0()}
 ${sectionShape()}
 ${sectionExecution()}
 ${sectionConfig()}
@@ -75,6 +81,9 @@ ${sectionData()}
 ${sectionEvents()}
 ${sectionVisibility()}
 ${sectionFailure()}
+${sectionModerator()}
+${sectionDurability()}
+${sectionBundle()}
 ${sectionProvider()}
 ${sectionAccess()}
 ${sectionExtending()}
@@ -377,6 +386,205 @@ function sectionFailure(): string {
 </section>`;
 }
 
+
+// ----------------------------------------------------------------- phase 0
+
+function sectionPhase0(): string {
+  const gates: Array<[string, string, string]> = [
+    [
+      'Infrastructure integrity',
+      'Did the workshop infrastructure work?',
+      'The run reached a terminal state, the event sequence is contiguous, every message ' +
+        'resolved to a recipient, visibility re-derived from stored records shows no ' +
+        'cross-channel leak, the state machine advanced legally, no execution error is ' +
+        'unclassified, and a complete artifact bundle was written.',
+    ],
+    [
+      'Failure attribution',
+      'Can infrastructure failure be told apart from agent behaviour?',
+      'No opportunity carries both an abstention label and a failure category, no ' +
+        'infrastructure failure is counted as behaviourally available, and some run in ' +
+        'the set actually recorded failures and retries so the distinction was tested.',
+    ],
+    [
+      'Reproducibility',
+      'Can the experiment be rerun under the same configuration?',
+      'An immutable config snapshot is stored with the run, the hash is deterministic, ' +
+        'model settings, prompt versions, context policy, capability manifest, retry and ' +
+        'budget policy and code revision are all recorded, and a second completed run ' +
+        'exists under the same hash.',
+    ],
+  ];
+
+  const statuses: Array<[string, string]> = [
+    ['PASS', 'The gate was exercised and every check passed.'],
+    ['FAIL', 'The gate was exercised and at least one check failed.'],
+    [
+      'NOT_EXERCISED',
+      'The conditions the gate judges never occurred in the runs supplied. This is ' +
+        'missing evidence, not a pass, and it never counts towards validation.',
+    ],
+  ];
+
+  return `<section id="phase0">
+  <p class="eyebrow">Scope</p>
+  <h2>What Phase 0 proves</h2>
+  <p class="body">Phase 0 validates an apparatus. It establishes that a bounded
+  multi-agent workshop can be executed, observed, and reproduced, and that what the
+  instrument records can be trusted. It establishes nothing about how AI agents behave.
+  No output of this system supports a claim about coalitions, persuasion, convergence, or
+  emergence, and none is intended to.</p>
+
+  <p class="body">Three gates carry that claim. Each is evaluated from stored records
+  rather than from a running process, so any reader with the exported bundle can
+  recompute the same verdict.</p>
+
+  <div class="scroll">
+    <table class="ref">
+      <thead><tr><th>Gate</th><th>Question</th><th>What has to hold</th></tr></thead>
+      <tbody>${gates
+        .map(
+          ([name, question, detail]) =>
+            `<tr><td><b>${esc(name)}</b></td><td>${esc(question)}</td><td class="small">${esc(detail)}</td></tr>`,
+        )
+        .join('')}</tbody>
+    </table>
+  </div>
+
+  <p class="body">A gate reports one of three statuses. The third exists because a run in
+  which nothing went wrong is not evidence that failures are handled correctly, and
+  reporting it as a failure would be equally wrong.</p>
+
+  <div class="scroll">
+    <table class="ref">
+      <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+      <tbody>${statuses
+        .map(
+          ([name, meaning]) =>
+            `<tr><td class="mono">${esc(name)}</td><td class="small">${esc(meaning)}</td></tr>`,
+        )
+        .join('')}</tbody>
+    </table>
+  </div>
+
+  <p class="body">One run is not expected to demonstrate all three. The validation set
+  combines a normal run for the first gate, a rerun of the same frozen config for the
+  third, and a fault-injection run for the second, and names which run stands behind
+  which verdict. A run-level result and Phase 0 evidence are reported as separate things:
+  a fault-injection run full of recorded failures completed exactly as intended.</p>
+
+  <p class="aside">Reproducibility here means the conditions are reproducible, not that
+  the text repeats. Model generation is stochastic by design, and the acceptance checks
+  never compare message content between runs.</p>
+</section>`;
+}
+
+// -------------------------------------------------------------- moderator
+
+function sectionModerator(): string {
+  return `<section id="moderator">
+  <p class="eyebrow">Neutrality</p>
+  <h2>Moderator modes</h2>
+  <p class="body">The moderator can be a model like any participant, or it can read from
+  a fixed script. The mode is part of the configuration, so it is part of the config hash
+  and cannot be changed mid-run.</p>
+
+  <div class="two-col">
+    <div class="card">
+      <span class="card-tag public">llm</span>
+      <p>The default, and what every run so far has used. The moderator is a model
+      invocation, so its output is model output: it can characterise the discussion,
+      and a reader cannot separate the scaffolding of the session from the behaviour
+      under observation. Acceptable in Phase 0, where the instrument is what is being
+      validated.</p>
+    </div>
+    <div class="card">
+      <span class="card-tag private">scripted</span>
+      <p>The moderator answers from text fixed in
+      <code>src/providers/scriptedModerator.ts</code>. It announces each phase, states
+      the protocol, and closes the session. It costs nothing, is identical in every run,
+      and never reaches a provider.</p>
+    </div>
+  </div>
+
+  <p class="body">The scripted moderator does not summarise, does not say that consensus
+  has emerged, does not describe what the group believes, does not praise or criticise a
+  position, does not introduce arguments, and does not carry anything from a private
+  channel into public context. Its closing line says so explicitly rather than producing
+  a summary. This is what makes it usable in a controlled experiment: nothing it says can
+  steer the discussion, because everything it says was written before the run.</p>
+
+  <p class="aside">The field is optional and has no default. A default would be written
+  into every parsed configuration and would change the config hash of runs already
+  recorded, which would break rerun of those runs. A configuration that aims a fault at a
+  scripted moderator is rejected, because a scripted moderator never calls a provider and
+  the fault could not occur.</p>
+</section>`;
+}
+
+// ------------------------------------------------------------- durability
+
+function sectionDurability(): string {
+  return `<section id="durability">
+  <p class="eyebrow">Durability</p>
+  <h2>Interrupted runs</h2>
+  <p class="body">Runs execute inside the web process. A deploy, a container restart, or
+  a crash therefore stops a run in place, leaving a complete event log up to that moment
+  and a run row that still says <code>RUNNING</code>.</p>
+
+  <p class="body">On startup, before any new run can begin, every run left in
+  <code>CREATED</code> or <code>RUNNING</code> is marked <code>INTERRUPTED</code>. A run
+  starting up cannot own a run that was already executing, so the only honest reading is
+  that a previous process was stopped. Turns that never resolved are recorded as the
+  infrastructure category <code>interrupted</code> and excluded from behavioural
+  availability: the agent was never given the chance to stay silent, so its silence is
+  not behavioural data. A <code>run_interrupted</code> event is appended after the last
+  event the run wrote.</p>
+
+  <p class="body">Nothing is deleted. Every event, message, invocation, and resolved
+  opportunity is preserved exactly as written. <code>INTERRUPTED</code> is a distinct
+  status precisely so that an interrupted run is never rounded to a completed one, to a
+  failed one, or to a cancelled one.</p>
+
+  <p class="aside">An interrupted run is not accepted as evidence for the failure
+  attribution gate. Being stopped by a restart shows that the apparatus noticed it was
+  stopped; it shows nothing about whether a provider timeout is told apart from an agent
+  choosing to stay silent.</p>
+</section>`;
+}
+
+// ----------------------------------------------------------------- bundle
+
+function sectionBundle(): string {
+  return `<section id="bundle">
+  <p class="eyebrow">Deliverable</p>
+  <h2>Artifact bundle</h2>
+  <p class="body">A completed run exports as a self-contained directory. Every file is
+  hashed, and the hashes are stored in the database as well as written into
+  <code>manifest.json</code>, so a bundle can be checked against the instance that
+  produced it.</p>
+
+  <div class="scroll">
+    <table class="ref">
+      <thead><tr><th>Required item</th><th>File</th></tr></thead>
+      <tbody>${REQUIRED_BUNDLE_ITEMS.map(
+        (entry) =>
+          `<tr><td>${esc(entry.item)}</td><td class="mono small">${esc(entry.files.join(', '))}</td></tr>`,
+      ).join('')}</tbody>
+    </table>
+  </div>
+
+  <p class="body">This list is not documentation of what the exporter happens to write:
+  it is the contract the exporter is checked against. The infrastructure gate fails a run
+  whose bundle is missing any of these files, so a bundle that quietly stops carrying one
+  of them fails the gate rather than passing thinner.</p>
+
+  <p class="aside"><code>manifest.json</code> is written last so it can list every other
+  file's hash, which means its own hash is not in that list. The file says so rather than
+  leaving a reader to discover it.</p>
+</section>`;
+}
+
 // --------------------------------------------------------------- provider
 
 function sectionProvider(): string {
@@ -513,7 +721,7 @@ function sectionLimits(): string {
   const limits: Array<[string, string, string]> = [
     [
       'Runs execute in the web process',
-      'There is no queue and no worker. A deployment or restart during a run leaves its row marked as running, with a complete log up to the point of interruption and no further entries.',
+      'There is no queue and no worker. A deployment or restart during a run stops it in place. Startup reconciliation marks such a run INTERRUPTED and preserves its partial log, but the run cannot be resumed: it has to be started again from the beginning.',
       'Operational',
     ],
     [
@@ -540,6 +748,16 @@ function sectionLimits(): string {
       'Failed attempts consume call budget',
       'An agent that repeatedly times out exhausts its budget on attempts that produced nothing. This bounds spend, but it means budget exhaustion and provider instability are correlated in the data.',
       'Design',
+    ],
+    [
+      'The scripted moderator has not been used in a recorded experiment',
+      'It is implemented, tested, and available as a configuration option, but every run recorded so far used the model-backed moderator. Its effect on a workshop is therefore untested in practice.',
+      'Gap',
+    ],
+    [
+      'Failure-evidence runs are found by searching, not declared',
+      'When no run is named explicitly, the validation set picks the most recent run that recorded infrastructure failures, which may be under a different configuration than the run being validated. The package always names which run it used, so the choice is visible, but it is a search result rather than a stated pairing.',
+      'Gap',
     ],
     [
       'Analytics report tokens, not cost',

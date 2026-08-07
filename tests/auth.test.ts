@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { describe, expect, it, vi } from 'vitest';
 import {
   authConfigFromEnv,
@@ -242,5 +243,70 @@ describe('configuration from the environment', () => {
     expect(describeAuth({ password: null, scope: 'write', realm: 'AGORA' })).toContain(
       'NOT CONFIGURED',
     );
+  });
+});
+
+describe('every action that can spend money is a state-changing request', () => {
+  // Route handlers only. The helpers defined below them are not routes, and letting
+  // the last route's slice run to the end of the file would swallow `launch` itself.
+  const source = readFileSync(new URL('../src/server/index.ts', import.meta.url), 'utf8').split(
+    '\nfunction launch(',
+  )[0]!;
+
+  /**
+   * `launch()` is the only path in the server that starts a workshop, and starting a
+   * workshop is what costs money. Access control keys on the HTTP method, so the
+   * guarantee "no anonymous visitor can spend" reduces to "no GET route calls launch".
+   * A future route that forgets this is caught here rather than on the bill.
+   */
+  const routes = (() => {
+    const pattern = /app\.(get|post)\(\s*'([^']+)'/g;
+    const found: Array<{ method: string; path: string; body: string }> = [];
+    const starts = [...source.matchAll(pattern)];
+    starts.forEach((match, index) => {
+      const from = match.index!;
+      const to = index + 1 < starts.length ? starts[index + 1]!.index! : source.length;
+      found.push({ method: match[1]!, path: match[2]!, body: source.slice(from, to) });
+    });
+    return found;
+  })();
+
+  it('found the routes it is meant to be checking', () => {
+    expect(routes.length).toBeGreaterThan(10);
+    expect(routes.filter((r) => r.body.includes('launch(')).length).toBe(4);
+  });
+
+  it('never launches a run from a GET route', () => {
+    const spending = routes.filter(
+      (r) => r.method === 'get' && (r.body.includes('launch(') || r.body.includes('executeRun(')),
+    );
+    expect(spending.map((r) => r.path)).toEqual([]);
+  });
+
+  it('keeps the four run-launching routes on POST', () => {
+    const launching = routes.filter((r) => r.body.includes('launch('));
+    expect(launching.every((r) => r.method === 'post')).toBe(true);
+    expect(launching.map((r) => r.path).sort()).toEqual([
+      '/api/runs',
+      '/api/runs/:runId/rerun',
+      '/runs',
+      '/runs/:runId/rerun',
+    ]);
+  });
+
+  it('exports through a POST as well, because exporting writes files', () => {
+    const exporting = routes.filter((r) => r.body.includes('exportRun('));
+    expect(exporting.length).toBeGreaterThan(0);
+    expect(exporting.every((r) => r.method === 'post')).toBe(true);
+  });
+
+  it('never reads a secret inside a module that renders pages', () => {
+    // Naming an environment variable in documentation is fine. Reading its value in a
+    // module whose job is to produce HTML is how a secret ends up on a page.
+    for (const file of ['../src/server/pages.ts', '../src/server/validation.ts',
+                        '../src/server/docs.ts', '../src/server/home.ts']) {
+      const contents = readFileSync(new URL(file, import.meta.url), 'utf8');
+      expect(contents).not.toMatch(/process\.env/);
+    }
   });
 });

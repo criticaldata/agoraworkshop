@@ -79,5 +79,5 @@ export function codeProvenance(
 /** One line for the startup log, so the running revision is never a guess. */
 export function describeProvenance(p: CodeProvenance): string {
   const commit = p.git_commit_sha ? `${p.git_commit_sha.slice(0, 12)} (${p.commit_source})` : UNAVAILABLE;
-  return `code:    commit ${commit} · version ${shown(p.app_version)} · deployment ${shown(p.deployment_id)}`;
+  return `commit ${commit} · version ${shown(p.app_version)} · deployment ${shown(p.deployment_id)} · env ${shown(p.environment)}`;
 }

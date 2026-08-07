@@ -54,7 +54,11 @@ const VALIDATION_STYLES = `
               text-transform: uppercase; letter-spacing: .07em;
               border-bottom: 1px solid var(--line); padding: .4rem .6rem .4rem 0; }
 .vp-runs td { padding: .55rem .6rem .55rem 0; border-bottom: 1px solid var(--line);
-              vertical-align: top; }
+              vertical-align: top; overflow-wrap: anywhere; }
+/* Run ids are long and the reason column is the one worth reading, so give the reason
+   the space and let the identifiers wrap. */
+.vp-runs td:first-child { width: 15rem; }
+.vp-runs td:last-child { min-width: 14rem; }
 .vp-links { display: flex; gap: .5rem; flex-wrap: wrap; }
 .vp-links a, .vp-links button { font-size: .85rem; }
 `;

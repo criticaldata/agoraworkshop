@@ -147,7 +147,7 @@ export function createAuthMiddleware(config: AuthConfig): RequestHandler {
 /** One line at startup so the running configuration is never a guess. */
 export function describeAuth(config: AuthConfig): string {
   if (!config.password) {
-    return 'auth:    NOT CONFIGURED — starting runs and exporting are refused (set AGORA_AUTH_PASSWORD)';
+    return 'auth:    NOT CONFIGURED. Starting runs and exporting are refused (set AGORA_AUTH_PASSWORD)';
   }
   return config.scope === 'all'
     ? 'auth:    enabled for the whole instance'

@@ -35,7 +35,7 @@ failure-attribution machinery as well as the happy path.
 ### A live run against the pinned model
 
 ```bash
-export ANTHROPIC_API_KEY=sk-ant-...
+export OPENAI_API_KEY=sk-...
 
 npm run agora -- hash --config configs/agora_phase0_v1.yaml     # inspect before spending
 npm run agora -- run  --config configs/agora_phase0_v1.yaml
@@ -57,7 +57,7 @@ npm run agora -- validate \
 | Turn scheduling, retries, budgets, routing | `src/orchestrator/runner.ts` |
 | Context assembly + provenance | `src/orchestrator/context.ts` |
 | Single visibility rule (public/private separation) | `src/orchestrator/visibility.ts` |
-| Provider adapter (Anthropic, mock, fault injection) | `src/providers/` |
+| Provider adapters (OpenAI, Anthropic, mock, fault injection) | `src/providers/` |
 | Structured event log + SQLite persistence | `src/events/`, `src/db/` |
 | Analytics, including infrastructure-adjusted participation | `src/analytics/summary.ts` |
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
@@ -142,17 +142,33 @@ default — which is why the fault-injection config exists.
 
 ## Model configuration
 
-The canonical baseline pins `claude-opus-5` via a thin provider-neutral adapter.
+The canonical baseline pins `gpt-5.6-sol` through a provider-neutral adapter. Three
+adapters ship: `openai`, `anthropic`, and `mock`. Switching provider is a config edit —
+and because the provider and model id are part of the hashed config, a provider change
+is a visible change of experimental conditions, never a silent one.
 
-- **No silent fallback.** Server-side refusal fallbacks are deliberately not enabled. A
-  policy refusal is recorded as the infrastructure category `provider_refusal`; it is
-  never rescued by a different model behind the researcher's back.
-- **No hidden reasoning.** Thinking runs with `display: omitted`. No reasoning content is
-  requested, returned, or stored.
-- **Sampling parameters are recorded as `null`.** Current Claude models reject them; the
-  adapter refuses to start rather than silently discarding a recorded parameter.
+- **No silent fallback.** No model fallback of any kind is configured. A refusal is
+  recorded as the infrastructure category `provider_refusal`; it is never rescued by a
+  different model behind the researcher's back.
+- **No hidden reasoning.** `thinking: adaptive` sends `reasoning_effort: <effort>`;
+  `thinking: disabled` sends `reasoning_effort: 'none'` explicitly rather than omitting
+  the field. Reasoning content itself is never requested or stored.
+- **`null` means "not set".** The OpenAI adapter omits null sampling parameters entirely
+  rather than sending a provider default under a null label. (The Anthropic adapter
+  refuses to start if they are set, because current Claude models reject them.)
+- **`seed` is honoured when set.** OpenAI accepts a seed on chat completions, so setting
+  an integer holds one more variable constant. It is best-effort, not a determinism
+  guarantee.
 - **SDK retries are off.** Retries are the orchestrator's job, so every attempt appears
   in the event log.
+
+The exact model id is one line in the config:
+
+```yaml
+model:
+  provider: openai
+  model: gpt-5.6-sol      # or gpt-5.6-terra / gpt-5.6-luna for cheaper runs
+```
 
 Swap `model.provider` to `mock` for a deterministic, free run of the same machinery.
 
@@ -180,7 +196,9 @@ Deployed on Railway from this repository.
 
 | Variable | Purpose |
 | --- | --- |
-| `ANTHROPIC_API_KEY` | Required for live runs; not needed for the mock config. |
+| `OPENAI_API_KEY` | Required for live runs; not needed for the mock config. |
+| `OPENAI_BASE_URL` | Optional; points the adapter at a compatible gateway. |
+| `ANTHROPIC_API_KEY` | Only needed if a config sets `model.provider: anthropic`. |
 | `AGORA_DATA_DIR` | SQLite location. **Point at a mounted volume** (e.g. `/data`) or runs are lost on redeploy. |
 | `AGORA_EXPORT_DIR` | Export bundle location; also belongs on the volume. |
 | `AGORA_CONFIG_DIR` | Where the server looks for frozen configs (default `./configs`). |
@@ -196,9 +214,9 @@ Health check: `GET /healthz`.
 npm test
 ```
 
-59 tests covering config integrity and immutability, state-machine validity and
+68 tests covering config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
-category, retry bounds, context provenance and reconstruction, export ordering, and
-reproducibility.
+category, retry bounds, context provenance and reconstruction, export ordering,
+reproducibility, and the OpenAI request mapping.
 
 Run the mock-provider tests and the smoke config before ever starting a live workshop.

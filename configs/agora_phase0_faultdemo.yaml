@@ -8,13 +8,21 @@ experiment_id: agora_phase0_v1_faultdemo
 config_version: 1
 
 model:
-  provider: anthropic
-  model: claude-opus-5
+  provider: openai
+  # Pinned, exact model identifier (not the `gpt-5.6` alias, which can move).
+  # The runtime never substitutes another model and never falls back on refusal.
+  model: gpt-5.6-sol
   max_output_tokens: 1200
+  # Sampling parameters are recorded as null, meaning "not set". The adapter omits
+  # them from the request rather than sending a provider default under a null label.
   temperature: null
   top_p: null
   top_k: null
+  # OpenAI accepts a seed on chat completions. Set an integer here to hold one more
+  # variable constant across runs; it is best-effort, not a determinism guarantee.
   seed: null
+  # `adaptive` sends reasoning_effort: <effort>. `disabled` sends reasoning_effort:
+  # 'none'. Reasoning content itself is never requested or stored.
   thinking: adaptive
   thinking_display: omitted
   effort: low

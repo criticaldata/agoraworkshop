@@ -63,14 +63,15 @@ export const ExperimentConfigSchema = z
     config_version: z.number().int().positive(),
 
     model: z.object({
-      provider: z.enum(['anthropic', 'mock']),
+      provider: z.enum(['openai', 'anthropic', 'mock']),
       /** Exact provider model identifier. Never substituted at runtime. */
       model: z.string().min(1),
       max_output_tokens: z.number().int().positive(),
       /**
-       * Sampling parameters are recorded for provenance. Current Claude models reject
-       * non-default sampling parameters, so the Anthropic adapter refuses to start a
-       * run that sets them rather than silently dropping them.
+       * Sampling parameters are recorded for provenance. `null` means "not set", and
+       * adapters must not silently substitute a provider default for it. The OpenAI
+       * adapter omits the field entirely; the Anthropic adapter refuses to start a run
+       * that sets them, because current Claude models reject them outright.
        */
       temperature: z.number().nullable(),
       top_p: z.number().nullable(),

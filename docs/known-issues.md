@@ -33,15 +33,25 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
 
 ## Provider-specific notes
 
-- Sampling parameters (`temperature`, `top_p`, `top_k`) are recorded but must be
-  `null`: current Claude models reject them. The adapter refuses to start rather than
-  silently dropping a recorded experimental parameter.
-- Thinking output is requested with `display: omitted`. No reasoning content is
-  captured or stored. Phase 0 deliberately does not depend on private reasoning traces.
-- Server-side refusal fallbacks are **not** enabled, because the spec forbids silently
-  falling back to another model. A policy refusal is therefore recorded as the
-  infrastructure category `provider_refusal` and the turn is retried on the same model.
-- SDK-level retries are disabled so that every attempt appears in the event log.
+- The canonical configs pin an OpenAI model. `model.provider` also accepts `anthropic`
+  and `mock`; provider and model id are part of the hashed config, so switching either
+  is a visible change of experimental conditions.
+- Sampling parameters (`temperature`, `top_p`, `top_k`) are recorded but default to
+  `null`, meaning "not set". The OpenAI adapter omits null fields from the request
+  rather than sending a provider default; `top_k` is never sent, because the Chat
+  Completions API does not accept it. The Anthropic adapter refuses to start if any are
+  set, because current Claude models reject them outright.
+- `seed` is forwarded to OpenAI when set. It reduces variance between runs but does not
+  guarantee identical output, and Phase 0 does not depend on it.
+- Reasoning content is never requested or stored on any provider. `thinking: adaptive`
+  maps to `reasoning_effort: <effort>`; `thinking: disabled` maps to
+  `reasoning_effort: 'none'`.
+- No model fallback is configured, because the spec forbids silently falling back to
+  another model. A refusal (an OpenAI `refusal` message or a `content_filter` finish
+  reason) is recorded as the infrastructure category `provider_refusal` and the turn is
+  retried on the same model.
+- SDK-level retries are disabled on every adapter so that every attempt appears in the
+  event log.
 
 ## Analytics limitations
 

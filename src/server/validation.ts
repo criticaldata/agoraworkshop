@@ -55,11 +55,14 @@ const VALIDATION_STYLES = `
 .vp-runs col.id { width: 26%; }
 .vp-runs col.role { width: 16%; }
 .vp-runs col.result { width: 20%; }
-.vp-runs th { text-align: left; color: var(--muted); font-weight: 600; font-size: .72rem;
+/* The shared stylesheet sets white-space: nowrap and right alignment on every cell,
+   which suits dense numeric tables and not this one. */
+.vp-runs th, .vp-runs td { white-space: normal; text-align: left; overflow-wrap: anywhere; }
+.vp-runs th { color: var(--muted); font-weight: 600; font-size: .72rem;
               text-transform: uppercase; letter-spacing: .07em;
               border-bottom: 1px solid var(--line); padding: .4rem .6rem .4rem 0; }
 .vp-runs td { padding: .55rem .6rem .55rem 0; border-bottom: 1px solid var(--line);
-              vertical-align: top; overflow-wrap: anywhere; }
+              vertical-align: top; }
 /* Run ids are long and the reason column is the one worth reading, so give the reason
    the space and let the identifiers wrap. */
 

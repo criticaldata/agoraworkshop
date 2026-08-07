@@ -26,7 +26,7 @@ export function docsPage(): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA — technical documentation</title>
+<title>AGORA · technical documentation</title>
 <meta name="description" content="Architecture, data model, execution model, current limits, and proposed work for the AGORA Phase 0 research environment.">
 <style>${BASE_STYLES}${DOCS_STYLES}</style>
 </head>
@@ -209,8 +209,8 @@ function sectionConfig(): string {
   <p class="eyebrow">Reproducibility</p>
   <h2>Configuration and hashing</h2>
   <p class="body">The configuration is parsed and validated once, then deep-frozen, so a
-  run cannot alter the conditions it is recording. It is serialised canonically — object
-  keys sorted recursively, array order preserved, no insignificant whitespace — and
+  run cannot alter the conditions it is recording. It is serialised canonically (object
+  keys sorted recursively, array order preserved, no insignificant whitespace) and then
   hashed with SHA-256. Two configurations that differ in any recorded field produce
   different hashes; two that differ only in key order produce the same one.</p>
 
@@ -350,9 +350,9 @@ function sectionFailure(): string {
     <div class="card">
       <span class="card-tag public">Behavioural</span>
       <ul>
-        <li><code>success</code> — the agent produced a message.</li>
-        <li><code>explicit_abstention</code> — the agent returned the abstention token.</li>
-        <li><code>no_op</code> — the agent returned the pass token.</li>
+        <li><code>success</code>: the agent produced a message.</li>
+        <li><code>explicit_abstention</code>: the agent returned the abstention token.</li>
+        <li><code>no_op</code>: the agent returned the pass token.</li>
       </ul>
     </div>
     <div class="card">

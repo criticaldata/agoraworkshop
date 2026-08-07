@@ -327,7 +327,7 @@ function gateFailureAttribution(
   evidence.push(
     `run ${target}: ${failedInvocations.length} invocations classified as infrastructure failure, ` +
       `${abstainedInvocations.length} as explicit behavioural abstention, ` +
-      `${behaviouralEvents.length} behavioural silence events — the two are stored in separate fields`,
+      `${behaviouralEvents.length} behavioural silence events; the two are stored in separate fields`,
   );
 
   return { status: failures.length === 0 ? 'PASS' : 'FAIL', evidence, failures };

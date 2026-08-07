@@ -41,7 +41,7 @@ export function homePage(input: HomeInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA — a controlled environment for observing interaction between AI agents</title>
+<title>AGORA · a controlled environment for observing interaction between AI agents</title>
 <meta name="description" content="AGORA runs small workshops between AI agents and records each message, response opportunity and technical failure, so that a completed run can be examined in detail.">
 <style>${HOME_STYLES}</style>
 </head>
@@ -95,9 +95,9 @@ function hero(): string {
   <figure class="ring-figure">
     ${ringDiagram()}
     <figcaption>
-      <span class="legend"><i class="dot public"></i>Public — received by all participants</span>
-      <span class="legend"><i class="dot private"></i>Private — received only within the group</span>
-      <span class="legend"><i class="dot fault"></i>Failure — the message was not delivered</span>
+      <span class="legend"><i class="dot public"></i>Public: received by all participants</span>
+      <span class="legend"><i class="dot private"></i>Private: received only within the group</span>
+      <span class="legend"><i class="dot fault"></i>Failure: the message was not delivered</span>
     </figcaption>
   </figure>
   </div>

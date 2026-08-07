@@ -45,7 +45,7 @@ export function renderReplayHtml(input: ReplayInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA replay — ${esc(run.run_id)}</title>
+<title>AGORA replay · ${esc(run.run_id)}</title>
 <style>${STYLES}</style>
 </head>
 <body>
@@ -83,8 +83,8 @@ export function renderRunFacts(run: RunRow): string {
       <div><dt>Settings fingerprint</dt><dd class="mono wrap">${esc(run.config_hash)}</dd></div>
       <div><dt>Provider / model</dt><dd class="mono">${esc(run.provider)} · ${esc(run.model)}</dd></div>
       <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
-      <div><dt>Duration</dt><dd>${run.duration_ms === null ? '—' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
-      <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? '—')}</dd></div>
+      <div><dt>Duration</dt><dd>${run.duration_ms === null ? 'not recorded' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
+      <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? 'not recorded')}</dd></div>
       <div><dt>Started</dt><dd>${esc((run.started_at ?? run.created_at).replace('T', ' ').slice(0, 19))}</dd></div>
     </dl>`;
 }
@@ -110,7 +110,7 @@ export function renderStats(analytics: RunAnalytics): string {
       ${stat('Private messages', analytics.total_private_messages)}
       ${stat('Technical failures', analytics.total_infrastructure_failures)}
       ${stat('Retries', analytics.total_retries)}
-      ${stat('Median latency', analytics.median_latency_ms === null ? '—' : `${analytics.median_latency_ms} ms`)}
+      ${stat('Median latency', analytics.median_latency_ms === null ? 'n/a' : `${analytics.median_latency_ms} ms`)}
       ${stat('Output tokens', analytics.total_output_tokens)}
     </div>
 

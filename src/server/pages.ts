@@ -178,7 +178,7 @@ export function runsPage(
        above and start one.</p></div>`;
 
   return page(
-    'AGORA — runs',
+    'AGORA · runs',
     `
   <header class="page-head">
     <p class="eyebrow">Runs</p>
@@ -259,6 +259,10 @@ const PHASE_LABEL: Record<string, string> = {
 
 const phaseLabel = (state: string): string => PHASE_LABEL[state] ?? state;
 
+/** Token usage, or a plain statement that the call never reported any. */
+const tokenPair = (input: number | null, output: number | null): string =>
+  input === null && output === null ? 'not recorded' : `${input ?? 0} / ${output ?? 0}`;
+
 // -------------------------------------------------------------- run page
 
 export interface RunPageInput extends ReplayInput {
@@ -287,8 +291,8 @@ export function runDetailPage(input: RunPageInput): string {
           ? `<span class="outcome-bad">${esc(i.failure_category)}</span>`
           : esc(i.outcome)
       }</td>
-      <td class="num">${i.latency_ms ?? '—'}</td>
-      <td class="num">${i.input_tokens ?? '—'} / ${i.output_tokens ?? '—'}</td>
+      <td class="num">${i.latency_ms ?? 'n/a'}</td>
+      <td class="num">${tokenPair(i.input_tokens, i.output_tokens)}</td>
     </tr>`,
     )
     .join('\n');
@@ -371,7 +375,7 @@ export function provenancePage(run: RunRow, invocation: InvocationRow): string {
   const params = JSON.parse(invocation.generation_params) as Record<string, unknown>;
 
   return page(
-    `Turn — ${invocation.agent_id}`,
+    `Turn · ${invocation.agent_id}`,
     `
   <header class="page-head">
     <p class="eyebrow">Context provenance</p>
@@ -396,10 +400,10 @@ export function provenancePage(run: RunRow, invocation: InvocationRow): string {
       <dl>
         <dt>Provider / model requested</dt>
         <dd class="mono">${esc(invocation.provider)} · ${esc(invocation.requested_model)}</dd>
-        <dt>Model that responded</dt><dd class="mono">${esc(invocation.responded_model ?? '—')}</dd>
-        <dt>Latency</dt><dd>${invocation.latency_ms ?? '—'} ms</dd>
+        <dt>Model that responded</dt><dd class="mono">${esc(invocation.responded_model ?? 'not recorded')}</dd>
+        <dt>Latency</dt><dd>${invocation.latency_ms === null ? 'not recorded' : `${invocation.latency_ms} ms`}</dd>
         <dt>Tokens in / out</dt>
-        <dd class="mono">${invocation.input_tokens ?? '—'} / ${invocation.output_tokens ?? '—'}</dd>
+        <dd class="mono">${tokenPair(invocation.input_tokens, invocation.output_tokens)}</dd>
         <dt>Prompt version</dt><dd class="mono">${esc(invocation.prompt_version)}</dd>
         <dt>Context policy</dt><dd class="mono">${esc(invocation.context_policy_version)}</dd>
         <dt>Tools available</dt>
@@ -409,7 +413,7 @@ export function provenancePage(run: RunRow, invocation: InvocationRow): string {
         <dt>Budget already used</dt>
         <dd class="mono">${invocation.budget_calls_used_before} calls · ${invocation.budget_tokens_used_before} tokens</dd>
         <dt>Messages included</dt>
-        <dd>${ids.length} in total — ${publicIds.length} public, ${privateIds.length} private</dd>
+        <dd>${ids.length} in total: ${publicIds.length} public, ${privateIds.length} private</dd>
         ${invocation.error_message ? `<dt>Error</dt><dd>${esc(invocation.error_message)}</dd>` : ''}
         <dt>Invocation</dt><dd class="mono">${esc(invocation.invocation_id)}</dd>
       </dl>

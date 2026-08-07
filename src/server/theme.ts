@@ -68,7 +68,7 @@ h1 {
 }
 /* The accent enters as a drawn line, not as coloured type: the instrument recording
    a trace under the claim. Blue stays reserved for "public channel" everywhere else.
-   Painted as a background so it follows the text when the headline wraps — an
+   Painted as a background so it follows the text when the headline wraps. An
    absolutely-positioned rule would force the phrase onto one line and overflow. */
 h1 em {
   background-image: linear-gradient(var(--public), var(--public));

@@ -57,6 +57,7 @@ export function docsPage(): string {
         ['#visibility', 'Channel visibility'],
         ['#failure', 'Failure classification'],
         ['#provider', 'Provider adapter'],
+        ['#access', 'Access control'],
         ['#extending', 'Extension points'],
         ['#limits', 'Current limits'],
         ['#work', 'Proposed work'],
@@ -75,6 +76,7 @@ ${sectionEvents()}
 ${sectionVisibility()}
 ${sectionFailure()}
 ${sectionProvider()}
+${sectionAccess()}
 ${sectionExtending()}
 ${sectionLimits()}
 ${sectionWork()}
@@ -424,6 +426,56 @@ function sectionProvider(): string {
 </section>`;
 }
 
+// ----------------------------------------------------------------- access
+
+function sectionAccess(): string {
+  const routes: Array<[string, string]> = [
+    ['Overview, documentation', 'Open. These exist to be read by people reviewing the work.'],
+    ['Runs list, run pages, read APIs', 'Open by default. Set the scope to `all` to require the credential here too.'],
+    ['Starting a run, rerunning, exporting', 'Always requires the credential, and must originate from this instance.'],
+    ['Health check', 'Always open, so the platform can check the service without a credential.'],
+  ];
+
+  return `<section id="access">
+  <p class="eyebrow">Deployment</p>
+  <h2>Access control</h2>
+  <p class="body">Starting a run spends money, so it is separated from reading. The
+  instance uses one shared credential supplied as <code>AGORA_AUTH_PASSWORD</code>, sent
+  over HTTP Basic authentication.</p>
+
+  <div class="scroll">
+    <table class="ref">
+      <thead><tr><th>Route</th><th>Access</th></tr></thead>
+      <tbody>
+        ${routes
+          .map(([r, a]) => `<tr><td>${esc(r!)}</td><td>${esc(a!)}</td></tr>`)
+          .join('\n        ')}
+      </tbody>
+    </table>
+  </div>
+
+  <p class="body">Three properties are worth stating plainly:</p>
+  <ol class="steps">
+    <li><span class="step-n">1</span><span><strong>It fails closed.</strong> If no
+    credential is configured, requests that would spend money or write files are refused
+    with a 503 rather than served. A forgotten environment variable makes the instance
+    read-only, not free to use.</span></li>
+    <li><span class="step-n">2</span><span><strong>Secrets are compared in constant
+    time.</strong> Both values are hashed to a fixed width before comparison, so neither
+    the password nor its length is exposed through response timing.</span></li>
+    <li><span class="step-n">3</span><span><strong>State-changing requests must come from
+    this instance.</strong> A credential cached by a browser cannot be used by another
+    site to start a run on the operator's behalf.</span></li>
+  </ol>
+
+  <p class="aside">The limits of this design are real. There is one shared credential
+  rather than accounts, so a run cannot be attributed to a person; there is no way to
+  sign out of Basic authentication short of closing the browser; and revoking access
+  means changing the credential for everyone. That is an acceptable trade for a private
+  research instance and would not be for a shared one.</p>
+</section>`;
+}
+
 // -------------------------------------------------------------- extending
 
 function sectionExtending(): string {
@@ -465,9 +517,9 @@ function sectionLimits(): string {
       'Operational',
     ],
     [
-      'The deployed instance is unauthenticated',
-      'Anyone who can reach the URL can start a run, which spends tokens. This is acceptable for a private link and not acceptable for a shared one.',
-      'Operational',
+      'Access is one shared credential, not accounts',
+      'Anyone holding the credential can start a run, and the record does not say who did. Runs cannot be attributed to a person, and revoking one person\u2019s access means changing the credential for everyone.',
+      'Design',
     ],
     [
       'Turn-taking is strictly sequential',
@@ -545,36 +597,30 @@ function sectionWork(): string {
     ],
     [
       '2',
-      'Put the deployed instance behind authentication',
-      'A single shared credential in front of the run-starting routes is sufficient.',
-      'Starting a run spends money. The link should be shareable without that being true of the ability to spend.',
-    ],
-    [
-      '3',
       'Record cost per run',
       'Add a price table keyed by provider and model, and compute cost from the token totals already stored.',
       'Cost governs how many runs can be afforded, which governs what can be asked statistically. It should not require a spreadsheet.',
     ],
     [
-      '4',
+      '3',
       'Separate run execution from the web process',
       'Move runs onto a queue with a worker, so a deployment does not interrupt a run in progress.',
       'This is what makes long runs safe to start. It should follow the reconciler rather than replace it, because the reconciler is also the safety net for a worker that dies.',
     ],
     [
-      '5',
+      '4',
       'Introduce a context strategy that does not discard the record',
       'When a transcript grows too large, summarise into a derived artifact that links to the message identifiers it was built from, and keep the raw messages authoritative.',
       'This is the constraint that most limits run length. It has to be done in a way that preserves provenance, or the ability to reconstruct what an agent saw is lost.',
     ],
     [
-      '6',
+      '5',
       'Support repeated runs and comparison',
       'Launch a configuration n times and present the runs together, with the variation between them shown rather than averaged away.',
       'A single run of a stochastic system supports no conclusion. This is the first piece of work that is about producing findings rather than about producing the environment.',
     ],
     [
-      '7',
+      '6',
       'Allow different models per agent',
       'Move the model configuration from the run to the individual agent.',
       'This is the obvious next experimental variable and should be introduced deliberately, once, with everything else held constant. It is listed last because it is only meaningful after repeated runs and cost accounting exist.',
@@ -585,8 +631,9 @@ function sectionWork(): string {
   <p class="eyebrow">Next</p>
   <h2>Proposed work</h2>
   <p class="body">In the order it should be carried out. The ordering is not by size: the
-  first two items concern whether the record and the deployment can be trusted, and
-  should be finished before anything that adds capability.</p>
+  first item concerns whether the stored record can be trusted, and should be finished
+  before anything that adds capability. Access control has since been implemented and is
+  described above.</p>
 
   <ol class="work">
     ${work

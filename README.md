@@ -224,8 +224,38 @@ Deployed on Railway from this repository.
 | `AGORA_EXPORT_DIR` | Export bundle location; also belongs on the volume. |
 | `AGORA_CONFIG_DIR` | Where the server looks for frozen configs (default `./configs`). |
 | `PORT` | Set by Railway. |
+| `AGORA_AUTH_PASSWORD` | Shared credential. **Unset means run-starting and export return 503**, not that they run open. |
+| `AGORA_AUTH_SCOPE` | `write` (default) protects run-starting and export; `all` protects every route except the health check. |
 
-Health check: `GET /healthz`.
+Health check: `GET /healthz` — always reachable without a credential.
+
+### Access control
+
+Reading and writing are separated, so the overview and documentation can be shared
+without sharing the ability to spend tokens.
+
+| Route | Access |
+| --- | --- |
+| `/`, `/docs`, `/healthz` | Open. |
+| `/runs`, run pages, read APIs | Open by default; behind the credential when `AGORA_AUTH_SCOPE=all`. |
+| Starting a run, rerunning, exporting | Always requires the credential, and must originate from this instance. |
+
+Three properties are deliberate. It **fails closed** — with no credential configured,
+anything that spends money or writes files is refused rather than served. Secrets are
+compared in **constant time**, hashed to a fixed width first so neither the password nor
+its length leaks through response timing. And state-changing requests must carry a
+same-origin `Origin`, so a credential cached by a browser cannot be used by another site
+to start a run.
+
+Exporting is a `POST`, not a `GET`, because it writes files and records artifacts:
+
+```bash
+curl -u agora:$AGORA_AUTH_PASSWORD -X POST https://<host>/api/runs/<run_id>/export
+```
+
+The limits are real and recorded in the documentation: one shared credential rather than
+accounts, so a run cannot be attributed to a person; no sign-out; and revoking one
+person's access means changing the credential for everyone.
 
 ---
 
@@ -235,10 +265,10 @@ Health check: `GET /healthz`.
 npm test
 ```
 
-94 tests covering config integrity and immutability, state-machine validity and
+122 tests covering config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
-reproducibility, the OpenAI request mapping, and every page.
+reproducibility, the OpenAI request mapping, access control, and every page.
 
 The documentation page quotes figures about the code — the number of event types, failure
 categories and tables. Those figures are asserted against the source, so the page cannot

@@ -23,11 +23,17 @@ import { page, provenancePage, runDetailPage, runsPage, type RunGroup } from './
 import { homePage } from './home.js';
 import { docsPage } from './docs.js';
 import { codeCommitSha } from '../core/git.js';
+import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
 
 const db = getDatabase();
 const app = express();
+// Access control runs before body parsing, so an unauthenticated request is refused
+// before anything it sent is read.
+const authConfig = authConfigFromEnv();
+app.use(createAuthMiddleware(authConfig));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
 
@@ -258,7 +264,7 @@ app.get('/api/runs/:runId/acceptance', (req, res) => {
   }
 });
 
-app.get('/api/runs/:runId/export', (req, res) => {
+app.post('/api/runs/:runId/export', (req, res) => {
   const runId = String(req.params['runId']);
   const faultRun = req.query['fault_run'];
   const rerun = req.query['rerun'];
@@ -310,6 +316,7 @@ app.listen(port, () => {
   console.log(`AGORA Phase 0 listening on :${port}`);
   console.log(`  data:    ${process.env.AGORA_DATA_DIR ?? './data'}`);
   console.log(`  configs: ${CONFIG_DIR} (${availableConfigs().join(', ') || 'none found'})`);
+  console.log(`  ${describeAuth(authConfig)}`);
 });
 
 export { app, executeRun };

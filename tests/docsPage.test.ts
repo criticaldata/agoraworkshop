@@ -42,6 +42,27 @@ describe('documentation stays true to the code', () => {
 });
 
 describe('documentation page', () => {
+  it('evaluates every template placeholder rather than printing it literally', () => {
+    // A escaped placeholder compiles and type-checks but renders as visible source.
+    expect(docsPage()).not.toContain('${');
+  });
+
+  it('documents the access model and its real limits', () => {
+    const html = docsPage();
+    expect(html).toContain('Access control');
+    expect(html).toContain('AGORA_AUTH_PASSWORD');
+    expect(html).toContain('It fails closed.');
+    // The route table must actually render its rows.
+    expect(html).toContain('Starting a run, rerunning, exporting');
+    expect(html).toContain('Health check');
+    // And the limits of the design must be stated, not just its properties.
+    expect(html).toContain('one shared credential');
+  });
+
+  it('no longer claims the deployed instance is unauthenticated', () => {
+    expect(docsPage()).not.toContain('The deployed instance is unauthenticated');
+  });
+
   it('is self-contained: no external assets and no scripts', () => {
     const html = docsPage();
     expect(html).not.toMatch(/<script/i);

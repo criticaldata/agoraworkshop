@@ -18,6 +18,9 @@ import { auditPrivacyLeaks, evaluateGates, finalizeReport, type AcceptanceReport
 import { renderReplayHtml } from './replayHtml.js';
 import { displayName } from '../config/schema.js';
 import { nowIso } from '../core/ids.js';
+import { runProvenance } from '../db/queries.js';
+import { REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
+
 
 export interface ExportOptions {
   db: Db;
@@ -88,7 +91,7 @@ export function exportRun(options: ExportOptions): ExportResult {
       provider: run.provider,
       requested_model: run.model,
       responded_models: analytics.responded_models,
-      code_commit_sha: run.code_commit_sha,
+      code_provenance: runProvenance(run),
       created_at: run.created_at,
       started_at: run.started_at,
       ended_at: run.ended_at,
@@ -166,6 +169,73 @@ export function exportRun(options: ExportOptions): ExportResult {
     `${opportunities.map((o) => JSON.stringify(o)).join('\n')}\n`,
   );
 
+  write(
+    'agents.json',
+    'metadata',
+    json({
+      moderator: {
+        ...config.moderator,
+        // Recorded explicitly rather than inferred: absent `mode` means the historical
+        // model-backed moderator, and that is a fact about the run, not a default.
+        mode: config.moderator.mode ?? 'llm',
+        role: 'moderator',
+      },
+      participants: config.participants.map((p) => ({ ...p, role: 'participant' })),
+      breakout_groups: config.channels.private.breakout_groups,
+      capabilities: config.capabilities,
+      budgets: config.budgets,
+    }),
+  );
+
+  // Every message in one file, each carrying who it was addressed to and who actually
+  // received it, so visibility can be re-derived without reading two files.
+  write(
+    'messages.jsonl',
+    'transcript',
+    `${messages
+      .map((m) =>
+        JSON.stringify({
+          ...m,
+          sender_display_name: displayName(config, m.sender_agent_id),
+          visibility: {
+            channel: m.channel,
+            breakout_group_id: m.breakout_group_id,
+            intended_recipients: m.intended_recipients,
+            actual_recipients: m.actual_recipients,
+          },
+        }),
+      )
+      .join('\n')}\n`,
+  );
+
+  // Failures and retries pulled out of the invocation log so attribution can be read
+  // directly. Each row is one attempt, with the outcome of the opportunity it belonged to.
+  const opportunityById = new Map(opportunities.map((o) => [o.opportunity_id, o]));
+  write(
+    'failures.jsonl',
+    'provenance',
+    `${invocations
+      .filter((i) => i.outcome === 'infra_failure' || i.attempt > 1)
+      .map((i) =>
+        JSON.stringify({
+          invocation_id: i.invocation_id,
+          opportunity_id: i.opportunity_id,
+          agent_id: i.agent_id,
+          workshop_state: i.workshop_state,
+          attempt: i.attempt,
+          outcome: i.outcome,
+          failure_category: i.failure_category,
+          error_message: i.error_message,
+          latency_ms: i.latency_ms,
+          opportunity_resolution: opportunityById.get(i.opportunity_id)?.resolution ?? null,
+          opportunity_attempts: opportunityById.get(i.opportunity_id)?.attempts ?? null,
+          behaviourally_available:
+            opportunityById.get(i.opportunity_id)?.behaviourally_available === 1,
+        }),
+      )
+      .join('\n')}\n`,
+  );
+
   write('analytics.json', 'analytics', json(analytics));
 
   const acceptance = finalizeReport(
@@ -185,6 +255,33 @@ export function exportRun(options: ExportOptions): ExportResult {
   );
 
   write('README.md', 'readme', bundleReadme(runId, run.config_hash, files));
+
+  // Written last so it can list every other file's hash. Its own hash is therefore not
+  // in the list, which is stated in the file rather than left for a reader to discover.
+  const provenance = runProvenance(run);
+  const written = new Set(files.map((f) => f.name));
+  write(
+    'manifest.json',
+    'manifest',
+    json({
+      bundle: 'agora_phase0_validation_bundle',
+      bundle_version: '1',
+      run_id: run.run_id,
+      experiment_id: run.experiment_id,
+      config_hash: run.config_hash,
+      code_provenance: provenance,
+      exported_at: nowIso(),
+      contents: REQUIRED_BUNDLE_ITEMS.map((entry) => ({
+        item: entry.item,
+        files: entry.files,
+        present: entry.files.every((name) => written.has(name) || name === 'manifest.json'),
+      })),
+      files: files.map((f) => ({ name: f.name, bytes: f.bytes, sha256: f.sha256 })),
+      note:
+        'manifest.json is written after every other file, so its own hash does not appear ' +
+        'in the file list above.',
+    }),
+  );
 
   return { runId, directory, files, acceptance };
 }
@@ -212,7 +309,11 @@ function bundleReadme(
     `| \`invocations.jsonl\` | Per-invocation context provenance: exact system prompt, rendered context, included message ids. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
-    `| \`acceptance_report.json\` | PASS/FAIL for the three Phase 0 gates, with evidence. |`,
+    `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates, with evidence. |`,
+    `| \`agents.json\` | Participant and moderator definitions, including moderator mode. |`,
+    `| \`messages.jsonl\` | Every message with its visibility metadata (intended and actual recipients). |`,
+    `| \`failures.jsonl\` | Every failed or retried attempt, with its classification. |`,
+    `| \`manifest.json\` | File inventory with hashes, code provenance, and required-item coverage. |`,
     `| \`replay.html\` | Self-contained chronological replay of the run. |`,
     ``,
     `## Integrity`,

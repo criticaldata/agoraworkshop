@@ -8,7 +8,7 @@ import { exportRun } from './export/exporter.js';
 import { getMessages, getRun, listRuns, runConfig } from './db/queries.js';
 import { readEvents } from './events/recorder.js';
 import { displayName } from './config/schema.js';
-import { codeCommitSha } from './core/git.js';
+import { codeProvenance } from './core/provenance.js';
 import { runValidationPackage } from './scripts/validate.js';
 
 const USAGE = `agora — AGORA Phase 0 research instrument
@@ -72,7 +72,7 @@ async function main(): Promise<number> {
       }
       const frozen = loadConfigFile(path);
       console.error(`config hash: ${frozen.hash}`);
-      const result = await executeRun({ db, frozen, codeCommitSha: codeCommitSha() });
+      const result = await executeRun({ db, frozen, provenance: codeProvenance() });
       console.log(JSON.stringify(result, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;
     }
@@ -101,7 +101,7 @@ async function main(): Promise<number> {
         db,
         frozen,
         sourceRunId,
-        codeCommitSha: codeCommitSha(),
+        provenance: codeProvenance(),
       });
       console.log(JSON.stringify({ ...result, sourceRunId }, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;

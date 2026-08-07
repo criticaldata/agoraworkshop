@@ -12,14 +12,37 @@ import {
 import { readEvents } from '../events/recorder.js';
 import { isVisibleTo } from '../orchestrator/visibility.js';
 import { computeAnalytics } from '../analytics/summary.js';
+import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
 
-export type GateStatus = 'PASS' | 'FAIL' | 'NEEDS_EVIDENCE';
+/**
+ * `NOT_EXERCISED` is deliberately distinct from both PASS and FAIL. It means the
+ * conditions the gate is meant to judge never occurred in the runs supplied, so there
+ * is nothing to judge. Reporting PASS there would claim evidence that does not exist;
+ * reporting FAIL would claim a defect that has not been shown.
+ */
+export type GateStatus = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
 
 export interface GateResult {
   status: GateStatus;
   evidence: string[];
   failures: string[];
+  /** Checks that could not run because the situation never arose. Never a defect. */
+  not_exercised: string[];
 }
+
+/** Only an all-PASS report is evidence. NOT_EXERCISED is missing evidence, not a pass. */
+function gateStatus(failures: string[], notExercised: string[]): GateStatus {
+  if (failures.length > 0) return 'FAIL';
+  if (notExercised.length > 0) return 'NOT_EXERCISED';
+  return 'PASS';
+}
+
+export const GATE_STATUS_MEANING: Record<GateStatus, string> = {
+  PASS: 'The gate was exercised and every check passed.',
+  FAIL: 'The gate was exercised and at least one check failed.',
+  NOT_EXERCISED:
+    'The conditions this gate judges did not occur in the runs supplied, so the gate is unproven. This is not a pass.',
+};
 
 export interface AcceptanceReport {
   run_id: string;
@@ -217,6 +240,16 @@ function gateInfrastructure(db: Db, runId: string): GateResult {
 
   if (artifacts.length > 0) {
     evidence.push(`${artifacts.length} artifacts exported and hashed`);
+    // Exporting *something* is not the same as exporting a complete package.
+    const names = new Set(artifacts.map((a) => a.name));
+    const missing = REQUIRED_BUNDLE_FILES.filter((name) => !names.has(name));
+    if (missing.length === 0) {
+      evidence.push(
+        `bundle contains every required Phase 0 artifact (${REQUIRED_BUNDLE_FILES.length} files)`,
+      );
+    } else {
+      failures.push(`exported bundle is missing required artifacts: ${missing.join(', ')}`);
+    }
   } else {
     failures.push('no artifacts have been exported for this run');
   }
@@ -231,9 +264,10 @@ function gateInfrastructure(db: Db, runId: string): GateResult {
   }
 
   return {
-    status: failures.length === 0 ? 'PASS' : 'FAIL',
+    status: gateStatus(failures, []),
     evidence,
     failures,
+    not_exercised: [],
   };
 }
 
@@ -244,6 +278,7 @@ function gateFailureAttribution(
 ): GateResult {
   const evidence: string[] = [];
   const failures: string[] = [];
+  const notExercised: string[] = [];
 
   // The correctness rule is checked on every run; the demonstration of each failure
   // mode is checked on whichever run actually produced failures.
@@ -275,7 +310,7 @@ function gateFailureAttribution(
   const targetRun = getRun(db, target);
   if (!targetRun) {
     failures.push(`failure-evidence run ${target} does not exist`);
-    return { status: 'FAIL', evidence, failures };
+    return { status: 'FAIL', evidence, failures, not_exercised: notExercised };
   }
 
   const events = readEvents(db, target);
@@ -301,16 +336,22 @@ function gateFailureAttribution(
         `(${categories.join(', ')})`,
     );
   } else {
-    failures.push(
-      `run ${target} contains no infrastructure failure events, so failure attribution is unproven. ` +
-        `Run the fault-injection config and pass it as the failure-evidence run.`,
+    // No infrastructure failure occurred. That is not a defect and not a pass: the
+    // separation between failure and behaviour was simply never put under load.
+    notExercised.push(
+      `run ${target} recorded no infrastructure failure events, so failure attribution was ` +
+        `never exercised. Run the fault-injection config and pass it as the failure-evidence run.`,
     );
   }
 
   if (retryScheduled.length > 0) {
     evidence.push(`run ${target}: retry behaviour visible (${retryScheduled.length} retries scheduled)`);
+  } else if (failureEvents.length > 0) {
+    failures.push(
+      `run ${target}: infrastructure failures occurred but no retry was scheduled for any of them`,
+    );
   } else {
-    failures.push(`run ${target}: no retry events recorded`);
+    notExercised.push(`run ${target}: no retry events, because nothing failed`);
   }
 
   if (recoveredAfterRetry.length > 0) {
@@ -330,7 +371,7 @@ function gateFailureAttribution(
       `${behaviouralEvents.length} behavioural silence events; the two are stored in separate fields`,
   );
 
-  return { status: failures.length === 0 ? 'PASS' : 'FAIL', evidence, failures };
+  return { status: gateStatus(failures, notExercised), evidence, failures, not_exercised: notExercised };
 }
 
 function gateReproducible(db: Db, runId: string, rerunId: string | null): GateResult {
@@ -407,5 +448,5 @@ function gateReproducible(db: Db, runId: string, rerunId: string | null): GateRe
       `${analytics.total_private_messages} private messages, ${analytics.total_provider_calls} provider calls`,
   );
 
-  return { status: failures.length === 0 ? 'PASS' : 'FAIL', evidence, failures };
+  return { status: gateStatus(failures, []), evidence, failures, not_exercised: [] };
 }

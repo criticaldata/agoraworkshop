@@ -1,6 +1,7 @@
 import type { Db } from './index.js';
 import type { ExperimentConfig } from '../config/schema.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
+import type { CodeProvenance } from '../core/provenance.js';
 
 export interface RunRow {
   run_id: string;
@@ -16,6 +17,10 @@ export interface RunRow {
   provider: string;
   model: string;
   code_commit_sha: string | null;
+  commit_source: string | null;
+  deployment_id: string | null;
+  app_version: string | null;
+  environment: string | null;
   created_at: string;
   started_at: string | null;
   ended_at: string | null;
@@ -102,6 +107,17 @@ export interface TransitionRow {
   reason: string | null;
   started_at: string;
   completed_at: string | null;
+}
+
+/** Rebuilds the provenance record stored on a run. */
+export function runProvenance(row: RunRow): CodeProvenance {
+  return {
+    git_commit_sha: row.code_commit_sha,
+    commit_source: (row.commit_source as CodeProvenance['commit_source']) ?? null,
+    deployment_id: row.deployment_id,
+    app_version: row.app_version,
+    environment: row.environment,
+  };
 }
 
 export function getRun(db: Db, runId: string): RunRow | null {

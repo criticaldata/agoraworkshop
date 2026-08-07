@@ -83,7 +83,13 @@ export const ExperimentConfigSchema = z
     }),
 
     participants: z.array(AgentSchema).min(1),
-    moderator: AgentSchema,
+    /**
+     * `mode` is optional and has no default on purpose. A default would be written into
+     * every parsed config and would change the config hash of runs already recorded,
+     * which would break rerun of those runs. Absent means the historical behaviour:
+     * the moderator is a model like any other participant.
+     */
+    moderator: AgentSchema.extend({ mode: z.enum(['llm', 'scripted']).optional() }),
 
     workshop: z.object({
       topic: z.string().min(1),
@@ -167,6 +173,21 @@ export const ExperimentConfigSchema = z
     }
     if (ids.has(cfg.moderator.id)) {
       ctx.addIssue({ code: 'custom', message: 'moderator id collides with a participant id' });
+    }
+
+    // A scripted moderator makes no provider call, so a fault aimed at it could never
+    // fire. Rejecting the config is better than silently not injecting the fault.
+    if (cfg.moderator.mode === 'scripted') {
+      for (const fault of cfg.fault_injection?.faults ?? []) {
+        if (fault.agent_id === cfg.moderator.id) {
+          ctx.addIssue({
+            code: 'custom',
+            message:
+              'fault injection targets the moderator, but the moderator is scripted and never ' +
+              'calls a provider, so the fault could not occur',
+          });
+        }
+      }
     }
 
     const known = new Set([...ids, cfg.moderator.id]);

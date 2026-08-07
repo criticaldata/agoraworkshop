@@ -82,7 +82,7 @@ export function renderRunFacts(run: RunRow): string {
       <div><dt>Experiment</dt><dd class="mono">${esc(run.experiment_id)}</dd></div>
       <div><dt>Settings fingerprint</dt><dd class="mono wrap">${esc(run.config_hash)}</dd></div>
       <div><dt>Provider / model</dt><dd class="mono">${esc(run.provider)} · ${esc(run.model)}</dd></div>
-      <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
+      <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : run.status === 'INTERRUPTED' ? 'unproven' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
       <div><dt>Duration</dt><dd>${run.duration_ms === null ? 'not recorded' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
       <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? 'not recorded')}</dd></div>
       <div><dt>Started</dt><dd>${esc((run.started_at ?? run.created_at).replace('T', ' ').slice(0, 19))}</dd></div>
@@ -212,11 +212,19 @@ function renderEventRow(
       </li>`;
 }
 
+/** PASS, FAIL and NOT_EXERCISED are three different colours because they are three
+ * different claims. An unexercised gate must not look like a passing one. */
+const gateTone = (status: GateResult['status']): string =>
+  status === 'PASS' ? 'ok' : status === 'FAIL' ? 'bad' : 'unproven';
+
 function gateCard(title: string, gate: GateResult): string {
-  return `<article class="gate ${gate.status === 'PASS' ? 'ok' : 'bad'}">
-    <h3>${esc(title)} <span class="pill ${gate.status === 'PASS' ? 'ok' : 'bad'}">${gate.status}</span></h3>
+  const tone = gateTone(gate.status);
+  const notExercised = gate.not_exercised ?? [];
+  return `<article class="gate ${tone}">
+    <h3>${esc(title)} <span class="pill ${tone}">${gate.status.replace('_', ' ')}</span></h3>
     <ul>${gate.evidence.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
     ${gate.failures.length ? `<ul class="failures">${gate.failures.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    ${notExercised.length ? `<ul class="unproven">${notExercised.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
   </article>`;
 }
 
@@ -257,6 +265,9 @@ export const STYLES = `
   --ok-bg: #e6f4ec;
   --bad: #b3261e;
   --bad-bg: #fbeae9;
+  /* A third state, because "unproven" is neither a pass nor a failure. */
+  --warn: #92400e;
+  --warn-bg: #fdf1d6;
   --priv: #8a5a00;
   --priv-bg: #fdf3e0;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
@@ -296,6 +307,9 @@ h3 { font-size: 1rem; margin: 0 0 .6rem; }
         border-left: 3px solid var(--ok); border-radius: 10px;
         padding: 1rem 1.1rem; margin-bottom: .85rem; }
 .gate.bad { border-left-color: var(--bad); }
+.gate.unproven { border-left-color: var(--warn); }
+.gate .unproven { margin-top: .5rem; color: var(--warn); }
+.pill.unproven { background: var(--warn-bg); color: var(--warn); }
 .gate ul { margin: 0; padding-left: 1.1rem; font-size: .9rem; }
 .gate li { margin: .2rem 0; }
 .gate .failures { margin-top: .5rem; color: var(--bad); }

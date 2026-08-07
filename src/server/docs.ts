@@ -14,8 +14,8 @@ import { BASE_STYLES } from './theme.js';
 
 /** Figures quoted in the prose. `tests/docsPage.test.ts` asserts these against source. */
 export const FACTS = {
-  eventTypes: 38,
-  failureCategories: 11,
+  eventTypes: 39,
+  failureCategories: 12,
   tables: 7,
   runtimeNode: 22,
 } as const;

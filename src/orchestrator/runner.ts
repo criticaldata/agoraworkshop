@@ -9,6 +9,7 @@ import {
   type OpportunityResolution,
 } from '../events/types.js';
 import { newInvocationId, newMessageId, newOpportunityId, newRunId, nowIso } from '../core/ids.js';
+import { codeProvenance, type CodeProvenance } from '../core/provenance.js';
 import { ABSTAIN_TOKEN, PASS_TOKEN } from '../prompts/registry.js';
 import { assembleContext } from './context.js';
 import { BudgetLedger } from './budgets.js';
@@ -26,6 +27,7 @@ import {
 import { buildProvider } from '../providers/registry.js';
 import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
+import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 
 export type TerminationReason =
   | 'completed'
@@ -48,7 +50,8 @@ export interface ExecuteRunOptions {
   frozen: FrozenConfig;
   runId?: string;
   sourceRunId?: string | null;
-  codeCommitSha?: string | null;
+  /** Which code produced this run. Defaults to reading the environment. */
+  provenance?: CodeProvenance;
   provider?: AgentProvider;
   faults?: FaultInjectingProvider | null;
   onEvent?: (event: AgoraEvent) => void;
@@ -77,10 +80,12 @@ export class WorkshopRunner {
   private readonly recorder: EventRecorder;
   private readonly budgets: BudgetLedger;
   private readonly provider: AgentProvider;
+  private readonly scriptedModerator: ScriptedModeratorProvider | null;
   private readonly faults: FaultInjectingProvider | null;
   private readonly onEvent: ((event: AgoraEvent) => void) | undefined;
   private readonly startedAtMs: number;
   private readonly deadlineMs: number;
+  private readonly provenance: CodeProvenance;
 
   private state: WorkshopState = 'CREATED';
   private history: StoredMessage[] = [];
@@ -111,11 +116,18 @@ export class WorkshopRunner {
       this.faults = built.faults;
     }
 
+    this.scriptedModerator =
+      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider() : null;
+
+    this.provenance = options.provenance ?? codeProvenance();
+    const provenance = this.provenance;
+
     this.db
       .prepare(
         `INSERT INTO runs (run_id, experiment_id, config_hash, config_json, config_canonical,
-           config_source_path, source_run_id, status, provider, model, code_commit_sha, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, 'CREATED', ?, ?, ?, ?)`,
+           config_source_path, source_run_id, status, provider, model, code_commit_sha,
+           commit_source, deployment_id, app_version, environment, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'CREATED', ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         this.runId,
@@ -127,7 +139,11 @@ export class WorkshopRunner {
         options.sourceRunId ?? null,
         this.config.model.provider,
         this.config.model.model,
-        options.codeCommitSha ?? null,
+        provenance.git_commit_sha,
+        provenance.commit_source,
+        provenance.deployment_id,
+        provenance.app_version,
+        provenance.environment,
         nowIso(),
       );
 
@@ -144,6 +160,17 @@ export class WorkshopRunner {
     return this.runId;
   }
 
+  /**
+   * Chosen per turn rather than once per run, because a scripted moderator and
+   * model-backed participants coexist in the same workshop.
+   */
+  private providerFor(agentId: string): AgentProvider {
+    if (this.scriptedModerator && agentId === this.config.moderator.id) {
+      return this.scriptedModerator;
+    }
+    return this.provider;
+  }
+
   cancel(): void {
     this.cancelRequested = true;
   }
@@ -156,6 +183,8 @@ export class WorkshopRunner {
         model: this.config.model.model,
         participants: this.config.participants.map((p) => p.id),
         moderator: this.config.moderator.id,
+        moderator_mode: this.config.moderator.mode ?? 'llm',
+        code_provenance: this.provenance,
       },
     });
 
@@ -434,7 +463,7 @@ export class WorkshopRunner {
       });
 
       const before = this.budgets.snapshot(spec.agentId);
-      const result = await this.provider.invoke({
+      const result = await this.providerFor(spec.agentId).invoke({
         invocationId,
         agentId: spec.agentId,
         attempt,
@@ -442,6 +471,7 @@ export class WorkshopRunner {
         messages: context.renderedMessages,
         model: this.config.model,
         timeoutMs: this.config.runtime.timeout_seconds * 1000,
+        workshopState: spec.state,
       });
 
       this.budgets.recordCall(

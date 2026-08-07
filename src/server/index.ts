@@ -22,12 +22,19 @@ import { renderReplayHtml } from '../export/replayHtml.js';
 import { page, provenancePage, runDetailPage, runsPage, type RunGroup } from './pages.js';
 import { homePage } from './home.js';
 import { docsPage } from './docs.js';
-import { codeCommitSha } from '../core/git.js';
+import { codeProvenance, describeProvenance } from '../core/provenance.js';
+import { reconcileInterruptedRuns } from '../orchestrator/reconcile.js';
 import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
 
 const db = getDatabase();
+
+// Before anything can start a new run. A run left RUNNING in the database is one this
+// process cannot own, because this process has only just started; the only honest
+// reading is that a previous process was interrupted mid-run.
+const reconciled = reconcileInterruptedRuns(db);
+
 const app = express();
 // Access control runs before body parsing, so an unauthenticated request is refused
 // before anything it sent is read.
@@ -294,7 +301,7 @@ function launch(frozen: ReturnType<typeof freezeConfig>, sourceRunId: string | n
     db,
     frozen,
     sourceRunId,
-    codeCommitSha: codeCommitSha(),
+    provenance: codeProvenance(),
   });
   active.set(runner.id, runner);
   void runner
@@ -317,6 +324,15 @@ app.listen(port, () => {
   console.log(`  data:    ${process.env.AGORA_DATA_DIR ?? './data'}`);
   console.log(`  configs: ${CONFIG_DIR} (${availableConfigs().join(', ') || 'none found'})`);
   console.log(`  ${describeAuth(authConfig)}`);
+  console.log(`  code:    ${describeProvenance(codeProvenance())}`);
+  if (reconciled.interrupted.length > 0) {
+    for (const run of reconciled.interrupted) {
+      console.log(
+        `  marked ${run.run_id} INTERRUPTED (was ${run.previous_status}, ` +
+          `${run.events_preserved} events kept, ${run.opportunities_resolved} turns unresolved)`,
+      );
+    }
+  }
 });
 
 export { app, executeRun };

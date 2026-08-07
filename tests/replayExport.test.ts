@@ -164,14 +164,21 @@ describe('acceptance gates', () => {
     expect(report.ready_for_controlled_behavioral_experiment).toBe(true);
   });
 
-  it('does not claim readiness when no infrastructure failure was ever observed', async () => {
+  it('reports NOT_EXERCISED, not FAIL, when no infrastructure failure ever occurred', async () => {
     const db = tempDb();
     const runner = new WorkshopRunner({ db, frozen: frozen() });
     await runner.execute();
     exportRun({ db, runId: runner.id, outDir: tempDir() });
 
     const report = finalizeReport(evaluateGates({ db, runId: runner.id }));
-    expect(report.gates.failure_attribution_validated.status).toBe('FAIL');
+    const gate = report.gates.failure_attribution_validated;
+
+    // Nothing failed, so nothing about failure attribution was demonstrated. That is
+    // absence of evidence, not evidence of a defect.
+    expect(gate.status).toBe('NOT_EXERCISED');
+    expect(gate.failures).toEqual([]);
+    expect(gate.not_exercised.join(' ')).toContain('never exercised');
+    // An unexercised gate must never count towards readiness.
     expect(report.ready_for_controlled_behavioral_experiment).toBe(false);
   });
 

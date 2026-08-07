@@ -5,7 +5,7 @@ import { freezeConfig, loadConfigFile } from '../config/load.js';
 import { executeRun } from '../orchestrator/runner.js';
 import { exportRun } from '../export/exporter.js';
 import { getRun } from '../db/queries.js';
-import { codeCommitSha } from '../core/git.js';
+import { codeProvenance } from '../core/provenance.js';
 
 export interface ValidationOptions {
   db: Db;
@@ -39,9 +39,9 @@ export async function runValidationPackage(
   mkdirSync(directory, { recursive: true });
 
   const frozen = loadConfigFile(options.configPath);
-  const sha = codeCommitSha();
+  const provenance = codeProvenance();
 
-  const baseline = await executeRun({ db, frozen, codeCommitSha: sha });
+  const baseline = await executeRun({ db, frozen, provenance });
   if (baseline.status !== 'COMPLETED') {
     throw new Error(`baseline run did not complete: ${baseline.status}`);
   }
@@ -57,13 +57,13 @@ export async function runValidationPackage(
     db,
     frozen: rehydrated,
     sourceRunId: baseline.runId,
-    codeCommitSha: sha,
+    provenance,
   });
 
   let faultRunId = baseline.runId;
   if (options.faultConfigPath) {
     const faultFrozen = loadConfigFile(options.faultConfigPath);
-    const faultRun = await executeRun({ db, frozen: faultFrozen, codeCommitSha: sha });
+    const faultRun = await executeRun({ db, frozen: faultFrozen, provenance });
     faultRunId = faultRun.runId;
     exportRun({
       db,

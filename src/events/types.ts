@@ -9,6 +9,7 @@ export const EVENT_TYPES = [
   'run_completed',
   'run_failed',
   'run_cancelled',
+  'run_interrupted',
 
   'state_transition_started',
   'state_transition_completed',
@@ -79,6 +80,8 @@ export const INFRASTRUCTURE_FAILURES = [
   'permission_denied',
   'budget_exhausted',
   'retry_exhausted',
+  /** The process stopped while the run was still in progress. */
+  'interrupted',
   'unknown',
 ] as const;
 export type InfrastructureFailure = (typeof INFRASTRUCTURE_FAILURES)[number];
@@ -105,6 +108,7 @@ export const FAILURE_EVENT_TYPE: Record<InfrastructureFailure, EventType> = {
   permission_denied: 'permission_denied',
   budget_exhausted: 'budget_exhausted',
   retry_exhausted: 'retry_exhausted',
+  interrupted: 'run_interrupted',
   unknown: 'provider_error',
 };
 

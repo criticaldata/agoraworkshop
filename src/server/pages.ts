@@ -219,7 +219,13 @@ function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): strin
       return `<div class="run-row">
       <a href="/runs/${esc(run.run_id)}">${esc(run.run_id.replace(/^run_/, '').slice(0, 8))}</a>
       <span><span class="pill ${
-        run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : 'bad'
+        run.status === 'COMPLETED'
+          ? 'ok'
+          : run.status === 'RUNNING'
+            ? ''
+            : run.status === 'INTERRUPTED'
+              ? 'unproven'
+              : 'bad'
       }">${esc(run.status)}</span></span>
       <span class="muted">${esc(run.termination_reason ?? '')}</span>
       <span class="run-metric"><b>${s?.public_messages ?? 0}</b> public</span>

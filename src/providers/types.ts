@@ -1,4 +1,4 @@
-import type { ExperimentConfig } from '../config/schema.js';
+import type { ExperimentConfig, WorkshopState } from '../config/schema.js';
 import type { InfrastructureFailure } from '../events/types.js';
 
 export interface AgentInvocationRequest {
@@ -9,6 +9,8 @@ export interface AgentInvocationRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   model: ExperimentConfig['model'];
   timeoutMs: number;
+  /** Present so a scripted agent can pick its line. Model adapters ignore it. */
+  workshopState?: WorkshopState;
 }
 
 export interface AgentInvocationResult {

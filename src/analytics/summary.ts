@@ -52,6 +52,10 @@ export interface RunAnalytics {
   ended_at: string | null;
   total_duration_ms: number | null;
   total_provider_calls: number;
+  /** Calls that actually reached a model provider, so actually cost money. */
+  total_model_calls: number;
+  /** Calls answered from a fixed script. Zero tokens, zero cost, no model involved. */
+  total_scripted_calls: number;
   total_response_opportunities: number;
   total_public_messages: number;
   total_private_messages: number;
@@ -168,6 +172,8 @@ export function computeAnalytics(db: Db, runId: string): RunAnalytics {
     ended_at: run.ended_at,
     total_duration_ms: run.duration_ms,
     total_provider_calls: invocations.length,
+    total_model_calls: invocations.filter((i) => i.provider !== 'scripted').length,
+    total_scripted_calls: invocations.filter((i) => i.provider === 'scripted').length,
     total_response_opportunities: opportunities.length,
     total_public_messages: messages.filter((m) => m.channel === 'public').length,
     total_private_messages: messages.filter((m) => m.channel === 'private').length,

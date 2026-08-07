@@ -49,7 +49,12 @@ const VALIDATION_STYLES = `
 .vp-gate ul.unproven li { color: var(--warn); }
 .vp-src { font-family: var(--mono); font-size: .74rem; color: var(--muted); }
 
-.vp-runs { width: 100%; border-collapse: collapse; font-size: .88rem; }
+/* Fixed layout so the reason column keeps its width and the long identifiers wrap,
+   rather than the identifiers holding the table open and pushing the reason off. */
+.vp-runs { width: 100%; border-collapse: collapse; font-size: .88rem; table-layout: fixed; }
+.vp-runs col.id { width: 26%; }
+.vp-runs col.role { width: 16%; }
+.vp-runs col.result { width: 20%; }
 .vp-runs th { text-align: left; color: var(--muted); font-weight: 600; font-size: .72rem;
               text-transform: uppercase; letter-spacing: .07em;
               border-bottom: 1px solid var(--line); padding: .4rem .6rem .4rem 0; }
@@ -57,8 +62,7 @@ const VALIDATION_STYLES = `
               vertical-align: top; overflow-wrap: anywhere; }
 /* Run ids are long and the reason column is the one worth reading, so give the reason
    the space and let the identifiers wrap. */
-.vp-runs td:first-child { width: 15rem; }
-.vp-runs td:last-child { min-width: 14rem; }
+
 .vp-links { display: flex; gap: .5rem; flex-wrap: wrap; }
 .vp-links a, .vp-links button { font-size: .85rem; }
 `;
@@ -184,6 +188,7 @@ export function validationPage(input: ValidationPageInput): string {
     is listed with its own outcome and with what it is being used to show.</p>
     <div class="scroll">
       <table class="vp-runs">
+        <colgroup><col class="id"><col class="role"><col class="result"><col></colgroup>
         <thead><tr>
           <th>Run</th><th>Supplies evidence for</th><th>Run-level result</th><th>Why</th>
         </tr></thead>

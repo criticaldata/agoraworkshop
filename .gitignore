@@ -1,0 +1,11 @@
+node_modules/
+dist/
+data/
+exports/
+phase0_validation/
+*.sqlite
+*.sqlite-wal
+*.sqlite-shm
+.env
+.env.local
+.DS_Store

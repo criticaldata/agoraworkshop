@@ -1,0 +1,34 @@
+{
+  "name": "agora-phase0",
+  "version": "0.1.0",
+  "private": true,
+  "description": "AGORA Phase 0 — a controlled, replayable multi-agent workshop instrument",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start": "node dist/server/index.js",
+    "dev": "tsx watch src/server/index.ts",
+    "agora": "tsx src/cli.ts",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "validate": "tsx src/scripts/validate.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.115.0",
+    "better-sqlite3": "^13.0.3",
+    "express": "^5.2.1",
+    "yaml": "^2.9.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.2",
+    "tsx": "^4.23.11",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

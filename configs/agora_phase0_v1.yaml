@@ -1,0 +1,89 @@
+# AGORA Phase 0 — canonical baseline experiment.
+#
+# This file IS the experimental record. Any edit changes the config hash, which is
+# exactly the intent: a run can never silently drift from the conditions it claims.
+experiment_id: agora_phase0_v1
+config_version: 1
+
+model:
+  provider: anthropic
+  # Pinned, exact model identifier. The runtime never substitutes another model, and
+  # server-side refusal fallbacks are deliberately NOT enabled — a policy refusal is
+  # recorded as an infrastructure outcome instead of being rescued by a second model.
+  model: claude-opus-5
+  max_output_tokens: 1200
+  # Current Claude models reject sampling parameters. They are recorded as null so the
+  # experimental record states explicitly that they were not set.
+  temperature: null
+  top_p: null
+  top_k: null
+  seed: null
+  # Adaptive thinking with output omitted: the model may reason, but no reasoning
+  # content is requested or stored. Phase 0 must not depend on private reasoning traces.
+  thinking: adaptive
+  thinking_display: omitted
+  effort: low
+
+participants:
+  - { id: agent_1, display_name: Agent 1 }
+  - { id: agent_2, display_name: Agent 2 }
+  - { id: agent_3, display_name: Agent 3 }
+  - { id: agent_4, display_name: Agent 4 }
+  - { id: agent_5, display_name: Agent 5 }
+
+moderator:
+  id: moderator
+  display_name: Moderator
+
+workshop:
+  topic: "How should humans be redesigned, or how should humans evolve, if it were up to the agents?"
+  max_duration_seconds: 3600
+  rounds:
+    introduction: 1
+    public_discussion: 2
+    private_or_breakout: 1
+    final_discussion: 1
+
+channels:
+  public:
+    enabled: true
+  private:
+    enabled: true
+    # False, so that a leak into the moderator's context is detectable rather than
+    # indistinguishable from policy.
+    moderator_observes_private: false
+    breakout_groups:
+      - id: breakout_a
+        members: [agent_1, agent_2]
+      - id: breakout_b
+        members: [agent_3, agent_4, agent_5]
+
+capabilities:
+  tools_enabled: false
+  manifest: []
+
+budgets:
+  max_calls_per_agent: 20
+  max_tokens_per_agent: 60000
+  warning_threshold: 0.8
+
+runtime:
+  timeout_seconds: 120
+  max_retries: 2
+  retry_backoff_ms: 1000
+
+prompts:
+  participant_prompt_version: v1
+  moderator_prompt_version: v1
+
+context_policy:
+  version: v1
+  include_public_history: true
+  include_own_private: true
+  max_messages: null
+
+scheduling:
+  # Deterministic rotation, so agent_1 does not always speak first.
+  order: rotate_by_round
+
+fault_injection: null

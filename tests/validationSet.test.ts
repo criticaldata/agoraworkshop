@@ -152,3 +152,82 @@ describe('validation package view', () => {
     expect(html).toContain('Nothing on this page supports a claim');
   });
 });
+
+describe('a failing gate says what to do about it', () => {
+  it('offers exporting the bundle rather than reporting a defect', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+    // Deliberately not exported.
+
+    const gate = buildValidationSet({ db, runId: runner.id }).gates.find(
+      (g) => g.key === 'infrastructure_validated',
+    )!;
+
+    expect(gate.status).toBe('FAIL');
+    expect(gate.next_steps.map((s) => s.action)).toContain('export');
+    expect(gate.next_steps[0]!.text).toContain('Nothing is wrong with the run');
+  });
+
+  it('offers rerunning when only one run exists for the settings', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+
+    const gate = buildValidationSet({ db, runId: runner.id }).gates.find(
+      (g) => g.key === 'baseline_reproducible',
+    )!;
+
+    expect(gate.next_steps.map((s) => s.action)).toEqual(['rerun']);
+    // No command-line instructions on a page that has a button for this.
+    expect(JSON.stringify(gate)).not.toContain('agora rerun');
+  });
+
+  it('offers a fault run when failure attribution was never exercised', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+
+    const gate = buildValidationSet({ db, runId: runner.id }).gates.find(
+      (g) => g.key === 'failure_attribution_validated',
+    )!;
+
+    expect(gate.status).toBe('NOT_EXERCISED');
+    expect(gate.next_steps.map((s) => s.action)).toEqual(['fault_run']);
+  });
+
+  it('suggests nothing when a gate passes', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+    exportRun({ db, runId: runner.id, outDir: tempDir() });
+
+    const gate = buildValidationSet({ db, runId: runner.id }).gates.find(
+      (g) => g.key === 'infrastructure_validated',
+    )!;
+    expect(gate.status).toBe('PASS');
+    expect(gate.next_steps).toEqual([]);
+  });
+
+  it('renders the steps as working controls on the page', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+    const run = getRun(db, runner.id)!;
+
+    const html = validationPage({
+      set: buildValidationSet({ db, runId: runner.id }),
+      run,
+      config: runConfig(run),
+      analytics: computeAnalytics(db, runner.id),
+      comparableRunIds: [],
+      sampleInvocationId: null,
+      exportedFiles: 0,
+    });
+
+    expect(html).toContain('To resolve this');
+    expect(html).toContain(`action="/api/runs/${runner.id}/export"`);
+    expect(html).toContain(`action="/runs/${runner.id}/rerun"`);
+    expect(html).not.toContain('${');
+  });
+});

@@ -6,7 +6,7 @@ import { shown, UNAVAILABLE } from '../core/provenance.js';
 import type { AgoraEvent } from '../events/types.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
 import type { RunAnalytics } from '../analytics/summary.js';
-import type { AcceptanceReport, GateResult } from '../acceptance/gates.js';
+import type { AcceptanceReport, GateResult, NextStep } from '../acceptance/gates.js';
 
 export interface ReplayInput {
   run: RunRow;
@@ -106,10 +106,14 @@ export function renderProvenanceFacts(run: RunRow): string {
       <div><dt>Environment</dt><dd class="mono">${esc(shown(p.environment))}</dd></div>`;
 }
 
-export function renderGates(acceptance: AcceptanceReport): string {
-  return `${gateCard('Was the run carried out correctly?', acceptance.gates.infrastructure_validated)}
-    ${gateCard('Is the reason for each missing response recorded?', acceptance.gates.failure_attribution_validated)}
-    ${gateCard('Can the run be repeated under the same conditions?', acceptance.gates.baseline_reproducible)}
+/**
+ * `runId` turns the suggested next steps into working buttons. The exported replay is a
+ * static file with no server behind it, so it omits the id and gets plain text instead.
+ */
+export function renderGates(acceptance: AcceptanceReport, runId?: string): string {
+  return `${gateCard('Was the run carried out correctly?', acceptance.gates.infrastructure_validated, runId)}
+    ${gateCard('Is the reason for each missing response recorded?', acceptance.gates.failure_attribution_validated, runId)}
+    ${gateCard('Can the run be repeated under the same conditions?', acceptance.gates.baseline_reproducible, runId)}
     <p class="verdict ${acceptance.ready_for_controlled_behavioral_experiment ? 'ok' : 'bad'}">
       ${
         acceptance.ready_for_controlled_behavioral_experiment
@@ -234,15 +238,45 @@ function renderEventRow(
 const gateTone = (status: GateResult['status']): string =>
   status === 'PASS' ? 'ok' : status === 'FAIL' ? 'bad' : 'unproven';
 
-function gateCard(title: string, gate: GateResult): string {
+function gateCard(title: string, gate: GateResult, runId?: string): string {
   const tone = gateTone(gate.status);
   const notExercised = gate.not_exercised ?? [];
+  const steps = gate.next_steps ?? [];
   return `<article class="gate ${tone}">
     <h3>${esc(title)} <span class="pill ${tone}">${gate.status.replace('_', ' ')}</span></h3>
-    <ul>${gate.evidence.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
+    ${steps.length ? renderNextSteps(steps, runId) : ''}
     ${gate.failures.length ? `<ul class="failures">${gate.failures.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
     ${notExercised.length ? `<ul class="unproven">${notExercised.map((f) => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+    <details class="gate-evidence">
+      <summary>What was checked (${gate.evidence.length})</summary>
+      <ul>${gate.evidence.map((e) => `<li>${esc(e)}</li>`).join('')}</ul>
+    </details>
   </article>`;
+}
+
+/** The one thing a reader wants after seeing a red badge: what do I press. */
+export function renderNextSteps(steps: NextStep[], runId?: string): string {
+  const rows = steps
+    .map((step) => `<li>${esc(step.text)}${button(step, runId)}</li>`)
+    .join('');
+  return `<div class="todo">
+    <p class="todo-head">To resolve this</p>
+    <ol>${rows}</ol>
+  </div>`;
+}
+
+function button(step: NextStep, runId?: string): string {
+  if (!runId || !step.action) return '';
+  if (step.action === 'export') {
+    return `<form method="post" action="/api/runs/${esc(runId)}/export">
+      <button type="submit">Export bundle</button></form>`;
+  }
+  if (step.action === 'rerun') {
+    return `<form method="post" action="/runs/${esc(runId)}/rerun">
+      <button type="submit">Run again with the same settings</button></form>`;
+  }
+  // A fault run starts from a different configuration, so it begins on the runs page.
+  return `<p class="todo-link"><a href="/runs">Choose a fault-injection config on the runs page</a></p>`;
 }
 
 const stat = (label: string, value: string | number): string =>
@@ -326,6 +360,17 @@ h3 { font-size: 1rem; margin: 0 0 .6rem; }
 .gate.bad { border-left-color: var(--bad); }
 .gate.unproven { border-left-color: var(--warn); }
 .gate .unproven { margin-top: .5rem; color: var(--warn); }
+.gate-evidence { margin-top: .6rem; }
+.gate-evidence summary { cursor: pointer; font-size: .84rem; color: var(--muted); font-weight: 600; }
+.gate-evidence ul { margin: .5rem 0 0; }
+.todo { margin: .1rem 0 .6rem; padding: .7rem .9rem; border-radius: 8px;
+        background: var(--warn-bg); }
+.todo-head { margin: 0 0 .3rem; font-size: .72rem; letter-spacing: .08em;
+             text-transform: uppercase; font-weight: 700; color: var(--warn); }
+.todo ol { margin: 0; padding-left: 1.1rem; font-size: .89rem; }
+.todo li + li { margin-top: .5rem; }
+.todo form { margin: .4rem 0 0; }
+.todo-link { margin: .4rem 0 0; font-size: .89rem; }
 .pill.unproven { background: var(--warn-bg); color: var(--warn); }
 .gate ul { margin: 0; padding-left: 1.1rem; font-size: .9rem; }
 .gate li { margin: .2rem 0; }

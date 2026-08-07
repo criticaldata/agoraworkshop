@@ -8,6 +8,7 @@ import {
   GATE_STATUS_MEANING,
   type GateResult,
   type GateStatus,
+  type NextStep,
 } from './gates.js';
 import { runProvenance } from '../db/queries.js';
 import type { CodeProvenance } from '../core/provenance.js';
@@ -55,6 +56,7 @@ export interface ValidationSetGate {
   evidence: string[];
   failures: string[];
   not_exercised: string[];
+  next_steps: NextStep[];
 }
 
 export interface ValidationSet {
@@ -251,5 +253,6 @@ function gate(
     evidence: result.evidence,
     failures: result.failures,
     not_exercised: result.not_exercised ?? [],
+    next_steps: result.next_steps ?? [],
   };
 }

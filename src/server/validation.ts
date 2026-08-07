@@ -1,4 +1,4 @@
-import { esc } from '../export/replayHtml.js';
+import { esc, renderNextSteps } from '../export/replayHtml.js';
 import { page } from './pages.js';
 import type { ValidationSet, ValidationSetGate } from '../acceptance/validationSet.js';
 import type { RunAnalytics } from '../analytics/summary.js';
@@ -26,6 +26,10 @@ const VALIDATION_STYLES = `
 .vp-verdict h2 { margin: 0; font-size: 1.05rem; text-transform: none; letter-spacing: 0;
                  color: var(--ink); }
 .vp-verdict p { margin: 0; color: var(--muted); font-size: .9rem; }
+.vp-outstanding { margin: .3rem 0 0; padding-left: 1.1rem; color: var(--muted);
+                  font-size: .9rem; }
+.vp-outstanding li + li { margin-top: .2rem; }
+.vp-outstanding b { color: var(--ink); }
 
 .vp-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
            gap: .75rem 1.75rem; margin: 0; padding: 1rem 1.1rem; background: var(--panel);
@@ -118,11 +122,20 @@ export function validationPage(input: ValidationPageInput): string {
           ? 'All three Phase 0 gates passed on the evidence below.'
           : 'At least one gate is unproven or failing.'
       }</h2>
-      <p>${
+      ${
         set.outstanding.length === 0
-          ? 'This package validates the apparatus. It says nothing about agent behaviour.'
-          : esc(set.outstanding.join(' | '))
-      }</p>
+          ? '<p>This package validates the apparatus. It says nothing about agent behaviour.</p>'
+          : `<ul class="vp-outstanding">${set.gates
+              .filter((g) => g.status !== 'PASS')
+              .map(
+                (g) =>
+                  `<li><b>${esc(g.title)}</b>: ${esc(
+                    // The action to take, when there is one. Otherwise the defect itself.
+                    g.next_steps[0]?.text ?? g.failures[0] ?? g.not_exercised[0] ?? '',
+                  )}</li>`,
+              )
+              .join('')}</ul>`
+      }
     </div>
   </div>
 
@@ -182,7 +195,7 @@ export function validationPage(input: ValidationPageInput): string {
     <h2>Phase 0 gates</h2>
     <p class="note">Each verdict is followed by the evidence it was computed from and the
     run that evidence came from.</p>
-    ${set.gates.map(gateCard).join('\n')}
+    ${set.gates.map((g) => gateCard(g, run.run_id)).join('\n')}
   </section>
 
   <section id="evidence-runs">
@@ -280,13 +293,15 @@ export function validationPage(input: ValidationPageInput): string {
   );
 }
 
-function gateCard(gate: ValidationSetGate): string {
+function gateCard(gate: ValidationSetGate, runId: string): string {
   const hasDetail =
     gate.evidence.length > 0 || gate.failures.length > 0 || gate.not_exercised.length > 0;
+  const steps = gate.next_steps ?? [];
   return `<article class="vp-gate ${tone(gate.status)}">
     <h3>${esc(gate.title)} <span class="pill ${tone(gate.status)}">${esc(label(gate.status))}</span></h3>
     <p class="q">${esc(gate.question)}</p>
     <p class="meaning">${esc(gate.meaning)}</p>
+    ${steps.length ? renderNextSteps(steps, runId) : ''}
     <p class="vp-src">Evidence from: ${gate.evidence_run_ids
       .map((id) => `<a href="/runs/${esc(id)}">${esc(id)}</a>`)
       .join(', ')}</p>

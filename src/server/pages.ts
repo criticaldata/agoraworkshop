@@ -337,7 +337,12 @@ export function runDetailPage(input: RunPageInput): string {
 
   <section id="checks">
     <h2>Acceptance checks</h2>
-    ${renderGates(acceptance)}
+    <p class="note">These judge this run on its own. A red badge here often means a step
+    has not been taken yet rather than that something went wrong, and where that is the
+    case the card says which step. For the Phase 0 verdict, which draws evidence from
+    several runs together, open the
+    <a href="/runs/${esc(run.run_id)}/validation">validation package</a>.</p>
+    ${renderGates(acceptance, run.run_id)}
   </section>
 
   <section id="statistics">

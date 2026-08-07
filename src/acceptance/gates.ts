@@ -22,12 +22,28 @@ import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
  */
 export type GateStatus = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
 
+/**
+ * What the operator can do about a failing check.
+ *
+ * Some gate failures are defects in the run and nothing can be clicked to fix them.
+ * Others just mean a step has not been taken yet, and for those the report should say
+ * which step, in the words of the interface rather than of the command line.
+ */
+export type RemedyAction = 'export' | 'rerun' | 'fault_run';
+
+export interface NextStep {
+  text: string;
+  action: RemedyAction | null;
+}
+
 export interface GateResult {
   status: GateStatus;
   evidence: string[];
   failures: string[];
   /** Checks that could not run because the situation never arose. Never a defect. */
   not_exercised: string[];
+  /** Ordered actions that would resolve what is outstanding. Empty when nothing helps. */
+  next_steps: NextStep[];
 }
 
 /** Only an all-PASS report is evidence. NOT_EXERCISED is missing evidence, not a pass. */
@@ -178,6 +194,7 @@ export function finalizeReport(report: AcceptanceReport): AcceptanceReport {
 function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): GateResult {
   const evidence: string[] = [];
   const failures: string[] = [];
+  const nextSteps: NextStep[] = [];
 
   const run = getRun(db, runId)!;
   const events = readEvents(db, runId);
@@ -258,9 +275,17 @@ function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): 
       );
     } else {
       failures.push(`exported bundle is missing required artifacts: ${missing.join(', ')}`);
+      nextSteps.push({
+        text: 'Export the artifact bundle again. The last export did not write every required file.',
+        action: 'export',
+      });
     }
   } else {
     failures.push('no artifacts have been exported for this run');
+    nextSteps.push({
+      text: 'Export the artifact bundle. Nothing is wrong with the run; this step has not been taken yet.',
+      action: 'export',
+    });
   }
 
   const unclassified = getInvocations(db, runId).filter(
@@ -277,6 +302,7 @@ function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): 
     evidence,
     failures,
     not_exercised: [],
+    next_steps: nextSteps,
   };
 }
 
@@ -288,6 +314,7 @@ function gateFailureAttribution(
   const evidence: string[] = [];
   const failures: string[] = [];
   const notExercised: string[] = [];
+  const nextSteps: NextStep[] = [];
 
   // The correctness rule is checked on every run; the demonstration of each failure
   // mode is checked on whichever run actually produced failures.
@@ -319,7 +346,7 @@ function gateFailureAttribution(
   const targetRun = getRun(db, target);
   if (!targetRun) {
     failures.push(`failure-evidence run ${target} does not exist`);
-    return { status: 'FAIL', evidence, failures, not_exercised: notExercised };
+    return { status: 'FAIL', evidence, failures, not_exercised: notExercised, next_steps: nextSteps };
   }
 
   const events = readEvents(db, target);
@@ -349,8 +376,14 @@ function gateFailureAttribution(
     // separation between failure and behaviour was simply never put under load.
     notExercised.push(
       `run ${target} recorded no infrastructure failure events, so failure attribution was ` +
-        `never exercised. Run the fault-injection config and pass it as the failure-evidence run.`,
+        `never exercised. Nothing failed, so there was nothing to attribute.`,
     );
+    nextSteps.push({
+      text:
+        'Start a run from a fault-injection configuration. It injects failures on purpose, ' +
+        'which is what this check needs in order to have anything to judge.',
+      action: 'fault_run',
+    });
   }
 
   if (retryScheduled.length > 0) {
@@ -380,12 +413,19 @@ function gateFailureAttribution(
       `${behaviouralEvents.length} behavioural silence events; the two are stored in separate fields`,
   );
 
-  return { status: gateStatus(failures, notExercised), evidence, failures, not_exercised: notExercised };
+  return {
+    status: gateStatus(failures, notExercised),
+    evidence,
+    failures,
+    not_exercised: notExercised,
+    next_steps: nextSteps,
+  };
 }
 
 function gateReproducible(db: Db, runId: string, rerunId: string | null): GateResult {
   const evidence: string[] = [];
   const failures: string[] = [];
+  const nextSteps: NextStep[] = [];
 
   const run = getRun(db, runId)!;
   const config = runConfig(run);
@@ -446,9 +486,14 @@ function gateReproducible(db: Db, runId: string, rerunId: string | null): GateRe
     );
   } else {
     failures.push(
-      'only one completed run exists for this config hash, so repeatability is unproven. ' +
-        'Use `agora rerun <run_id>` and pass the new run as the reproducibility run.',
+      'only one completed run exists for these settings, so repeatability is unproven',
     );
+    nextSteps.push({
+      text:
+        'Run this experiment again with the same settings. Two runs are needed because ' +
+        'repeatability is a property of a pair of runs, not of one.',
+      action: 'rerun',
+    });
   }
 
   const analytics = computeAnalytics(db, runId);
@@ -457,5 +502,11 @@ function gateReproducible(db: Db, runId: string, rerunId: string | null): GateRe
       `${analytics.total_private_messages} private messages, ${analytics.total_provider_calls} provider calls`,
   );
 
-  return { status: gateStatus(failures, []), evidence, failures, not_exercised: [] };
+  return {
+    status: gateStatus(failures, []),
+    evidence,
+    failures,
+    not_exercised: [],
+    next_steps: nextSteps,
+  };
 }

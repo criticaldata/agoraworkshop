@@ -29,6 +29,12 @@ npm run agora -- validate --config configs/agora_phase0_smoke.yaml
 npm run dev            # then open http://localhost:3000
 ```
 
+`/` is a plain-language overview written for reviewers who do not read code — what a run
+is, how public and private channels differ, why the failure-versus-silence distinction
+decides whether the results mean anything, and what Phase 0 explicitly does not claim.
+It plots the real trace of the most recent run rather than an illustration.
+`/runs` is the operator view: launch, replay, inspect, export.
+
 The smoke config injects infrastructure faults on purpose, so a first run exercises the
 failure-attribution machinery as well as the happy path.
 
@@ -62,6 +68,7 @@ npm run agora -- validate \
 | Analytics, including infrastructure-adjusted participation | `src/analytics/summary.ts` |
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
 | Artifact bundle + self-contained replay page | `src/export/` |
+| Plain-language overview page | `src/server/home.ts` |
 | Web UI and JSON API | `src/server/` |
 
 ### Commands
@@ -142,7 +149,7 @@ default — which is why the fault-injection config exists.
 
 ## Model configuration
 
-The canonical baseline pins `gpt-5.6-sol` through a provider-neutral adapter. Three
+The canonical baseline pins `gpt-5.6-luna` through a provider-neutral adapter. Three
 adapters ship: `openai`, `anthropic`, and `mock`. Switching provider is a config edit —
 and because the provider and model id are part of the hashed config, a provider change
 is a visible change of experimental conditions, never a silent one.
@@ -167,8 +174,18 @@ The exact model id is one line in the config:
 ```yaml
 model:
   provider: openai
-  model: gpt-5.6-sol      # or gpt-5.6-terra / gpt-5.6-luna for cheaper runs
+  model: gpt-5.6-luna     # step up to gpt-5.6-terra or gpt-5.6-sol if quality demands it
 ```
+
+| Model | Input / output per 1M tokens | When |
+| --- | --- | --- |
+| `gpt-5.6-luna` | $0.20 / $1.20 | The baseline. Phase 0 turns are short, tool-free discussion messages. |
+| `gpt-5.6-terra` | $2.00 / $12.00 | If contributions read as too shallow to exercise the interaction system. |
+| `gpt-5.6-sol` | $5.00 / $30.00 | Frontier work. Roughly 25× the baseline cost, for no Phase 0 benefit. |
+
+The spec is explicit that the specific model is not scientifically important in Phase 0 —
+reproducibility and control are. Changing it is a config edit and a new config hash, so
+the switch is always recorded rather than assumed.
 
 Swap `model.provider` to `mock` for a deterministic, free run of the same machinery.
 
@@ -214,9 +231,9 @@ Health check: `GET /healthz`.
 npm test
 ```
 
-68 tests covering config integrity and immutability, state-machine validity and
+75 tests covering config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
-reproducibility, and the OpenAI request mapping.
+reproducibility, the OpenAI request mapping, and the overview page.
 
 Run the mock-provider tests and the smoke config before ever starting a live workshop.

@@ -230,7 +230,10 @@ export const STYLES = `
   --ink: #1b1a18;
   --muted: #6c6a66;
   --line: #e3e0da;
-  --accent: #7a5cff;
+  /* Colour is data here, not decoration: signal blue = public channel,
+     amber = private/breakout, vermilion = infrastructure failure. The same
+     three read identically on the overview page and in every run timeline. */
+  --accent: #2f5fe0;
   --ok: #1f7a4d;
   --ok-bg: #e6f4ec;
   --bad: #b3261e;
@@ -242,7 +245,7 @@ export const STYLES = `
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --bg: #14141a; --panel: #1c1c24; --ink: #ecebe8; --muted: #9d9a95;
-    --line: #2e2e38; --accent: #a48cff; --ok: #6ddba0; --ok-bg: #14301f;
+    --line: #2e2e38; --accent: #7fa2ff; --ok: #6ddba0; --ok-bg: #14301f;
     --bad: #ff8f86; --bad-bg: #33191a; --priv: #f0c274; --priv-bg: #2f2410;
   }
 }

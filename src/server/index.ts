@@ -19,6 +19,7 @@ import { evaluateGates, finalizeReport } from '../acceptance/gates.js';
 import { exportRun } from '../export/exporter.js';
 import { renderReplayHtml } from '../export/replayHtml.js';
 import { page, provenancePage, runsPage } from './pages.js';
+import { homePage } from './home.js';
 import { codeCommitSha } from '../core/git.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
@@ -47,7 +48,19 @@ app.get('/healthz', (_req, res) => {
 
 // ------------------------------------------------------------------ pages
 
-app.get('/', (req, res) => {
+app.get('/', (_req, res) => {
+  const runs = listRuns(db);
+  const latestRun = runs.find((run) => run.status === 'COMPLETED') ?? null;
+  res.type('html').send(
+    homePage({
+      latestRun,
+      latestEvents: latestRun ? readEvents(db, latestRun.run_id) : [],
+      runCount: runs.length,
+    }),
+  );
+});
+
+app.get('/runs', (req, res) => {
   const notice = typeof req.query['notice'] === 'string' ? req.query['notice'] : null;
   res.type('html').send(runsPage(listRuns(db), availableConfigs(), notice));
 });
@@ -55,7 +68,7 @@ app.get('/', (req, res) => {
 app.post('/runs', (req, res) => {
   const name = String(req.body?.config ?? '');
   if (!availableConfigs().includes(name)) {
-    res.redirect(`/?notice=${encodeURIComponent('Unknown config file')}`);
+    res.redirect(`/runs?notice=${encodeURIComponent('Unknown config file')}`);
     return;
   }
   try {
@@ -63,14 +76,14 @@ app.post('/runs', (req, res) => {
     const runId = launch(frozen, null);
     res.redirect(`/runs/${runId}`);
   } catch (error) {
-    res.redirect(`/?notice=${encodeURIComponent(message(error))}`);
+    res.redirect(`/runs?notice=${encodeURIComponent(message(error))}`);
   }
 });
 
 app.post('/runs/:runId/rerun', (req, res) => {
   const source = getRun(db, String(req.params['runId']));
   if (!source) {
-    res.redirect(`/?notice=${encodeURIComponent('Unknown run')}`);
+    res.redirect(`/runs?notice=${encodeURIComponent('Unknown run')}`);
     return;
   }
   const frozen = freezeConfig(JSON.parse(source.config_json), source.config_source_path);

@@ -43,7 +43,8 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
 <main>
   <nav class="top">
     <a class="brand" href="/">AGORA · Phase 0</a>
-    <a href="/">Runs</a>
+    <a href="/">Overview</a>
+    <a href="/runs">Runs</a>
     <a href="/api/runs">API</a>
   </nav>
 ${body}

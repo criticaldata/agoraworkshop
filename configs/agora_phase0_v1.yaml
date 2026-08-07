@@ -9,7 +9,13 @@ model:
   provider: openai
   # Pinned, exact model identifier (not the `gpt-5.6` alias, which can move).
   # The runtime never substitutes another model and never falls back on refusal.
-  model: gpt-5.6-sol
+  #
+  # luna is the cost-optimised member of the family ($0.20/$1.20 per 1M tokens vs
+  # sol's $5/$30). Phase 0 turns are short, tool-free discussion messages, and the
+  # spec is explicit that the specific model is not scientifically important here —
+  # reproducibility and control are. Step up to gpt-5.6-terra if output quality
+  # proves insufficient; that is a config edit and a new config hash.
+  model: gpt-5.6-luna
   max_output_tokens: 1200
   # Sampling parameters are recorded as null, meaning "not set". The adapter omits
   # them from the request rather than sending a provider default under a null label.

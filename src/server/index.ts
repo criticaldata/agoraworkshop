@@ -12,14 +12,16 @@ import {
   getRun,
   listRuns,
   runConfig,
+  runSummaries,
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
 import { computeAnalytics } from '../analytics/summary.js';
 import { evaluateGates, finalizeReport } from '../acceptance/gates.js';
 import { exportRun } from '../export/exporter.js';
 import { renderReplayHtml } from '../export/replayHtml.js';
-import { page, provenancePage, runsPage } from './pages.js';
+import { page, provenancePage, runDetailPage, runsPage, type RunGroup } from './pages.js';
 import { homePage } from './home.js';
+import { docsPage } from './docs.js';
 import { codeCommitSha } from '../core/git.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
@@ -60,9 +62,41 @@ app.get('/', (_req, res) => {
   );
 });
 
+app.get('/docs', (_req, res) => {
+  res.type('html').send(docsPage());
+});
+
 app.get('/runs', (req, res) => {
   const notice = typeof req.query['notice'] === 'string' ? req.query['notice'] : null;
-  res.type('html').send(runsPage(listRuns(db), availableConfigs(), notice));
+  const runs = listRuns(db);
+
+  // Group by settings fingerprint, newest group first. Runs sharing a fingerprint were
+  // carried out under identical conditions, which is the comparison that matters.
+  const byHash = new Map<string, RunGroup>();
+  for (const run of runs) {
+    let group = byHash.get(run.config_hash);
+    if (!group) {
+      group = {
+        configHash: run.config_hash,
+        experimentId: run.experiment_id,
+        model: run.model,
+        topic: runConfig(run).workshop.topic,
+        runs: [],
+      };
+      byHash.set(run.config_hash, group);
+    }
+    group.runs.push(run);
+  }
+
+  res.type('html').send(
+    runsPage(
+      [...byHash.values()],
+      runSummaries(db, runs.map((r) => r.run_id)),
+      availableConfigs(),
+      notice,
+      runs.length,
+    ),
+  );
 });
 
 app.post('/runs', (req, res) => {
@@ -98,35 +132,19 @@ app.get('/runs/:runId', (req, res) => {
     res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
     return;
   }
-  const config = runConfig(run);
-  const events = readEvents(db, runId);
-  const messages = getMessages(db, runId);
-  const invocations = getInvocations(db, runId);
-  const analytics = computeAnalytics(db, runId);
-  const acceptance = finalizeReport(evaluateGates({ db, runId }));
-  const isRunning = run.status === 'RUNNING' || active.has(runId);
 
-  const replay = renderReplayHtml({ run, config, events, messages, invocations, analytics, acceptance });
-  // Splice the replay body into the app chrome so there is one visual system.
-  const body = replay.slice(replay.indexOf('<main>') + 6, replay.lastIndexOf('</main>'));
-
-  const actions = `
-  <form class="launch" method="post" action="/runs/${runId}/rerun">
-    <button type="submit">Rerun this frozen config</button>
-    <a href="/runs/${runId}/replay"><button type="button" class="secondary">Standalone replay</button></a>
-    <a href="/api/runs/${runId}/export" ><button type="button" class="secondary">Export bundle</button></a>
-    <span class="status-line">${isRunning ? 'Run in progress — page refreshes automatically.' : `${invocations.length} invocations recorded`}</span>
-  </form>
-  <p class="note">Inspect any invocation to see the exact context that produced a message:
-  ${invocations
-    .slice(0, 40)
-    .map(
-      (i) =>
-        `<a class="mono" href="/runs/${runId}/invocations/${i.invocation_id}">${i.agent_id}#${i.attempt}</a>`,
-    )
-    .join(' · ')}${invocations.length > 40 ? ' …' : ''}</p>`;
-
-  res.type('html').send(page(`AGORA run ${runId}`, actions + body, { refresh: isRunning }));
+  res.type('html').send(
+    runDetailPage({
+      run,
+      config: runConfig(run),
+      events: readEvents(db, runId),
+      messages: getMessages(db, runId),
+      invocations: getInvocations(db, runId),
+      analytics: computeAnalytics(db, runId),
+      acceptance: finalizeReport(evaluateGates({ db, runId })),
+      isRunning: run.status === 'RUNNING' || active.has(runId),
+    }),
+  );
 });
 
 app.get('/runs/:runId/replay', (req, res) => {

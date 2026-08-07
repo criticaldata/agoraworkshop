@@ -38,15 +38,7 @@ const NOISE_EVENTS = new Set(['message_delivered', 'private_message_delivered'])
 
 /** Renders a completely self-contained replay page — no external assets, no scripts. */
 export function renderReplayHtml(input: ReplayInput): string {
-  const { run, config, events, messages, analytics, acceptance } = input;
-  const messageById = new Map(messages.map((m) => [m.message_id, m]));
-
-  const rows = events
-    .filter((event) => !NOISE_EVENTS.has(event.event_type))
-    .map((event) => renderEventRow(event, config, messageById))
-    .join('\n');
-
-  const deliveries = events.filter((e) => NOISE_EVENTS.has(e.event_type));
+  const { run, config, analytics, acceptance } = input;
 
   return `<!doctype html>
 <html lang="en">
@@ -61,37 +53,62 @@ export function renderReplayHtml(input: ReplayInput): string {
   <header class="page-head">
     <p class="eyebrow">AGORA Phase 0 · run replay</p>
     <h1>${esc(config.workshop.topic)}</h1>
-    <dl class="facts">
-      <div><dt>Run</dt><dd class="mono">${esc(run.run_id)}</dd></div>
-      <div><dt>Experiment</dt><dd class="mono">${esc(run.experiment_id)}</dd></div>
-      <div><dt>Config hash</dt><dd class="mono wrap">${esc(run.config_hash)}</dd></div>
-      <div><dt>Provider / model</dt><dd class="mono">${esc(run.provider)} · ${esc(run.model)}</dd></div>
-      <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
-      <div><dt>Duration</dt><dd>${run.duration_ms === null ? '—' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
-      <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? '—')}</dd></div>
-      <div><dt>Exported</dt><dd>${esc(new Date().toISOString())}</dd></div>
-    </dl>
+    ${renderRunFacts(run)}
   </header>
 
   <section>
-    <h2>Acceptance gates</h2>
-    ${gateCard('Gate 1 — infrastructure validated', acceptance.gates.infrastructure_validated)}
-    ${gateCard('Gate 2 — failure attribution validated', acceptance.gates.failure_attribution_validated)}
-    ${gateCard('Gate 3 — baseline reproducible', acceptance.gates.baseline_reproducible)}
-    <p class="verdict ${acceptance.ready_for_controlled_behavioral_experiment ? 'ok' : 'bad'}">
-      ready_for_controlled_behavioral_experiment =
-      <strong>${acceptance.ready_for_controlled_behavioral_experiment}</strong>
-    </p>
+    <h2>Acceptance checks</h2>
+    ${renderGates(acceptance)}
   </section>
 
   <section>
     <h2>Run statistics</h2>
-    <div class="stat-grid">
+    ${renderStats(analytics)}
+  </section>
+
+  <section>
+    <h2>Timeline</h2>
+    ${renderTimeline(input)}
+  </section>
+</main>
+</body>
+</html>
+`;
+}
+
+export function renderRunFacts(run: RunRow): string {
+  return `<dl class="facts">
+      <div><dt>Run</dt><dd class="mono wrap">${esc(run.run_id)}</dd></div>
+      <div><dt>Experiment</dt><dd class="mono">${esc(run.experiment_id)}</dd></div>
+      <div><dt>Settings fingerprint</dt><dd class="mono wrap">${esc(run.config_hash)}</dd></div>
+      <div><dt>Provider / model</dt><dd class="mono">${esc(run.provider)} · ${esc(run.model)}</dd></div>
+      <div><dt>Status</dt><dd><span class="pill ${run.status === 'COMPLETED' ? 'ok' : run.status === 'RUNNING' ? '' : 'bad'}">${esc(run.status)}</span> <span class="muted">${esc(run.termination_reason ?? '')}</span></dd></div>
+      <div><dt>Duration</dt><dd>${run.duration_ms === null ? '—' : `${(run.duration_ms / 1000).toFixed(1)}s`}</dd></div>
+      <div><dt>Commit</dt><dd class="mono">${esc(run.code_commit_sha ?? '—')}</dd></div>
+      <div><dt>Started</dt><dd>${esc((run.started_at ?? run.created_at).replace('T', ' ').slice(0, 19))}</dd></div>
+    </dl>`;
+}
+
+export function renderGates(acceptance: AcceptanceReport): string {
+  return `${gateCard('Was the run carried out correctly?', acceptance.gates.infrastructure_validated)}
+    ${gateCard('Is the reason for each missing response recorded?', acceptance.gates.failure_attribution_validated)}
+    ${gateCard('Can the run be repeated under the same conditions?', acceptance.gates.baseline_reproducible)}
+    <p class="verdict ${acceptance.ready_for_controlled_behavioral_experiment ? 'ok' : 'bad'}">
+      ${
+        acceptance.ready_for_controlled_behavioral_experiment
+          ? 'All three checks pass. This run can support a controlled behavioural experiment.'
+          : 'Not all checks pass. This run cannot yet support a controlled behavioural experiment.'
+      }
+    </p>`;
+}
+
+export function renderStats(analytics: RunAnalytics): string {
+  return `<div class="stat-grid">
       ${stat('Provider calls', analytics.total_provider_calls)}
       ${stat('Response opportunities', analytics.total_response_opportunities)}
       ${stat('Public messages', analytics.total_public_messages)}
       ${stat('Private messages', analytics.total_private_messages)}
-      ${stat('Infrastructure failures', analytics.total_infrastructure_failures)}
+      ${stat('Technical failures', analytics.total_infrastructure_failures)}
       ${stat('Retries', analytics.total_retries)}
       ${stat('Median latency', analytics.median_latency_ms === null ? '—' : `${analytics.median_latency_ms} ms`)}
       ${stat('Output tokens', analytics.total_output_tokens)}
@@ -101,9 +118,9 @@ export function renderReplayHtml(input: ReplayInput): string {
       <table>
         <thead>
           <tr>
-            <th>Agent</th><th>Opps</th><th>Calls</th><th>Success</th><th>Abstain</th>
-            <th>No-op</th><th>Infra fail</th><th>Behaviourally available</th>
-            <th>Adjusted participation</th><th>Naive participation</th>
+            <th>Agent</th><th>Turns offered</th><th>Calls</th><th>Responded</th>
+            <th>Declined</th><th>Passed</th><th>Failed</th><th>Able to act</th>
+            <th>Participation</th><th>Unadjusted</th>
           </tr>
         </thead>
         <tbody>
@@ -126,23 +143,25 @@ export function renderReplayHtml(input: ReplayInput): string {
         </tbody>
       </table>
     </div>
-    <p class="note">Adjusted participation divides successful responses by opportunities the agent
-    was actually able to act on. The naive column is shown only so the two can be compared; it is
-    not a behavioural measure.</p>
-  </section>
+    <p class="note">Participation counts responses against the turns the agent was actually
+    able to act on. The unadjusted column counts them against every turn offered, including
+    those that never reached the agent, and is shown only for comparison.</p>`;
+}
 
-  <section>
-    <h2>Timeline</h2>
-    <p class="note">${events.length} events recorded, ${deliveries.length} of them per-recipient
-    delivery records (collapsed here, present in <code>events.jsonl</code>).</p>
+export function renderTimeline(input: ReplayInput): string {
+  const { config, events, messages } = input;
+  const messageById = new Map(messages.map((m) => [m.message_id, m]));
+  const rows = events
+    .filter((event) => !NOISE_EVENTS.has(event.event_type))
+    .map((event) => renderEventRow(event, config, messageById))
+    .join('\n');
+  const deliveries = events.filter((e) => NOISE_EVENTS.has(e.event_type));
+
+  return `<p class="note">${events.length} events recorded, ${deliveries.length} of them
+    per-recipient delivery records, collapsed here and present in <code>events.jsonl</code>.</p>
     <ol class="timeline">
 ${rows}
-    </ol>
-  </section>
-</main>
-</body>
-</html>
-`;
+    </ol>`;
 }
 
 function renderEventRow(

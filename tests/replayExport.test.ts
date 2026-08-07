@@ -103,7 +103,7 @@ describe('export bundle', () => {
     expect(html).toContain('state_transition_completed');
     expect(html).toContain('timeout');
     expect(html).toContain('retry_exhausted');
-    expect(html).toContain('Acceptance gates');
+    expect(html).toContain('Acceptance checks');
     // Self-contained: no external assets.
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/https?:\/\/[^"']*\.(js|css)/i);

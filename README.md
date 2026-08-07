@@ -29,11 +29,13 @@ npm run agora -- validate --config configs/agora_phase0_smoke.yaml
 npm run dev            # then open http://localhost:3000
 ```
 
-`/` is a plain-language overview written for reviewers who do not read code — what a run
-is, how public and private channels differ, why the failure-versus-silence distinction
-decides whether the results mean anything, and what Phase 0 explicitly does not claim.
-It plots the real trace of the most recent run rather than an illustration.
-`/runs` is the operator view: launch, replay, inspect, export.
+| Route | For |
+| --- | --- |
+| `/` | Plain-language overview for reviewers who do not read code. Plots the real trace of the most recent run rather than an illustration. |
+| `/docs` | Architecture, data model, execution model, current limits, and the proposed work in the order it should be done. |
+| `/runs` | Operator view. Runs are grouped by settings fingerprint, because runs sharing one are the ones worth comparing. |
+| `/runs/:id` | Checks first, then statistics, timeline, and every individual turn. |
+| `/runs/:id/invocations/:id` | The exact material one agent was given before it responded. |
 
 The smoke config injects infrastructure faults on purpose, so a first run exercises the
 failure-attribution machinery as well as the happy path.
@@ -69,6 +71,8 @@ npm run agora -- validate \
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
 | Artifact bundle + self-contained replay page | `src/export/` |
 | Plain-language overview page | `src/server/home.ts` |
+| Technical documentation page | `src/server/docs.ts` |
+| Shared visual system | `src/server/theme.ts` |
 | Web UI and JSON API | `src/server/` |
 
 ### Commands
@@ -231,9 +235,13 @@ Health check: `GET /healthz`.
 npm test
 ```
 
-75 tests covering config integrity and immutability, state-machine validity and
+94 tests covering config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
-reproducibility, the OpenAI request mapping, and the overview page.
+reproducibility, the OpenAI request mapping, and every page.
+
+The documentation page quotes figures about the code — the number of event types, failure
+categories and tables. Those figures are asserted against the source, so the page cannot
+drift away from what it describes.
 
 Run the mock-provider tests and the smoke config before ever starting a live workshop.

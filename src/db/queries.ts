@@ -200,3 +200,46 @@ export function getArtifacts(
     bytes: number;
   }>;
 }
+
+export interface RunSummary {
+  run_id: string;
+  public_messages: number;
+  private_messages: number;
+  opportunities: number;
+  failures: number;
+  retries: number;
+}
+
+/**
+ * Cheap per-run counts for the list view, computed in SQL in one pass.
+ *
+ * The list deliberately does not evaluate the acceptance checks, which are far more
+ * expensive; it shows what happened, and the checks live on the run itself.
+ */
+export function runSummaries(db: Db, runIds: string[]): Map<string, RunSummary> {
+  const out = new Map<string, RunSummary>();
+  if (runIds.length === 0) return out;
+  const placeholders = runIds.map(() => '?').join(',');
+
+  const rows = db
+    .prepare(
+      `SELECT r.run_id AS run_id,
+              (SELECT COUNT(*) FROM messages m
+                WHERE m.run_id = r.run_id AND m.channel = 'public')      AS public_messages,
+              (SELECT COUNT(*) FROM messages m
+                WHERE m.run_id = r.run_id AND m.channel = 'private')     AS private_messages,
+              (SELECT COUNT(*) FROM opportunities o
+                WHERE o.run_id = r.run_id)                               AS opportunities,
+              (SELECT COUNT(*) FROM opportunities o
+                WHERE o.run_id = r.run_id
+                  AND o.resolution = 'infrastructure_failure')           AS failures,
+              (SELECT COUNT(*) FROM invocations i
+                WHERE i.run_id = r.run_id AND i.attempt > 1)             AS retries
+         FROM runs r
+        WHERE r.run_id IN (${placeholders})`,
+    )
+    .all(...runIds) as RunSummary[];
+
+  for (const row of rows) out.set(row.run_id, row);
+  return out;
+}

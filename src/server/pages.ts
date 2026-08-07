@@ -78,7 +78,7 @@ export function runsPage(runs: RunRow[], configs: string[], notice: string | nul
   return page(
     'AGORA Phase 0 — runs',
     `
-  <p class="eyebrow">Research instrument</p>
+  <p class="eyebrow">Runs</p>
   <h1>Workshop runs</h1>
 
   ${notice ? `<p class="verdict">${esc(notice)}</p>` : ''}
@@ -100,11 +100,11 @@ export function runsPage(runs: RunRow[], configs: string[], notice: string | nul
     </table>
   </div>
 
-  <h2>How to read this</h2>
-  <p class="note">Two runs with the same config hash were executed under identical
-  experimental conditions. Their text will differ — model output is stochastic — but
-  every held-constant parameter was the same. Open a run to see its timeline, its gate
-  report, and the exact context every agent was given.</p>
+  <h2>How to read this table</h2>
+  <p class="note">Two runs with the same config hash were carried out under the same
+  settings. The text the agents produced will differ between them; that is expected. Open
+  a run to see its sequence of events, the result of the three checks, and the exact
+  material each agent was given before it responded.</p>
 `,
     { refresh: running },
   );
@@ -124,7 +124,7 @@ export function provenancePage(run: RunRow, invocation: InvocationRow): string {
     `Invocation ${invocation.invocation_id}`,
     `
   <p class="eyebrow">Context provenance</p>
-  <h1>What ${esc(invocation.agent_id)} was exposed to</h1>
+  <h1>What ${esc(invocation.agent_id)} was given</h1>
   <p class="note"><a href="/runs/${esc(run.run_id)}">← back to run</a></p>
 
   <div class="badge-row">

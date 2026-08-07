@@ -56,24 +56,23 @@ describe('overview page', () => {
 
   it('states the scope limits rather than only selling the product', () => {
     const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
-    expect(html).toContain('What this is not');
-    expect(html).toContain('evidence about how AI agents behave socially');
-    expect(html).toContain('a claim that repeated runs produce the same words');
-    // Each caveat is introduced by a rendered "Not" marker.
-    expect(html.match(/class="no">Not<\/span>/g)?.length).toBe(4);
+    expect(html).toContain('What this work does not establish');
+    expect(html).toContain('not evidence about how AI agents behave');
+    expect(html).toContain('Repeated runs are not expected to produce the same text');
+    expect(html).toContain('are not treated as an accurate account');
   });
 
   it('explains the failure-versus-abstention distinction in plain language', () => {
     const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).toContain('7 of 10');
     expect(html).toContain('7 of 8');
-    expect(html).toContain('Chose not to speak');
+    expect(html).toContain('Recorded decision not to respond');
   });
 
   it('invites a first run when nothing has been recorded yet', () => {
     const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
-    expect(html).toContain('Nothing has been run yet');
-    expect(html).toContain('No runs recorded yet');
+    expect(html).toContain('No run has been carried out on this instance yet');
+    expect(html).toContain('No runs have been recorded on this instance');
   });
 
   it('plots the real trace of the most recent run, with counts drawn from its events', () => {
@@ -89,8 +88,8 @@ describe('overview page', () => {
 
     expect(html).toContain('2 public messages');
     expect(html).toContain('1 private messages');
-    expect(html).toContain('1 failures');
-    expect(html).toContain('6 recorded moments in total');
+    expect(html).toContain('1 technical failures');
+    expect(html).toContain('6 recorded events in total');
     expect(html).toContain(`/runs/${run.run_id}`);
     expect(html).toContain('3 runs recorded');
   });

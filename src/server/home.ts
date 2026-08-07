@@ -40,8 +40,8 @@ export function homePage(input: HomeInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA — a controlled environment for watching AI agents interact</title>
-<meta name="description" content="AGORA runs small, bounded workshops between AI agents and records every message, decision and failure, so the results can be trusted.">
+<title>AGORA — a controlled environment for observing interaction between AI agents</title>
+<meta name="description" content="AGORA runs small workshops between AI agents and records each message, response opportunity and technical failure, so that a completed run can be examined in detail.">
 <style>${HOME_STYLES}</style>
 </head>
 <body>
@@ -73,28 +73,28 @@ ${closing(input)}
 
 function hero(): string {
   return `<header class="hero">
-  <p class="eyebrow">Research instrument</p>
-  <h1>Five AI agents hold a meeting.<br><em>We record exactly what happened.</em></h1>
+  <p class="eyebrow">Overview</p>
+  <h1>A controlled environment for observing <em>how AI agents interact</em>.</h1>
   <div class="hero-grid">
    <div class="hero-copy">
-  <p class="lede">AGORA runs small, bounded workshops between AI agents — a public discussion,
-  private breakout groups, a moderator keeping time. Every message, every turn an agent was
-  offered, and every failure is written down as it happens. Afterwards you can replay the whole
-  thing and see precisely what each agent was shown before it spoke.</p>
+  <p class="lede">AGORA runs small workshops in which five AI agents and a moderator discuss a
+  set topic. A workshop uses a public channel and private breakout groups. The system records
+  each message, each opportunity an agent was given to respond, and each technical failure, so
+  that a completed run can be examined in detail afterwards.</p>
 
   <div class="cta-row">
-    <a class="btn" href="/runs">See recorded runs</a>
-    <span class="cta-note">Nothing here is a claim about how AI behaves. This is the apparatus,
-    and the evidence that it can be trusted.</span>
+    <a class="btn" href="/runs">View recorded runs</a>
+    <span class="cta-note">Phase 0 concerns whether the environment works and can be relied
+    upon. It does not report findings about agent behaviour.</span>
   </div>
    </div>
 
   <figure class="ring-figure">
     ${ringDiagram()}
     <figcaption>
-      <span class="legend"><i class="dot public"></i>Public — everyone sees it</span>
-      <span class="legend"><i class="dot private"></i>Private — only that group sees it</span>
-      <span class="legend"><i class="dot fault"></i>Failure — the message never arrived</span>
+      <span class="legend"><i class="dot public"></i>Public — received by all participants</span>
+      <span class="legend"><i class="dot private"></i>Private — received only within the group</span>
+      <span class="legend"><i class="dot fault"></i>Failure — the message was not delivered</span>
     </figcaption>
   </figure>
   </div>
@@ -102,9 +102,9 @@ function hero(): string {
 }
 
 /**
- * A live miniature of the canonical experiment: a moderator and five agents, the
- * public ring, the two breakout groups from the shipped config, and a failure. The
- * whole product in about twenty seconds, before a single paragraph of explanation.
+ * A reduced illustration of the shipped configuration: a moderator and five agents, the
+ * public channel, the two breakout groups defined in the canonical config, and a
+ * technical failure.
  */
 function ringDiagram(): string {
   const nodes = [
@@ -117,7 +117,7 @@ function ringDiagram(): string {
   ];
 
   return `<svg class="ring" viewBox="0 0 600 340" role="img"
-       aria-label="Diagram of a workshop: a moderator and five agents exchange public messages around a ring, then split into two private breakout groups, and one message fails to arrive.">
+       aria-label="Diagram of a workshop. A moderator and five agents exchange messages on a public channel, then divide into two private breakout groups, and one message is not delivered.">
   <circle class="ring-track" cx="300" cy="170" r="120"/>
   <circle class="ring-pulse" cx="300" cy="170" r="120"/>
 
@@ -135,9 +135,9 @@ function ringDiagram(): string {
     )
     .join('\n  ')}
 
-  <g class="stage stage-1"><text x="300" y="176" class="stage-text">Everyone hears everyone</text></g>
-  <g class="stage stage-2"><text x="300" y="176" class="stage-text">Two groups talk privately</text></g>
-  <g class="stage stage-3"><text x="300" y="176" class="stage-text">Agent 4 never got its turn</text></g>
+  <g class="stage stage-1"><text x="300" y="176" class="stage-text">All participants receive the message</text></g>
+  <g class="stage stage-2"><text x="300" y="176" class="stage-text">Groups exchange messages privately</text></g>
+  <g class="stage stage-3"><text x="300" y="176" class="stage-text">One opportunity did not reach agent 4</text></g>
 </svg>`;
 }
 
@@ -145,20 +145,20 @@ function ringDiagram(): string {
 
 function sectionRun(): string {
   const phases = [
-    ['Set up', 'The exact settings are frozen and fingerprinted.'],
-    ['Introductions', 'Each agent says how it intends to approach the topic.'],
-    ['Open discussion', 'Everyone speaks in turn, in the public room.'],
-    ['Private breakouts', 'Agents split into small groups that cannot hear each other.'],
-    ['Final round', 'Everyone returns and says where they now stand.'],
-    ['Closing', 'The moderator sums up what was actually said.'],
+    ['Set up', 'The settings for the run are fixed and recorded.'],
+    ['Introductions', 'Each agent states how it intends to approach the topic.'],
+    ['Open discussion', 'Agents speak in turn on the public channel.'],
+    ['Private breakouts', 'Agents are divided into groups that cannot see each other’s messages.'],
+    ['Final round', 'Agents return to the public channel and state their position.'],
+    ['Closing', 'The moderator summarises the discussion.'],
   ];
 
   return `<section id="run">
-  <p class="eyebrow">What a run is</p>
-  <h2>A meeting with a fixed agenda and a stopwatch</h2>
-  <p class="body">A run always moves forward through the same phases and always ends — there is no
-  path where it drifts on indefinitely. The software decides who speaks and when. The agents only
-  decide <em>what to say</em>.</p>
+  <p class="eyebrow">Structure of a run</p>
+  <h2>Each run follows a fixed sequence of phases</h2>
+  <p class="body">A run proceeds through the phases below in order and then ends. The software
+  determines which agent speaks and when. The agents determine only the content of their
+  messages.</p>
 
   <ol class="phases">
     ${phases
@@ -171,9 +171,8 @@ function sectionRun(): string {
       )
       .join('\n    ')}
   </ol>
-  <p class="aside">Keeping the scheduling, timing and permissions in ordinary software — rather than
-  asking an AI to manage them — is deliberate. It means the only unpredictable part of a run is the
-  thing we are actually studying.</p>
+  <p class="aside">Scheduling, timing and permissions are handled in ordinary program code rather
+  than by a model. This limits the number of things that vary between one run and the next.</p>
 </section>`;
 }
 
@@ -181,22 +180,24 @@ function sectionRun(): string {
 
 function sectionRooms(): string {
   return `<section id="rooms">
-  <p class="eyebrow">Public and private</p>
-  <h2>What happens in a breakout stays in the breakout</h2>
-  <p class="body">Agents can talk in the open room, where everyone hears them, or in a small private
-  group. If private talk leaked into everyone's view, any finding about how agents behave differently
-  in private would be worthless. So the rule is enforced once, in one place — and then
-  <em>independently re-checked</em> from the saved records after the run.</p>
+  <p class="eyebrow">Channels</p>
+  <h2>Public and private messages are kept separate</h2>
+  <p class="body">An agent writes either to the public channel, which all participants receive, or
+  to a private breakout group. If private messages became visible to participants outside the
+  group, any comparison between public and private behaviour would be invalid. The rule
+  determining who may see a message is applied in one place, and is checked again from the stored
+  records after the run has finished.</p>
 
   <div class="rooms">
     <div class="room">
-      <span class="room-tag public">Public room</span>
+      <span class="room-tag public">Public channel</span>
       <div class="chips">
         <span class="chip lit">Agent 1</span><span class="chip lit">Agent 2</span>
         <span class="chip lit">Agent 3</span><span class="chip lit">Agent 4</span>
         <span class="chip lit">Agent 5</span><span class="chip lit">Moderator</span>
       </div>
-      <p class="room-note">Six recipients. Every delivery recorded by name.</p>
+      <p class="room-note">All six participants receive the message. Each delivery is recorded
+      individually.</p>
     </div>
     <div class="room">
       <span class="room-tag private">Breakout group</span>
@@ -205,12 +206,13 @@ function sectionRooms(): string {
         <span class="chip dim">Agent 3</span><span class="chip dim">Agent 4</span>
         <span class="chip dim">Agent 5</span><span class="chip dim">Moderator</span>
       </div>
-      <p class="room-note">Two recipients. The other four are never shown this message —
-      not in the transcript, and not in anything they are asked to respond to later.</p>
+      <p class="room-note">Only the two members of the group receive the message. It does not
+      appear in the material shown to the other four participants at any later point in the run.</p>
     </div>
   </div>
-  <p class="aside">Every run reports the number of leaks found by re-deriving, from scratch, who was
-  allowed to see each message. The target is zero, and it is stated as a number rather than assumed.</p>
+  <p class="aside">Each run reports the number of cases in which an agent was given a message it
+  was not entitled to see. The figure is recalculated from the stored records rather than assumed
+  to be zero.</p>
 </section>`;
 }
 
@@ -218,14 +220,15 @@ function sectionRooms(): string {
 
 function sectionSilence(): string {
   return `<section id="silence">
-  <p class="eyebrow">The distinction everything rests on</p>
-  <h2>An agent said nothing. Did it choose to, or did the line drop?</h2>
-  <p class="body">This is the question that decides whether a study is worth anything. If a technical
-  failure gets quietly counted as an agent "staying quiet", the conclusions are measuring the network,
-  not the agent. AGORA records the reason for every silence, and refuses to guess.</p>
+  <p class="eyebrow">Missing responses</p>
+  <h2>A missing response may be a decision or a technical failure</h2>
+  <p class="body">If a technical failure is recorded as a decision by the agent not to respond,
+  then measurements of participation describe the reliability of the connection rather than the
+  behaviour of the agent. The system records the reason for each missing response, and does not
+  infer one where it is not known.</p>
 
   <figure class="gauge">
-    <p class="gauge-label">Ten turns offered to one agent over a run</p>
+    <p class="gauge-label">Ten opportunities to respond, given to one agent during a run</p>
     <div class="gauge-row">
       ${Array.from({ length: 10 }, (_, i) => {
         const kind = i < 7 ? 'ok' : i < 9 ? 'broken' : 'abstain';
@@ -234,30 +237,29 @@ function sectionSilence(): string {
     </div>
 
     <figcaption class="gauge-key">
-      <span class="legend"><i class="dot public"></i>Answered</span>
-      <span class="legend"><i class="dot fault"></i>Never got a turn — technical failure</span>
-      <span class="legend"><i class="dot grey"></i>Chose not to speak</span>
+      <span class="legend"><i class="dot public"></i>Responded</span>
+      <span class="legend"><i class="dot fault"></i>Did not reach the agent</span>
+      <span class="legend"><i class="dot grey"></i>Recorded decision not to respond</span>
     </figcaption>
 
     <div class="readings">
       <div class="reading wrong">
-        <span class="reading-tag">The careless reading</span>
+        <span class="reading-tag">If the reason is not recorded</span>
         <span class="reading-figure">7 of 10 &nbsp;=&nbsp; 70%</span>
-        <span class="reading-note">Counts two broken connections as if the agent had chosen
-        to stay quiet. This number is wrong, and nothing in it says so.</span>
+        <span class="reading-note">Two failed connections are counted as though the agent had
+        decided not to respond.</span>
       </div>
       <div class="reading right">
-        <span class="reading-tag">What AGORA reports</span>
+        <span class="reading-tag">As reported by AGORA</span>
         <span class="reading-figure">7 of 8 &nbsp;=&nbsp; 88%</span>
-        <span class="reading-note">Two turns never reached the agent, so they are removed from
-        the total. One silence was a genuine choice, and stays in.</span>
+        <span class="reading-note">Two opportunities did not reach the agent and are excluded
+        from the total. One was a recorded decision not to respond, and is retained.</span>
       </div>
     </div>
   </figure>
 
-  <p class="aside">Both numbers are published side by side, so the difference is visible rather than
-  taken on trust. When an agent never had a single working turn, AGORA reports "not applicable"
-  instead of a participation score — a zero there would be a claim the evidence cannot support.</p>
+  <p class="aside">Both figures are reported, so that the difference between them can be seen.
+  Where an agent had no opportunity that reached it, no participation figure is given.</p>
 </section>`;
 }
 
@@ -268,11 +270,11 @@ function sectionTrace(input: HomeInput): string {
 
   if (!latestRun || latestEvents.length === 0) {
     return `<section id="trace">
-  <p class="eyebrow">The record</p>
-  <h2>Every run leaves a complete trace</h2>
-  <p class="body">Nothing has been run yet on this instance. Launch one and this section fills in
-  with the real thing.</p>
-  <p><a class="btn" href="/runs">Launch a run</a></p>
+  <p class="eyebrow">Records</p>
+  <h2>Each run produces a complete record</h2>
+  <p class="body">No run has been carried out on this instance yet. Once one has, its record is
+  shown here.</p>
+  <p><a class="btn" href="/runs">Start a run</a></p>
 </section>`;
   }
 
@@ -296,10 +298,10 @@ function sectionTrace(input: HomeInput): string {
   };
 
   return `<section id="trace">
-  <p class="eyebrow">The record</p>
-  <h2>Every run leaves a complete trace</h2>
-  <p class="body">Below is the actual trace of the most recent run on this instance — not an
-  illustration. Each mark is one recorded moment, laid out left to right in the order it happened.</p>
+  <p class="eyebrow">Records</p>
+  <h2>Each run produces a complete record</h2>
+  <p class="body">The chart below is the record of the most recent run carried out on this
+  instance. Each mark is one recorded event, placed from left to right in the order it occurred.</p>
 
   <figure class="trace">
     <div class="trace-strip">
@@ -309,14 +311,13 @@ function sectionTrace(input: HomeInput): string {
     <figcaption>
       <span class="legend"><i class="dot public"></i>${counts.public} public messages</span>
       <span class="legend"><i class="dot private"></i>${counts.private} private messages</span>
-      <span class="legend"><i class="dot fault"></i>${counts.fault} failures</span>
-      <span class="legend"><i class="dot grey"></i>${counts.total} recorded moments in total</span>
+      <span class="legend"><i class="dot fault"></i>${counts.fault} technical failures</span>
+      <span class="legend"><i class="dot grey"></i>${counts.total} recorded events in total</span>
     </figcaption>
   </figure>
 
-  <p class="aside">Open <a href="/runs/${esc(latestRun.run_id)}">that run</a> to step through it
-  moment by moment, or click any single turn to see the exact text the agent was shown before it
-  answered.</p>
+  <p class="aside">Open <a href="/runs/${esc(latestRun.run_id)}">that run</a> to view its events in
+  sequence, or select an individual turn to see the text the agent received before it responded.</p>
 </section>`;
 }
 
@@ -325,27 +326,27 @@ function sectionTrace(input: HomeInput): string {
 function sectionGates(): string {
   const gates: Array<[string, string, string]> = [
     [
-      'Did the plumbing work?',
-      'Messages reached the right people, private groups stayed private, the meeting ran its full course, and the records saved cleanly.',
-      'Checked by re-deriving who was allowed to see each message, and counting the leaks. Zero, or it fails.',
+      'Was the run carried out correctly?',
+      'Messages reached the intended recipients, private groups remained separate, the sequence of phases completed, and the records were stored.',
+      'Verified by recalculating from the stored records which participants were entitled to see each message. The check requires a count of zero.',
     ],
     [
-      'Do we know why each silence happened?',
-      'Every missing answer is labelled either "the agent chose not to speak" or "the connection failed" — never left ambiguous.',
-      'A run where nothing ever went wrong fails this check rather than passing it, because nothing was proven.',
+      'Is the reason for each missing response recorded?',
+      'Each missing response is recorded either as a decision by the agent or as a technical failure. Neither is inferred from the other.',
+      'A run in which no technical failure occurred does not pass this check, because the distinction was not exercised.',
     ],
     [
-      'Can we do it again identically?',
-      'The exact settings are frozen and fingerprinted, so a second run can be launched under provably identical conditions.',
-      'Two runs with the same fingerprint were run the same way. The agents will still say different things — that part is expected.',
+      'Can the run be repeated under the same conditions?',
+      'The settings are fixed and recorded with an identifier, so that a further run can be started under the same conditions.',
+      'Two runs sharing an identifier were carried out under the same settings. The agents are not expected to produce the same text.',
     ],
   ];
 
   return `<section id="gates">
-  <p class="eyebrow">Before a run counts</p>
-  <h2>Three checks, and the honest answer</h2>
-  <p class="body">Every run is graded against the same three questions, automatically. The result is
-  published with the evidence attached, and it is designed to fail rather than flatter.</p>
+  <p class="eyebrow">Acceptance checks</p>
+  <h2>Three checks are applied to each run</h2>
+  <p class="body">The three checks below are applied automatically. The result of each is recorded
+  together with the evidence on which it is based.</p>
 
   <div class="gates">
     ${gates
@@ -358,40 +359,40 @@ function sectionGates(): string {
       )
       .join('\n    ')}
   </div>
-  <p class="aside">Only when all three pass does a run declare itself ready to support a real
-  behavioural experiment. Anything less says so plainly, and lists what is missing.</p>
+  <p class="aside">A run is described as ready to support a controlled behavioural experiment only
+  if all three checks pass. If any does not, the report states which, and what is missing.</p>
 </section>`;
 }
 
 // ---------------------------------------------------------- scope section
 
 function sectionScope(): string {
+  const limits = [
+    'This phase concerns the environment itself. The runs carried out so far are not evidence about how AI agents behave, and should not be presented as such.',
+    'Repeated runs are not expected to produce the same text. Only the conditions under which a run is carried out are held constant.',
+    'The moderator’s summaries are model output. They are recorded on the same terms as any other message, and are not treated as an accurate account of the discussion.',
+    'The system is incomplete. Its present limitations are recorded in the repository rather than left to be found later.',
+  ];
+
   return `<section id="scope">
-  <p class="eyebrow">Being straight about it</p>
-  <h2>What this is not</h2>
+  <p class="eyebrow">Limitations</p>
+  <h2>What this work does not establish</h2>
   <div class="scope">
-    <p><span class="no">Not</span> evidence about how AI agents behave socially. This phase builds and
-    tests the instrument. Reading conclusions about AI society out of these runs would be exactly the
-    mistake the instrument exists to prevent.</p>
-    <p><span class="no">Not</span> a claim that repeated runs produce the same words. They will not,
-    and should not. Only the <em>conditions</em> are reproducible.</p>
-    <p><span class="no">Not</span> a place where the moderator is treated as correct. Its summaries
-    are model output like any other, recorded and questionable on the same terms.</p>
-    <p><span class="no">Not</span> finished. The current limitations are written down and published
-    alongside the code rather than discovered later.</p>
+    ${limits.map((line) => `<p>${esc(line)}</p>`).join('\n    ')}
   </div>
 </section>`;
 }
 
 function closing(input: HomeInput): string {
   return `<footer class="closing">
-  <h2>Have a look at the evidence</h2>
+  <h2>Recorded runs</h2>
   <p>${
     input.runCount > 0
       ? `${input.runCount} run${input.runCount === 1 ? '' : 's'} recorded on this instance.`
-      : 'No runs recorded yet on this instance.'
-  } Each one keeps its full timeline, its settings fingerprint, and its grading.</p>
-  <a class="btn" href="/runs">Open runs</a>
+      : 'No runs have been recorded on this instance.'
+  } Each retains its full record, the identifier of the settings it used, and the result of the
+  three checks.</p>
+  <a class="btn" href="/runs">View runs</a>
 </footer>`;
 }
 
@@ -699,9 +700,8 @@ figcaption { display: flex; flex-wrap: wrap; gap: .5rem 1.4rem; justify-content:
 
 /* ---------- scope ---------- */
 .scope { display: grid; gap: .8rem; max-width: 48rem; }
-.scope p { margin: 0; padding-left: 1rem; border-left: 2px solid var(--fault); font-size: .96rem; }
-.no { font-family: var(--mono); font-size: .74rem; letter-spacing: .1em; text-transform: uppercase;
-      color: var(--fault); font-weight: 700; margin-right: .3rem; }
+.scope p { margin: 0; padding-left: 1rem; border-left: 2px solid var(--line); font-size: .96rem;
+            color: var(--muted); }
 
 /* ---------- closing ---------- */
 .closing { max-width: 68rem; margin: 0 auto; padding: 3.5rem 1.25rem 5rem; }

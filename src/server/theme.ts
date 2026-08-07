@@ -10,13 +10,13 @@
  */
 export const BASE_STYLES = `
 :root {
-  color-scheme: light dark;
-  --paper: #eef1f5;
+  color-scheme: light; /* light only: dark backgrounds hurt readability here */
+  --paper: #f7f9fb;
   --panel: #ffffff;
-  --grid: #dde3ea;
+  --grid: #e7ecf2;
   --ink: #14181f;
   --muted: #5d6673;
-  --line: #d3dae2;
+  --line: #dde3ea;
   /* The palette is the legend. */
   --public: #2f5fe0;
   --private: #b57408;
@@ -26,14 +26,6 @@ export const BASE_STYLES = `
   --fault-soft: #fbe6e2;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --paper: #101319; --panel: #171b23; --grid: #1e242e; --ink: #e9edf3;
-    --muted: #98a2b1; --line: #262d38;
-    --public: #7fa2ff; --private: #e8b25c; --fault: #ff8f80;
-    --public-soft: #16203a; --private-soft: #2c2413; --fault-soft: #331a19;
-  }
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }

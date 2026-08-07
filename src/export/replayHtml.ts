@@ -243,12 +243,12 @@ export function esc(value: string): string {
 
 export const STYLES = `
 :root {
-  color-scheme: light dark;
-  --bg: #fbfaf8;
+  color-scheme: light; /* light only: dark backgrounds hurt readability here */
+  --bg: #f7f9fb;
   --panel: #ffffff;
-  --ink: #1b1a18;
-  --muted: #6c6a66;
-  --line: #e3e0da;
+  --ink: #14181f;
+  --muted: #5d6673;
+  --line: #dde3ea;
   /* Colour is data here, not decoration: signal blue = public channel,
      amber = private/breakout, vermilion = infrastructure failure. The same
      three read identically on the overview page and in every run timeline. */
@@ -260,13 +260,6 @@ export const STYLES = `
   --priv: #8a5a00;
   --priv-bg: #fdf3e0;
   --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
-    --bg: #14141a; --panel: #1c1c24; --ink: #ecebe8; --muted: #9d9a95;
-    --line: #2e2e38; --accent: #7fa2ff; --ok: #6ddba0; --ok-bg: #14301f;
-    --bad: #ff8f86; --bad-bg: #33191a; --priv: #f0c274; --priv-bg: #2f2410;
-  }
 }
 * { box-sizing: border-box; }
 body {

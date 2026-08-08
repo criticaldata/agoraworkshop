@@ -141,7 +141,7 @@ function validationReadme(input: {
   ready: boolean;
   gates: string[];
 }): string {
-  return `# AGORA Phase 0 validation package
+  return `# AGORA WORKSHOP Phase 0 validation package
 
 | Item | Value |
 | --- | --- |
@@ -166,7 +166,7 @@ run's stored config snapshot.
 `;
 }
 
-const KNOWN_ISSUES = `# Known limitations — AGORA Phase 0
+const KNOWN_ISSUES = `# Known limitations — AGORA WORKSHOP Phase 0
 
 These are stated explicitly so that nobody reads more into a Phase 0 run than it supports.
 

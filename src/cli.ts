@@ -14,7 +14,7 @@ import { runValidationPackage } from './scripts/validate.js';
 import { extractRunSemantics, listExtractions } from './semantic/pipeline.js';
 import { OpenAIExtractor, StubExtractor } from './semantic/extractors.js';
 
-const USAGE = `agora — AGORA Phase 0 research instrument
+const USAGE = `agora — AGORA WORKSHOP Phase 0 research instrument
 
 Usage:
   agora run --config <path>                      Launch a workshop from a frozen config

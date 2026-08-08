@@ -47,13 +47,13 @@ export function renderReplayHtml(input: ReplayInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA replay · ${esc(run.run_id)}</title>
+<title>AGORA WORKSHOP replay · ${esc(run.run_id)}</title>
 <style>${STYLES}</style>
 </head>
 <body>
 <main>
   <header class="page-head">
-    <p class="eyebrow">AGORA Phase 0 · run replay</p>
+    <p class="eyebrow">AGORA WORKSHOP Phase 0 · run replay</p>
     <h1>${esc(config.workshop.topic)}</h1>
     ${renderRunFacts(run)}
   </header>

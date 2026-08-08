@@ -152,7 +152,7 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
 <body>
 <main>
   <nav class="top">
-    <a class="brand" href="/">AGORA</a>
+    <a class="brand" href="/">AGORA WORKSHOP</a>
     <span class="brand-note">Phase 0</span>
     <a href="/">Overview</a>
     <a href="/docs">Documentation</a>
@@ -228,7 +228,7 @@ export function runsPage(input: RunsPageInput): string {
          above and start one.</p></div>`;
 
   return page(
-    'AGORA · runs',
+    'AGORA WORKSHOP · runs',
     `
   <header class="page-head rp-head">
     <div>

@@ -53,7 +53,10 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
   const raw = env['AGORA_AUTH_PASSWORD'];
   const password = raw && raw.length > 0 ? raw : null;
   const scope: AuthScope = env['AGORA_AUTH_SCOPE'] === 'all' ? 'all' : 'write';
-  return { password, scope, realm: env['AGORA_AUTH_REALM'] ?? 'AGORA' };
+  // The realm is the name the browser's sign-in dialog shows, so it carries the product
+  // name. Browsers cache credentials against it: changing this asks once more, then
+  // settles. AGORA_AUTH_REALM overrides it on an instance that would rather not.
+  return { password, scope, realm: env['AGORA_AUTH_REALM'] ?? 'AGORA WORKSHOP' };
 }
 
 /**

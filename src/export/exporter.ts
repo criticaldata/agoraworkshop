@@ -296,7 +296,7 @@ function bundleReadme(
   files: ExportResult['files'],
 ): string {
   return [
-    `# AGORA Phase 0 validation bundle for ${runId}`,
+    `# AGORA WORKSHOP Phase 0 validation bundle for ${runId}`,
     ``,
     `Config hash: \`${configHash}\``,
     ``,

@@ -799,7 +799,7 @@ const message = (error: unknown): string =>
 
 const port = Number(process.env.PORT ?? 3000);
 app.listen(port, () => {
-  console.log(`AGORA Phase 0 listening on :${port}`);
+  console.log(`AGORA WORKSHOP Phase 0 listening on :${port}`);
   console.log(`  data:    ${process.env.AGORA_DATA_DIR ?? './data'}`);
   console.log(`  configs: ${CONFIG_DIR} (${availableConfigs().join(', ') || 'none found'})`);
   console.log(`  ${describeAuth(authConfig)}`);

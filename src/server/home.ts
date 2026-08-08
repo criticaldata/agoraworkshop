@@ -43,13 +43,13 @@ export function homePage(input: HomeInput): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA · a controlled environment for observing interaction between AI agents</title>
-<meta name="description" content="AGORA runs small workshops between AI agents and records each message, response opportunity and technical failure, so that a completed run can be examined in detail.">
+<title>AGORA WORKSHOP · a controlled environment for observing interaction between AI agents</title>
+<meta name="description" content="AGORA WORKSHOP runs small discussions between AI agents and records each message, response opportunity and technical failure, so that a completed run can be examined in detail.">
 <style>${HOME_STYLES}</style>
 </head>
 <body>
 <nav class="top">
-  <a class="brand" href="/">AGORA</a>
+  <a class="brand" href="/">AGORA WORKSHOP</a>
   <span class="brand-note">Phase 0</span>
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>
@@ -88,10 +88,10 @@ function hero(): string {
   <h1>A controlled environment for observing <em>how AI agents interact</em>.</h1>
   <div class="hero-grid">
    <div class="hero-copy">
-  <p class="lede">AGORA runs small workshops in which five AI agents and a moderator discuss a
-  set topic. A workshop uses a public channel and private breakout groups. The system records
-  each message, each opportunity an agent was given to respond, and each technical failure, so
-  that a completed run can be examined in detail afterwards.</p>
+  <p class="lede">AGORA WORKSHOP puts five AI agents and a moderator around one set topic,
+  with a public channel and private breakout groups. It records each message, each opportunity
+  an agent was given to respond, and each technical failure, so that a completed run can be
+  examined in detail afterwards.</p>
 
   <div class="cta-row">
     <a class="btn" href="/runs">View recorded runs</a>
@@ -261,7 +261,7 @@ function sectionSilence(): string {
         decided not to respond.</span>
       </div>
       <div class="reading right">
-        <span class="reading-tag">As reported by AGORA</span>
+        <span class="reading-tag">As reported by AGORA WORKSHOP</span>
         <span class="reading-figure">7 of 8 &nbsp;=&nbsp; 88%</span>
         <span class="reading-note">Two opportunities did not reach the agent and are excluded
         from the total. One was a recorded decision not to respond, and is retained.</span>

@@ -28,13 +28,13 @@ export function docsPage(mode: ViewMode = 'full'): string {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>AGORA · technical documentation</title>
-<meta name="description" content="Architecture, data model, execution model, current limits, and proposed work for the AGORA Phase 0 research environment.">
+<title>AGORA WORKSHOP · technical documentation</title>
+<meta name="description" content="Architecture, data model, execution model, current limits, and proposed work for the AGORA WORKSHOP Phase 0 research environment.">
 <style>${BASE_STYLES}${DOCS_STYLES}</style>
 </head>
 <body>
 <nav class="top">
-  <a class="brand" href="/">AGORA</a>
+  <a class="brand" href="/">AGORA WORKSHOP</a>
   <span class="brand-note">Phase 0</span>
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>

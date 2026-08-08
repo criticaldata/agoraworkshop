@@ -228,6 +228,12 @@ describe('configuration from the environment', () => {
     expect(authConfigFromEnv({ AGORA_AUTH_PASSWORD: '' }).password).toBeNull();
   });
 
+  it('names the product in the sign-in dialog', () => {
+    // The realm is what the browser's own prompt shows, so it is the product name.
+    expect(authConfigFromEnv({}).realm).toBe('AGORA WORKSHOP');
+    expect(authConfigFromEnv({ AGORA_AUTH_REALM: 'Something else' }).realm).toBe('Something else');
+  });
+
   it('defaults to protecting writes only', () => {
     expect(authConfigFromEnv({ AGORA_AUTH_PASSWORD: 'x' }).scope).toBe('write');
     expect(authConfigFromEnv({ AGORA_AUTH_PASSWORD: 'x', AGORA_AUTH_SCOPE: 'all' }).scope).toBe('all');

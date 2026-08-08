@@ -42,7 +42,7 @@ export function apiPage(sample: RunRow | null): string {
   const example = sample?.run_id ?? null;
 
   return page(
-    'AGORA · raw API',
+    'AGORA WORKSHOP · raw API',
     `
   <style>${API_STYLES}</style>
 

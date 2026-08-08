@@ -39,7 +39,13 @@ import { codeProvenance, describeProvenance } from '../core/provenance.js';
 import { reconcileInterruptedRuns } from '../orchestrator/reconcile.js';
 import { buildValidationSet } from '../acceptance/validationSet.js';
 import { validationPage } from './validation.js';
-import { parseExplorerQuery, renderExplorer, resolveSelection, toFilters } from './explorer.js';
+import {
+  parseExplorerQuery,
+  renderExplorer,
+  renderInspectorFragment,
+  resolveSelection,
+  toFilters,
+} from './explorer.js';
 import { agentPage } from './agentPage.js';
 import { parseStructureQuery, structurePage } from './structure.js';
 import { comparePage, type ComparePageInput } from './compare.js';
@@ -81,7 +87,7 @@ const reconciled = reconcileInterruptedRuns(db);
 const ASSET_VERSION = (() => {
   const dir = resolve(process.env['AGORA_STATIC_DIR'] ?? './static');
   const hash = createHash('sha256');
-  for (const name of ['cytoscape.min.js', 'graph.js']) {
+  for (const name of ['cytoscape.min.js', 'graph.js', 'timeline.js']) {
     try {
       hash.update(readFileSync(join(dir, name)));
     } catch {
@@ -278,10 +284,27 @@ app.get('/runs/:runId/timeline', (req, res) => {
   });
   const query = resolveSelection(parsed, timeline);
 
+  const explorerInput = {
+    run: ctx.run,
+    config: ctx.config,
+    timeline,
+    events: ctx.events,
+    messages: ctx.messages,
+    invocations: ctx.invocations,
+    query,
+  };
+
+  // The inspector on its own, for opening a marker without reloading the page.
+  if (req.query['fragment'] === 'inspector') {
+    res.type('html').send(renderInspectorFragment(explorerInput));
+    return;
+  }
+
   res.type('html').send(
     timelinePage({
       ...ctx,
       exportedFiles: getArtifacts(db, ctx.runId).length,
+      assetVersion: ASSET_VERSION,
       explorer: renderExplorer({
         run: ctx.run,
         config: ctx.config,

@@ -233,6 +233,7 @@ function renderGrid(base: string, runId: string, timeline: Timeline, query: Expl
           return `<a class="ex-marker k-${marker.kind}${selected ? ' sel' : ''}"
             style="grid-row:${row};grid-column:${column}"
             href="${href(base, query, { selected: marker.sequence })}#inspector"
+            data-event="${marker.sequence}"
             aria-label="${esc(markerAria(marker))}"
             title="${esc(markerAria(marker))}"><span aria-hidden="true">${
               MARKER_SYMBOL[marker.kind]
@@ -283,6 +284,18 @@ function renderLegend(timeline: Timeline): string {
 }
 
 // ---------------------------------------------------------------- inspector
+
+/**
+ * The inspector on its own, so it can be swapped in without reloading the page.
+ *
+ * Selecting a marker used to navigate: the page reloaded and the browser jumped to the
+ * panel, which reads as landing somewhere else rather than opening a detail. The links
+ * still work as links, so the view stays deep-linkable and works with no script at all;
+ * a small script fetches this fragment instead when it can.
+ */
+export function renderInspectorFragment(input: ExplorerInput): string {
+  return renderInspector(input, `/runs/${input.run.run_id}/timeline`);
+}
 
 function renderInspector(input: ExplorerInput, base: string): string {
   const { timeline, query, messages, invocations, events, config, run } = input;

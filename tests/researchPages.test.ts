@@ -10,6 +10,7 @@ import {
 import {
   parseExplorerQuery,
   renderExplorer,
+  renderInspectorFragment,
   resolveSelection,
   toFilters,
 } from '../src/server/explorer.js';
@@ -493,5 +494,40 @@ describe('selecting a marker by message', () => {
     const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
     const resolved = resolveSelection(parseExplorerQuery({ message: 'msg_nope' }), timeline);
     expect(resolved.selected).toBeNull();
+  });
+});
+
+describe('opening a marker without leaving the page', () => {
+  it('renders the inspector on its own, with no page around it', async () => {
+    const r = await loaded();
+    const query = parseExplorerQuery({ event: '8' });
+    const timeline = buildTimeline({
+      config: r.config,
+      events: r.events,
+      messages: r.messages,
+      filters: toFilters(query),
+    });
+    const fragment = renderInspectorFragment({
+      run: r.run,
+      config: r.config,
+      timeline,
+      events: r.events,
+      messages: r.messages,
+      invocations: r.invocations,
+      query: resolveSelection(query, timeline),
+    });
+
+    expect(fragment.startsWith('<div class="ex-inspector')).toBe(true);
+    expect(fragment).not.toContain('<!doctype');
+    expect(fragment).not.toContain('<nav');
+    expect(fragment).not.toContain('${');
+  });
+
+  it('keeps every marker a real link, so the view works with no script', async () => {
+    const r = await loaded();
+    const html = explorerHtml(r);
+    // The script only intercepts these; without it they still select the marker.
+    expect(html).toContain(`href="/runs/${r.runId}/timeline?event=`);
+    expect(html).toContain('data-event="');
   });
 });

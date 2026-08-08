@@ -153,6 +153,7 @@ describe('run views', () => {
       timeline: timelinePage({
         ...base,
         exportedFiles: 0,
+        assetVersion: 'testasset',
         explorer: renderExplorer({
           run,
           config,

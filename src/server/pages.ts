@@ -397,6 +397,8 @@ export interface RunPageInput extends ReplayInput {
 
 export interface TimelinePageInput extends RunPageInput {
   exportedFiles: number;
+  /** Stamps the client asset so a deploy cannot serve a stale script. */
+  assetVersion: string;
 }
 
 export function timelinePage(input: TimelinePageInput): string {
@@ -412,6 +414,8 @@ export function timelinePage(input: TimelinePageInput): string {
     <h2>Statistics</h2>
     ${renderStats(analytics)}
   </section>
+
+  <script src="/static/timeline.js?v=${esc(input.assetVersion)}"></script>
 `,
     { refresh: isRunning },
   );

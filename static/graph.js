@@ -88,6 +88,10 @@
        the nodes and their labels up to the size of the picture. */
     maxZoom: 1.4,
     minZoom: 0.12,
+    /* The wheel scrolls the page. Zooming a graph that is already laid out to fit gains
+       nothing and costs the reader the scroll they were expecting. Fit and Re-lay out
+       still set the zoom; a person just cannot do it by accident. */
+    userZoomingEnabled: false,
     style: [
       {
         selector: 'node',
@@ -566,7 +570,7 @@
     readout.textContent =
       state.upTo >= GRAPH.maxSequence
         ? 'whole run'
-        : 'to #' + state.upTo + ' · ' + phaseAt(state.upTo);
+        : '#' + state.upTo + ' · ' + phaseAt(state.upTo);
     apply();
   }
 
@@ -604,22 +608,44 @@
   function stop() {
     if (timer) { clearInterval(timer); timer = null; }
     state.playing = false;
-    playButton.textContent = 'Play';
+    playButton.classList.add('paused');
+    playButton.setAttribute('aria-label', 'Play the run through');
+    playButton.setAttribute('title', 'Play the run through');
   }
 
-  playButton.addEventListener('click', function () {
-    if (state.playing) { stop(); return; }
+  function play() {
+    if (state.playing) return;
     state.playing = true;
-    playButton.textContent = 'Pause';
+    playButton.classList.remove('paused');
+    playButton.setAttribute('aria-label', 'Pause');
+    playButton.setAttribute('title', 'Pause');
     if (state.upTo >= GRAPH.maxSequence) setTime(GRAPH.minSequence);
     timer = setInterval(function () {
       if (state.upTo >= GRAPH.maxSequence) { stop(); return; }
       step(1);
     }, 550);
+  }
+
+  playButton.addEventListener('click', function () {
+    if (state.playing) { stop(); return; }
+    play();
   });
 
   // ------------------------------------------------------------------- start
 
   apply();
   runLayout();
+
+  /* The run plays through on arrival, so the first thing a reader sees is the workshop
+     accumulating rather than a finished picture. Anyone who would rather not watch it
+     can pause, and a reader who prefers no motion at all is left at the end state. */
+  var prefersStill =
+    window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (prefersStill) {
+    stop();
+    setTime(GRAPH.maxSequence);
+  } else {
+    setTime(GRAPH.minSequence);
+    play();
+  }
 })();

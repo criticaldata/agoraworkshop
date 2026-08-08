@@ -65,6 +65,7 @@ export function graphPage(input: GraphPageInput): string {
     <aside id="gr-inspector" class="gr-inspector empty-state" aria-live="polite">
       <p class="gr-placeholder">Select a node or an edge to see what it was derived from.</p>
     </aside>
+    ${renderTransport()}
   </div>
 
   ${renderScrubber(graph)}
@@ -233,13 +234,6 @@ function renderScrubber(graph: RunGraph): string {
   const span = Math.max(1, graph.maxSequence - graph.minSequence);
 
   return `<div class="gr-time">
-    <div class="gr-time-controls">
-      <button type="button" class="gr-btn" id="gr-play" aria-label="Play">Play</button>
-      <button type="button" class="gr-btn" id="gr-prev" aria-label="Previous event">Back</button>
-      <button type="button" class="gr-btn" id="gr-next" aria-label="Next event">Forward</button>
-      <span class="gr-time-read" id="gr-time-read">whole run</span>
-    </div>
-
     <div class="gr-track">
       <div class="gr-time-bands" aria-hidden="true">${graph.phases
         .filter((p) => p.phase !== 'CREATED' && p.phase !== 'COMPLETED')
@@ -255,10 +249,41 @@ function renderScrubber(graph: RunGraph): string {
              value="${graph.maxSequence}" step="1">
     </div>
 
-    <p class="ex-hint">The control moves through the recorded order of events. What it
-    shows is what had been recorded by that point, not what any agent knew. Phase bands
-    are proportional to the number of positions in each phase; the readout above gives the
-    exact phase at the current position.</p>
+    <p class="ex-hint">The run plays through in recorded order when the page opens. What
+    it shows is what had been recorded by that point, not what any agent knew. Phase bands
+    are proportional to the number of positions in each phase; the readout on the canvas
+    gives the exact phase at the current position.</p>
+  </div>`;
+}
+
+/**
+ * Transport controls, on the canvas rather than under it.
+ *
+ * They drive the drawing, so they sit on the drawing. Icons rather than words: these are
+ * the three shapes every transport uses, and at this size a glyph is read faster than a
+ * label. Each still carries its name for anyone not reading the shape.
+ */
+function renderTransport(): string {
+  const icon = (paths: string): string =>
+    `<svg viewBox="0 0 16 16" width="13" height="13" aria-hidden="true" focusable="false">${paths}</svg>`;
+
+  return `<div class="gr-transport">
+    <button type="button" class="gr-tbtn" id="gr-prev" aria-label="Step back one event"
+            title="Step back one event">${icon(
+              '<path d="M4 2.5v11H2.5v-11zM13.5 2.9v10.2L5.6 8z" fill="currentColor"/>',
+            )}</button>
+    <button type="button" class="gr-tbtn is-play" id="gr-play" aria-label="Pause"
+            title="Pause">
+      <span class="gr-ico-play">${icon('<path d="M3.5 2.2 13.5 8l-10 5.8z" fill="currentColor"/>')}</span>
+      <span class="gr-ico-pause">${icon(
+        '<path d="M3.5 2.5h3.2v11H3.5zM9.3 2.5h3.2v11H9.3z" fill="currentColor"/>',
+      )}</span>
+    </button>
+    <button type="button" class="gr-tbtn" id="gr-next" aria-label="Step forward one event"
+            title="Step forward one event">${icon(
+              '<path d="M12 2.5v11h1.5v-11zM2.5 2.9v10.2L10.4 8z" fill="currentColor"/>',
+            )}</button>
+    <span class="gr-time-read" id="gr-time-read">playing</span>
   </div>`;
 }
 
@@ -324,7 +349,30 @@ export const GRAPH_STYLES = `
                    background: var(--paper); color: var(--ink); }
 
 .gr-time { margin-top: .8rem; }
-.gr-time-controls { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+
+/* On the canvas, bottom left: the controls drive the drawing, so they sit on it. */
+.gr-transport {
+  position: absolute; left: .75rem; bottom: .75rem;
+  display: flex; align-items: center; gap: .3rem;
+  padding: .3rem .45rem; border-radius: 9px;
+  background: rgba(255, 255, 255, .92);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 14px rgba(20, 24, 31, .10);
+}
+.gr-tbtn {
+  display: inline-flex; align-items: center; justify-content: center;
+  width: 1.9rem; height: 1.9rem; padding: 0;
+  border: 1px solid transparent; border-radius: 7px;
+  background: transparent; color: var(--muted); cursor: pointer;
+}
+.gr-tbtn:hover { color: var(--ink); background: var(--paper, #f7f9fb); }
+.gr-tbtn:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
+.gr-tbtn.is-play { color: var(--ink); }
+/* One button, two states: the icon shown is the action the button performs. */
+.gr-tbtn .gr-ico-pause { display: inline-flex; }
+.gr-tbtn .gr-ico-play { display: none; }
+.gr-tbtn.paused .gr-ico-pause { display: none; }
+.gr-tbtn.paused .gr-ico-play { display: inline-flex; }
 /* The bands and the slider share one column so a band sits over the stretch of track it
    describes. They were laid out across the whole row while the track began after the
    buttons, which put every band to the left of the positions it named. */
@@ -343,8 +391,8 @@ export const GRAPH_STYLES = `
           cursor: pointer; }
 .gr-btn:hover { border-color: var(--accent); color: var(--accent); }
 #gr-scrub { width: 100%; margin: 0; accent-color: var(--accent); }
-.gr-time-read { font-family: var(--mono); font-size: .74rem; color: var(--muted);
-                margin-left: auto; }
+.gr-time-read { font-family: var(--mono); font-size: .7rem; color: var(--muted);
+                padding: 0 .35rem 0 .2rem; white-space: nowrap; }
 
 .gr-legend { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1rem;
              margin: .8rem 0 0; padding: 0; font-size: .78rem; color: var(--ink); }

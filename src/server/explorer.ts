@@ -233,8 +233,15 @@ function renderGrid(base: string, timeline: Timeline, query: ExplorerQuery): str
     })
     .join('');
 
+  // A phase band spans its columns, and a band whose name does not fit is a band you
+  // cannot read: a filter that leaves one marker in a phase must widen that column
+  // rather than clip "Public discussion" to "Pub…".
+  //
+  // The minimum has to be `min-content` rather than a fixed width, because a spanning
+  // item only grows tracks whose minimum is intrinsic. The marker itself sets that
+  // minimum, so a column is never narrower than the mark it holds.
   return `<div class="ex-grid" role="group" aria-label="Interaction timeline"
-       style="grid-template-columns: 9rem repeat(${columns.length}, 1.6rem)">
+       style="grid-template-columns: 9rem repeat(${columns.length}, minmax(min-content, auto))">
     ${bands}
     ${lanes}
   </div>`;
@@ -438,21 +445,23 @@ export const EXPLORER_STYLES = `
 .ex-hint { font-size: .74rem; color: var(--muted); margin: .35rem 0 0; }
 
 .ex-scroll { overflow-x: auto; padding-bottom: .4rem; }
-.ex-grid { display: grid; align-items: center; row-gap: .1rem; min-width: min-content; }
-.ex-band { border-left: 2px solid var(--line); padding: .1rem .3rem .35rem .4rem;
+.ex-grid { display: grid; align-items: center; row-gap: .1rem; min-width: min-content;
+           /* Leftover width stays as space on the right rather than being shared out
+              among the marker tracks, which would space the run out arbitrarily. */
+           justify-content: start; }
+.ex-band { border-left: 2px solid var(--line); padding: .1rem .6rem .35rem .4rem;
            font-size: .68rem; letter-spacing: .07em; text-transform: uppercase;
-           color: var(--muted); font-weight: 700; white-space: nowrap; overflow: hidden;
-           /* A phase can be narrower than its name; clip with an ellipsis rather than
-              mid-word, and keep the full name reachable through the title. */
-           text-overflow: ellipsis; }
+           color: var(--muted); font-weight: 700; white-space: nowrap; }
+/* Markers stay centred in their track even when a band has widened it. */
+.ex-marker { margin: 0 auto; }
 .ex-lane-name { font-size: .82rem; padding-right: .8rem; white-space: nowrap; }
 .ex-lane-name a { text-decoration: none; color: var(--ink); }
 .ex-lane-name a:hover { color: var(--accent); text-decoration: underline; }
 .ex-lane-name.mod a { font-weight: 700; }
 .ex-rule { height: 1px; background: var(--line); align-self: center; }
 .ex-marker { display: flex; align-items: center; justify-content: center;
-             width: 1.5rem; height: 1.5rem; border-radius: 50%; font-size: .8rem;
-             text-decoration: none; line-height: 1; }
+             width: 1.5rem; min-width: 1.5rem; height: 1.5rem; border-radius: 50%;
+             font-size: .8rem; text-decoration: none; line-height: 1; }
 .ex-marker:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
 .ex-marker.sel { box-shadow: 0 0 0 2px var(--accent); }
 .k-public_message { color: var(--accent); background: #e4ebfc; }

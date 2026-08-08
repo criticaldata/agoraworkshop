@@ -161,6 +161,19 @@ export function runActions(run: RunRow, exportedFiles: number): string {
 }
 
 export const RUN_NAV_STYLES = `
+/* Every view of a run shares one frame width, so the masthead does not change size as
+   you move between tabs. The shared stylesheet holds operator pages to a reading measure,
+   which suits a column of prose and starves a canvas or a wide table.
+   
+   Prose keeps its measure inside that frame: a paragraph set across 92rem is a paragraph
+   nobody finishes. So the frame is wide, and the text is not. */
+main { max-width: 92rem; }
+main > section > p,
+main > section > h2 + p,
+.page-head p,
+.ex-head p,
+.rn ~ * .note { max-width: 58rem; }
+
 .rn {
   position: sticky; top: 0; z-index: 20;
   margin: 0 0 1.5rem; padding: .8rem 0 0;

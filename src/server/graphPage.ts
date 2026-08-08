@@ -308,11 +308,6 @@ export const GRAPH_STYLES = `
                     color: var(--muted); }
 .gr-prov-facts dd { margin: 0; font-size: .8rem; overflow-wrap: anywhere; }
 
-/* The graph is the page on this route, so the page gives it its width. The shared
-   stylesheet holds operator pages to a reading measure, which is right for a column of
-   text and wrong for a canvas. */
-main { max-width: 92rem; }
-
 .gr-stage { position: relative; }
 /* Cytoscape stacks its own layers with z-index inside this element. Giving the element
    a stacking context of its own keeps those layers contained, so the canvas cannot paint

@@ -57,18 +57,18 @@ export function graphPage(input: GraphPageInput): string {
 
   ${renderProvenance(graph, extractions, runId)}
 
-  <div class="gr-layout">
-    <div class="gr-main">
-      ${renderControls(input)}
-      <div id="gr-canvas" class="gr-canvas" role="application"
-           aria-label="Graph of participants and ideas. The same information is available as text in the tables linked below."></div>
-      ${renderScrubber(graph)}
-      ${renderLegend()}
-    </div>
-    <aside id="gr-inspector" class="gr-inspector" aria-live="polite">
+  ${renderControls(input)}
+
+  <div class="gr-stage">
+    <div id="gr-canvas" class="gr-canvas" role="application"
+         aria-label="Graph of participants and ideas. The same information is available as text in the tables linked below."></div>
+    <aside id="gr-inspector" class="gr-inspector empty-state" aria-live="polite">
       <p class="gr-placeholder">Select a node or an edge to see what it was derived from.</p>
     </aside>
   </div>
+
+  ${renderScrubber(graph)}
+  ${renderLegend()}
 
   <section>
     <h2>Reading this without the canvas</h2>
@@ -308,12 +308,16 @@ export const GRAPH_STYLES = `
                     color: var(--muted); }
 .gr-prov-facts dd { margin: 0; font-size: .8rem; overflow-wrap: anywhere; }
 
-.gr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; gap: 1rem;
-             align-items: start; }
+/* The graph is the page on this route, so the page gives it its width. The shared
+   stylesheet holds operator pages to a reading measure, which is right for a column of
+   text and wrong for a canvas. */
+main { max-width: 92rem; }
+
+.gr-stage { position: relative; }
 /* Cytoscape stacks its own layers with z-index inside this element. Giving the element
    a stacking context of its own keeps those layers contained, so the canvas cannot paint
    over the masthead when the page scrolls under it. */
-.gr-canvas { height: 30rem; border: 1px solid var(--line); border-radius: 12px;
+.gr-canvas { height: min(70vh, 42rem); border: 1px solid var(--line); border-radius: 12px;
              background: var(--panel); position: relative; z-index: 0; overflow: hidden; }
 .gr-canvas:focus-visible { outline: 2px solid var(--accent); }
 
@@ -360,9 +364,22 @@ export const GRAPH_STYLES = `
 .gr-line.dashed { border-top-style: dashed; }
 .gr-line.dotted { border-top-style: dotted; }
 
-.gr-inspector { border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
-                padding: 1rem 1.1rem; position: sticky; top: 1rem; max-height: 42rem;
-                overflow-y: auto; }
+/* The inspector sits on the canvas rather than beside it. What it describes is a node or
+   an edge a few centimetres away, and a column at the edge of the page put the
+   explanation as far from the thing as the layout allowed. */
+.gr-inspector {
+  position: absolute; top: .75rem; right: .75rem;
+  width: min(23rem, calc(100% - 1.5rem)); max-height: calc(100% - 1.5rem);
+  overflow-y: auto; padding: .9rem 1.05rem;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+  box-shadow: 0 8px 26px rgba(20, 24, 31, .12);
+}
+/* With nothing selected it is only an instruction, so it stops looking like a panel. */
+.gr-inspector.empty-state {
+  width: auto; max-width: 17rem; padding: .45rem .7rem;
+  box-shadow: none; background: rgba(255, 255, 255, .88);
+  font-size: .78rem;
+}
 .gr-placeholder { color: var(--muted); font-size: .86rem; margin: 0; }
 .gr-inspector h3 { margin: 0 0 .1rem; font-size: 1rem; overflow-wrap: anywhere; }
 .gr-badge { display: inline-block; font-size: .64rem; letter-spacing: .08em;
@@ -380,8 +397,12 @@ export const GRAPH_STYLES = `
 .gr-evidence .mono { font-size: .7rem; color: var(--muted); }
 .gr-inspector .ins-actions { margin-top: .8rem; }
 
-@media (max-width: 62rem) {
-  .gr-layout { grid-template-columns: minmax(0, 1fr); }
-  .gr-inspector { position: static; max-height: none; }
+/* Narrow enough that an overlay would cover the graph it explains: put it back below. */
+@media (max-width: 52rem) {
+  .gr-canvas { height: 26rem; }
+  .gr-inspector, .gr-inspector.empty-state {
+    position: static; width: auto; max-width: none; max-height: none;
+    margin-top: .75rem; box-shadow: none;
+  }
 }
 `;

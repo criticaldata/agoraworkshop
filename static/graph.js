@@ -310,7 +310,7 @@
 
   // ----------------------------------------------------------------- inspector
 
-  var inspector = document.getElementById('gr-inspector');
+  var panel = document.getElementById('gr-inspector');
 
   function escapeHtml(text) {
     return String(text).replace(/[&<>"']/g, function (c) {
@@ -332,7 +332,18 @@
       .join('');
   }
 
+  function asPanel() {
+    if (panel) panel.classList.remove('empty-state');
+  }
+
+  function asHint(text) {
+    if (!panel) return;
+    panel.classList.add('empty-state');
+    panel.innerHTML = '<p class="gr-placeholder">' + escapeHtml(text) + '</p>';
+  }
+
   function showNode(node) {
+    asPanel();
     var d = node.data();
     var derived = d.layer === 'derived';
     var html =
@@ -348,13 +359,13 @@
         '<a class="btn-sm" href="/runs/' + runId + '/agents/' + encodeURIComponent(d.id) + '">Trajectory</a>' +
         '<a class="btn-sm" href="/runs/' + runId + '/timeline?agents=' + encodeURIComponent(d.id) + '">Timeline</a>' +
         '</p>';
-      inspector.innerHTML = html;
+      panel.innerHTML = html;
       return;
     }
 
     html +=
       '<p class="gr-placeholder" id="gr-ev-loading">Loading the messages this was derived from…</p>';
-    inspector.innerHTML = html;
+    panel.innerHTML = html;
     loadEvidence(d.id);
   }
 
@@ -395,6 +406,7 @@
   }
 
   function showEdge(edge) {
+    asPanel();
     var d = edge.data();
     var derived = d.layer === 'derived';
     var html =
@@ -422,14 +434,14 @@
     } else {
       html += '<p class="gr-placeholder">A derived association. Select the node at either end to see the messages behind it.</p>';
     }
-    inspector.innerHTML = html;
+    panel.innerHTML = html;
   }
 
   cy.on('tap', 'node', function (evt) { showNode(evt.target); });
   cy.on('tap', 'edge', function (evt) { showEdge(evt.target); });
   cy.on('tap', function (evt) {
     if (evt.target === cy) {
-      inspector.innerHTML = '<p class="gr-placeholder">Select a node or an edge to see what it was derived from.</p>';
+      asHint('Select a node or an edge to see what it was derived from.');
     }
   });
   cy.on('dbltap', 'node', function (evt) {

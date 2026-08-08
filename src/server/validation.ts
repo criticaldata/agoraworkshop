@@ -6,6 +6,7 @@ import type { ExperimentConfig } from '../config/schema.js';
 import { displayName } from '../config/schema.js';
 import { shown, UNAVAILABLE } from '../core/provenance.js';
 import type { RunRow } from '../db/queries.js';
+import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
 
 export interface ValidationPageInput {
   set: ValidationSet;
@@ -105,11 +106,13 @@ export function validationPage(input: ValidationPageInput): string {
   return page(
     `Phase 0 validation package ${run.run_id}`,
     `
-  <style>${VALIDATION_STYLES}</style>
+  <style>${VALIDATION_STYLES}${RUN_NAV_STYLES}</style>
+
+  ${runMasthead({ run, config, active: 'checks' })}
 
   <header class="page-head">
     <p class="eyebrow">Phase 0 validation package</p>
-    <h1>${esc(config.workshop.topic)}</h1>
+    <h1>Can this apparatus be trusted?</h1>
   </header>
 
   <div class="vp-verdict">

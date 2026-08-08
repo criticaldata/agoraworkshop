@@ -310,3 +310,33 @@ describe('every action that can spend money is a state-changing request', () => 
     }
   });
 });
+
+describe('every route the interface links to still answers', () => {
+  const source = readFileSync(new URL('../src/server/index.ts', import.meta.url), 'utf8');
+  const registered = new Set(
+    [...source.matchAll(/app\.(?:get|post)\(\s*'([^']+)'/g)].map((m) => m[1]!),
+  );
+
+  /**
+   * Routes were once deleted by an edit that spliced a neighbouring block, and nothing
+   * failed until a page 404ed in a browser. Naming them here means the next such edit
+   * fails a test instead.
+   */
+  const PROMISED = [
+    '/', '/docs', '/runs', '/compare', '/api', '/healthz',
+    '/runs/:runId',
+    '/runs/:runId/timeline',
+    '/runs/:runId/structure',
+    '/runs/:runId/transcript',
+    '/runs/:runId/turns',
+    '/runs/:runId/validation',
+    '/runs/:runId/graph',
+    '/runs/:runId/replay',
+    '/runs/:runId/agents/:agentId',
+    '/runs/:runId/invocations/:invocationId',
+  ];
+
+  it.each(PROMISED)('registers %s', (route) => {
+    expect(registered.has(route)).toBe(true);
+  });
+});

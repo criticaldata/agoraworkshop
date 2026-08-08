@@ -24,7 +24,15 @@ import { evaluateGates, finalizeReport } from '../acceptance/gates.js';
 import { exportRun } from '../export/exporter.js';
 import { exportOnCompletion } from '../export/autoExport.js';
 import { renderReplayHtml } from '../export/replayHtml.js';
-import { page, provenancePage, runDetailPage, runsPage, type RunGroup } from './pages.js';
+import {
+  page,
+  provenancePage,
+  runsPage,
+  timelinePage,
+  transcriptPage,
+  turnsPage,
+  type RunGroup,
+} from './pages.js';
 import { homePage } from './home.js';
 import { docsPage } from './docs.js';
 import { codeProvenance, describeProvenance } from '../core/provenance.js';
@@ -216,35 +224,87 @@ app.post('/runs/:runId/rerun', (req, res) => {
   res.redirect(`/runs/${runId}`);
 });
 
-app.get('/runs/:runId', (req, res) => {
+/**
+ * A run opens into its graph. The other views are routes of their own rather than
+ * sections of one long page, and each carries the masthead back to the run.
+ */
+function runViewContext(req: express.Request, res: express.Response) {
   const runId = String(req.params['runId']);
   const run = getRun(db, runId);
   if (!run) {
     res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
-    return;
+    return null;
   }
-
   const config = runConfig(run);
   const events = readEvents(db, runId);
   const messages = getMessages(db, runId);
   const invocations = getInvocations(db, runId);
+  return {
+    runId,
+    run,
+    config,
+    events,
+    messages,
+    invocations,
+    analytics: computeAnalytics(db, runId),
+    acceptance: finalizeReport(evaluateGates({ db, runId })),
+    isRunning: run.status === 'RUNNING' || active.has(runId),
+  };
+}
+
+app.get('/runs/:runId', (req, res) => {
+  const ctx = runViewContext(req, res);
+  if (!ctx) return;
+  res.type('html').send(
+    graphPage({
+      run: ctx.run,
+      config: ctx.config,
+      graph: composeGraph(db, ctx.run, ctx.config),
+      extractions: listExtractions(db, ctx.runId),
+      assetVersion: ASSET_VERSION,
+    }),
+  );
+});
+
+app.get('/runs/:runId/timeline', (req, res) => {
+  const ctx = runViewContext(req, res);
+  if (!ctx) return;
   const parsed = parseExplorerQuery(req.query as Record<string, unknown>);
-  const timeline = buildTimeline({ config, events, messages, filters: toFilters(parsed) });
+  const timeline = buildTimeline({
+    config: ctx.config,
+    events: ctx.events,
+    messages: ctx.messages,
+    filters: toFilters(parsed),
+  });
   const query = resolveSelection(parsed, timeline);
 
   res.type('html').send(
-    runDetailPage({
-      run,
-      config,
-      events,
-      messages,
-      invocations,
-      analytics: computeAnalytics(db, runId),
-      acceptance: finalizeReport(evaluateGates({ db, runId })),
-      isRunning: run.status === 'RUNNING' || active.has(runId),
-      explorer: renderExplorer({ run, config, timeline, events, messages, invocations, query }),
+    timelinePage({
+      ...ctx,
+      exportedFiles: getArtifacts(db, ctx.runId).length,
+      explorer: renderExplorer({
+        run: ctx.run,
+        config: ctx.config,
+        timeline,
+        events: ctx.events,
+        messages: ctx.messages,
+        invocations: ctx.invocations,
+        query,
+      }),
     }),
   );
+});
+
+app.get('/runs/:runId/transcript', (req, res) => {
+  const ctx = runViewContext(req, res);
+  if (!ctx) return;
+  res.type('html').send(transcriptPage({ ...ctx, explorer: '' }));
+});
+
+app.get('/runs/:runId/turns', (req, res) => {
+  const ctx = runViewContext(req, res);
+  if (!ctx) return;
+  res.type('html').send(turnsPage({ ...ctx, explorer: '' }));
 });
 
 /**
@@ -453,22 +513,8 @@ app.use(
 );
 
 app.get('/runs/:runId/graph', (req, res) => {
-  const runId = String(req.params['runId']);
-  const run = getRun(db, runId);
-  if (!run) {
-    res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
-    return;
-  }
-  const config = runConfig(run);
-  res.type('html').send(
-    graphPage({
-      run,
-      config,
-      graph: composeGraph(db, run, config),
-      extractions: listExtractions(db, runId),
-      assetVersion: ASSET_VERSION,
-    }),
-  );
+  // The graph is the run's own page now. The old address still works.
+  res.redirect(301, `/runs/${encodeURIComponent(String(req.params['runId']))}`);
 });
 
 app.get('/api/runs/:runId/graph', (req, res) => {

@@ -4,6 +4,7 @@ import type { RunRow } from '../db/queries.js';
 import type { ExperimentConfig } from '../config/schema.js';
 import type { RunGraph } from '../analytics/graph.js';
 import type { ExtractionRow } from '../semantic/types.js';
+import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
 
 /**
  * The graph view.
@@ -38,13 +39,9 @@ export function graphPage(input: GraphPageInput): string {
   return page(
     `Graph of ${runId}`,
     `
-  <style>${GRAPH_STYLES}</style>
+  <style>${GRAPH_STYLES}${RUN_NAV_STYLES}</style>
 
-  <header class="page-head">
-    <p class="eyebrow">Graph ·
-      <a href="/runs/${esc(runId)}">${esc(runId)}</a></p>
-    <h1>Participants and ideas</h1>
-  </header>
+  ${runMasthead({ run, config: input.config, active: 'graph' })}
 
   <div class="gr-modes" role="tablist" aria-label="Graph layers">
     <button type="button" class="gr-mode on" data-mode="interaction" role="tab"
@@ -79,7 +76,7 @@ export function graphPage(input: GraphPageInput): string {
     Nothing here is reachable only by pointing at a picture.</p>
     <p class="ins-actions">
       <a class="btn-sm" href="/runs/${esc(runId)}/structure">Interaction matrix</a>
-      <a class="btn-sm" href="/runs/${esc(runId)}">Interaction timeline</a>
+      <a class="btn-sm" href="/runs/${esc(runId)}/timeline">Interaction timeline</a>
       <a class="btn-sm" href="/api/runs/${esc(runId)}/graph">This graph as JSON</a>
       <a class="btn-sm" href="/api/runs/${esc(runId)}/messages">Raw messages</a>
     </p>
@@ -125,9 +122,18 @@ function renderProvenance(
   const e = graph.extraction;
   const stub = e.method === 'keyword_stub';
   return `<div class="gr-prov ${stub ? 'stub' : ''}">
-    <p><b>Ideas are derived, not recorded.</b> Topics, concepts and claims below were read
-    out of the transcript after the run finished. They are an analysis of the record, not
-    part of it, and every one of them carries the messages it came from.</p>
+    <p><b>Ideas are derived, not recorded.</b> ${
+      stub
+        ? 'This reading came from the stub: its labels are derived mechanically from word frequency and mean nothing.'
+        : 'Topics, concepts and claims were read out of the transcript after the run finished, and each carries the messages it came from.'
+    }</p>
+    <details class="gr-prov-more">
+    <summary>How this reading was produced</summary>
+    <p>${
+      stub
+        ? 'The stub exists to exercise the pipeline without spending tokens. It must not be read as a reading of the discussion.'
+        : 'This is an analysis of the record, not part of it. Every derived node carries the messages it was read out of.'
+    }</p>
     <dl class="gr-prov-facts">
       <div><dt>Extraction</dt><dd class="mono">${esc(e.extractionId)}</dd></div>
       <div><dt>Method</dt><dd class="mono">${esc(e.method)}</dd></div>
@@ -136,14 +142,7 @@ function renderProvenance(
       <div><dt>Prompt</dt><dd class="mono">${esc(e.promptVersion)}</dd></div>
       <div><dt>Extracted</dt><dd>${esc(e.createdAt.replace('T', ' ').slice(0, 19))}</dd></div>
     </dl>
-    ${
-      stub
-        ? `<p class="gr-prov-failed"><b>This extraction is the stub.</b> Its labels are
-           derived mechanically from word frequency and mean nothing. It exists to
-           exercise the pipeline without spending tokens, and must not be read as a
-           reading of the discussion.</p>`
-        : ''
-    }
+    </details>
   </div>`;
 }
 
@@ -293,6 +292,9 @@ export const GRAPH_STYLES = `
 .gr-prov.stub { border-left-color: var(--warn); background: var(--warn-bg); }
 .gr-prov-how { color: var(--muted); }
 .gr-prov-failed { color: var(--warn); }
+.gr-prov-more summary { cursor: pointer; font-size: .8rem; color: var(--muted);
+                        font-weight: 600; }
+.gr-prov-more p { margin: .5rem 0 0; }
 .gr-prov-facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
                  gap: .4rem 1.2rem; margin: .6rem 0 0; }
 .gr-prov-facts div { display: flex; flex-direction: column; min-width: 0; }
@@ -302,8 +304,11 @@ export const GRAPH_STYLES = `
 
 .gr-layout { display: grid; grid-template-columns: minmax(0, 1fr) 21rem; gap: 1rem;
              align-items: start; }
+/* Cytoscape stacks its own layers with z-index inside this element. Giving the element
+   a stacking context of its own keeps those layers contained, so the canvas cannot paint
+   over the masthead when the page scrolls under it. */
 .gr-canvas { height: 30rem; border: 1px solid var(--line); border-radius: 12px;
-             background: var(--panel); }
+             background: var(--panel); position: relative; z-index: 0; overflow: hidden; }
 .gr-canvas:focus-visible { outline: 2px solid var(--accent); }
 
 .gr-controls { margin-bottom: .8rem; }

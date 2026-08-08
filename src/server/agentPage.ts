@@ -10,6 +10,7 @@ import {
   type AgentTrajectory,
 } from '../analytics/interaction.js';
 import { EXPLORER_STYLES } from './explorer.js';
+import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
 
 /**
  * One participant's course through a run.
@@ -28,11 +29,17 @@ export function agentPage(
   return page(
     `${trajectory.displayName} in ${run.run_id}`,
     `
-  <style>${EXPLORER_STYLES}${AGENT_STYLES}</style>
+  <style>${EXPLORER_STYLES}${AGENT_STYLES}${RUN_NAV_STYLES}</style>
+
+  ${runMasthead({
+    run,
+    config,
+    active: 'agent',
+    context: { label: trajectory.displayName },
+  })}
 
   <header class="page-head">
-    <p class="eyebrow">${esc(trajectory.role === 'moderator' ? 'Moderator' : 'Participant')} ·
-      <a href="/runs/${esc(run.run_id)}">${esc(run.run_id)}</a></p>
+    <p class="eyebrow">${esc(trajectory.role === 'moderator' ? 'Moderator' : 'Participant')}</p>
     <h1>${esc(trajectory.displayName)}</h1>
     <p class="note">${
       trajectory.breakoutGroups.length === 0
@@ -80,7 +87,7 @@ export function agentPage(
           <span class="ag-where">${esc(marker.channel ?? 'no channel')}${
             marker.breakoutGroupId ? ` · ${esc(marker.breakoutGroupId)}` : ''
           }</span>
-          <a class="ag-open" href="/runs/${esc(run.run_id)}?event=${marker.sequence}&amp;infra=1#inspector">Inspect</a>
+          <a class="ag-open" href="/runs/${esc(run.run_id)}/timeline?event=${marker.sequence}&amp;infra=1#inspector">Inspect</a>
           <p class="ag-summary">${esc(marker.summary)}</p>
           ${
             marker.recipients.length > 0
@@ -101,7 +108,7 @@ export function agentPage(
   <section>
     <h2>Elsewhere</h2>
     <p class="ins-actions">
-      <a class="btn-sm" href="/runs/${esc(run.run_id)}?agents=${esc(trajectory.agentId)}">This agent on the timeline</a>
+      <a class="btn-sm" href="/runs/${esc(run.run_id)}/timeline?agents=${esc(trajectory.agentId)}">This agent on the timeline</a>
       <a class="btn-sm" href="/runs/${esc(run.run_id)}/structure">Interaction structure</a>
       <a class="btn-sm" href="/runs/${esc(run.run_id)}/validation">Validation package</a>
     </p>

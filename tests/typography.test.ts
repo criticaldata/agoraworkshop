@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { homePage } from '../src/server/home.js';
 import { docsPage } from '../src/server/docs.js';
-import { runsPage, runDetailPage, provenancePage } from '../src/server/pages.js';
+import {
+  runsPage,
+  timelinePage,
+  transcriptPage,
+  turnsPage,
+  provenancePage,
+} from '../src/server/pages.js';
 import { renderReplayHtml } from '../src/export/replayHtml.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { readEvents } from '../src/events/recorder.js';
@@ -135,7 +141,9 @@ async function renderedPages(): Promise<Array<[string, string]>> {
         statuses: ['COMPLETED'],
       }),
     ],
-    ['run page', runDetailPage({ ...input, isRunning: false, explorer })],
+    ['timeline view', timelinePage({ ...input, isRunning: false, explorer, exportedFiles: 0 })],
+    ['transcript view', transcriptPage({ ...input, isRunning: false, explorer: '' })],
+    ['turns view', turnsPage({ ...input, isRunning: false, explorer: '' })],
     ['provenance', provenancePage(run, failed)],
     ['replay', renderReplayHtml(input)],
     [

@@ -410,8 +410,11 @@ describe('graph page', () => {
       assetVersion: 'testasset',
     });
 
-    expect(html).toContain('This extraction is the stub');
+    // The claim is on the page itself; the identifiers sit behind a disclosure so the
+    // graph is not pushed off the first screen by its own provenance.
     expect(html).toContain('derived mechanically from word frequency and mean nothing');
+    expect(html).toContain('must not be read as a reading of the discussion');
+    expect(html).toContain('How this reading was produced');
     expect(html).toContain('Ideas are derived, not recorded');
     // Provenance of the reading is on the page, not buried in the database.
     expect(html).toContain(extraction.pipeline_version);

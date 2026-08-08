@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { runsPage, runDetailPage, provenancePage, type RunGroup } from '../src/server/pages.js';
+import {
+  runsPage,
+  timelinePage,
+  transcriptPage,
+  turnsPage,
+  provenancePage,
+  type RunGroup,
+} from '../src/server/pages.js';
 import { parseExplorerQuery, renderExplorer, toFilters } from '../src/server/explorer.js';
 import { buildTimeline } from '../src/analytics/interaction.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
@@ -119,8 +126,8 @@ describe('runs list', () => {
   });
 });
 
-describe('run page', () => {
-  it('leads with the timeline, then statistics, checks, transcript and turns', async () => {
+describe('run views', () => {
+  async function views() {
     const { db, runId } = await completedRun();
     const run = getRun(db, runId)!;
     const config = runConfig(run);
@@ -128,7 +135,7 @@ describe('run page', () => {
     const messages = getMessages(db, runId);
     const invocations = getInvocations(db, runId);
     const query = parseExplorerQuery({});
-    const html = runDetailPage({
+    const base = {
       run,
       config,
       events,
@@ -137,64 +144,80 @@ describe('run page', () => {
       analytics: computeAnalytics(db, runId),
       acceptance: finalizeReport(evaluateGates({ db, runId })),
       isRunning: false,
-      explorer: renderExplorer({
-        run,
-        config,
-        timeline: buildTimeline({ config, events, messages, filters: toFilters(query) }),
-        events,
-        messages,
-        invocations,
-        query,
+    };
+    return {
+      db,
+      runId,
+      run,
+      invocations,
+      timeline: timelinePage({
+        ...base,
+        exportedFiles: 0,
+        explorer: renderExplorer({
+          run,
+          config,
+          timeline: buildTimeline({ config, events, messages, filters: toFilters(query) }),
+          events,
+          messages,
+          invocations,
+          query,
+        }),
       }),
-    });
+      transcript: transcriptPage({ ...base, explorer: '' }),
+      turns: turnsPage({ ...base, explorer: '' }),
+    };
+  }
 
-    // The interaction is the default view; the chronological record stays below it.
-    expect(html.indexOf('id="explorer"')).toBeLessThan(html.indexOf('id="statistics"'));
-    expect(html.indexOf('id="statistics"')).toBeLessThan(html.indexOf('id="checks"'));
-    expect(html.indexOf('id="checks"')).toBeLessThan(html.indexOf('id="transcript"'));
-    expect(html.indexOf('id="transcript"')).toBeLessThan(html.indexOf('id="turns"'));
+  it('carries the run and every other view on each one', async () => {
+    const v = await views();
+    for (const html of [v.timeline, v.transcript, v.turns]) {
+      // The way back to the run list, and across to each sibling view.
+      expect(html).toContain('href="/runs"');
+      expect(html).toContain(`href="/runs/${v.runId}"`);
+      expect(html).toContain(`href="/runs/${v.runId}/timeline"`);
+      expect(html).toContain(`href="/runs/${v.runId}/structure"`);
+      expect(html).toContain(`href="/runs/${v.runId}/transcript"`);
+      expect(html).toContain(`href="/runs/${v.runId}/turns"`);
+      expect(html).toContain(`href="/runs/${v.runId}/validation"`);
+      expect(html).not.toContain('${');
+    }
+  });
+
+  it('marks which view is open, once, on each page', async () => {
+    const v = await views();
+    const current = (html: string) => (html.match(/aria-current="page"/g) ?? []).length;
+    expect(current(v.timeline)).toBe(1);
+    expect(current(v.transcript)).toBe(1);
+    expect(current(v.turns)).toBe(1);
+    expect(v.turns).toContain('href="/runs/' + v.runId + '/turns"\n              title=');
+  });
+
+  it('keeps navigation and spending apart', async () => {
+    const v = await views();
+    // Nothing inside the view strip submits anything.
+    const strip = v.timeline.slice(
+      v.timeline.indexOf('<nav class="rn-views"'),
+      v.timeline.indexOf('</nav>', v.timeline.indexOf('<nav class="rn-views"')),
+    );
+    expect(strip).not.toContain('<form');
+    expect(strip).not.toContain('<button');
   });
 
   it('lists every turn including failed attempts, each linking to its context', async () => {
-    const { db, runId } = await completedRun();
-    const run = getRun(db, runId)!;
-    const invocations = getInvocations(db, runId);
-    const html = runDetailPage({
-      run,
-      config: runConfig(run),
-      events: readEvents(db, runId),
-      messages: getMessages(db, runId),
-      invocations,
-      analytics: computeAnalytics(db, runId),
-      acceptance: finalizeReport(evaluateGates({ db, runId })),
-      isRunning: false,
-    });
-
-    // Every attempt is present, not a truncated sample.
-    for (const invocation of invocations) {
-      expect(html).toContain(`/runs/${runId}/invocations/${invocation.invocation_id}`);
-    }
-    const failed = invocations.filter((i) => i.outcome === 'infra_failure');
+    const v = await views();
+    const failed = v.invocations.filter((i) => i.outcome === 'infra_failure');
     expect(failed.length).toBeGreaterThan(0);
-    expect(html).toContain('class="failed"');
-    expect(html).toContain('timeout');
+
+    for (const invocation of v.invocations) {
+      expect(v.turns).toContain(`/runs/${v.runId}/invocations/${invocation.invocation_id}`);
+    }
+    expect(v.turns).toContain(failed[0]!.failure_category!);
   });
 
   it('shows phases in readable form rather than as log constants', async () => {
-    const { db, runId } = await completedRun();
-    const run = getRun(db, runId)!;
-    const html = runDetailPage({
-      run,
-      config: runConfig(run),
-      events: readEvents(db, runId),
-      messages: getMessages(db, runId),
-      invocations: getInvocations(db, runId),
-      analytics: computeAnalytics(db, runId),
-      acceptance: finalizeReport(evaluateGates({ db, runId })),
-      isRunning: false,
-    });
-    expect(html).toContain('Open discussion');
-    expect(html).toContain('Breakouts');
+    const v = await views();
+    expect(v.turns).toContain('Open discussion');
+    expect(v.turns).not.toContain('<td class="muted">PUBLIC_DISCUSSION</td>');
   });
 });
 

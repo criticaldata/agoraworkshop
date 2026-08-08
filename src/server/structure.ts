@@ -13,6 +13,7 @@ import {
   type InteractionMetric,
 } from '../analytics/interaction.js';
 import { EXPLORER_STYLES } from './explorer.js';
+import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
 
 /**
  * Interaction structure: who communicated with whom.
@@ -80,11 +81,11 @@ export function structurePage(input: StructureInput): string {
   return page(
     `Interaction structure of ${runId}`,
     `
-  <style>${EXPLORER_STYLES}${STRUCTURE_STYLES}</style>
+  <style>${EXPLORER_STYLES}${STRUCTURE_STYLES}${RUN_NAV_STYLES}</style>
+
+  ${runMasthead({ run, config, active: 'structure' })}
 
   <header class="page-head">
-    <p class="eyebrow">Interaction structure ·
-      <a href="/runs/${esc(runId)}">${esc(runId)}</a></p>
     <h1>Who communicated with whom</h1>
     <p class="note">Counts of observed communication. An entry means messages were sent
     and delivered. It is not a measure of influence, agreement, or alignment, and the
@@ -120,7 +121,7 @@ export function structurePage(input: StructureInput): string {
   <section>
     <h2>Elsewhere</h2>
     <p class="ins-actions">
-      <a class="btn-sm" href="/runs/${esc(runId)}">Interaction timeline</a>
+      <a class="btn-sm" href="/runs/${esc(runId)}/timeline">Interaction timeline</a>
       <a class="btn-sm" href="/runs/${esc(runId)}/validation">Validation package</a>
       <a class="btn-sm" href="/api/runs/${esc(runId)}/messages">Raw messages</a>
     </p>

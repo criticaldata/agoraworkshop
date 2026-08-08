@@ -9,6 +9,7 @@ import {
 import type { ReplayInput } from '../export/replayHtml.js';
 import type { RunRow, InvocationRow, RunSummary } from '../db/queries.js';
 import { EXPLORER_STYLES } from './explorer.js';
+import { runActions, runMasthead, RUN_NAV_STYLES } from './runNav.js';
 
 /**
  * Operator views.
@@ -136,7 +137,7 @@ export function page(title: string, body: string, opts: { refresh?: boolean } = 
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>${esc(title)}</title>
 ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
-<style>${STYLES}${EXTRA_STYLES}${EXPLORER_STYLES}</style>
+<style>${STYLES}${EXTRA_STYLES}${EXPLORER_STYLES}${RUN_NAV_STYLES}</style>
 </head>
 <body>
 <main>
@@ -385,8 +386,57 @@ export interface RunPageInput extends ReplayInput {
  * events, then every individual turn. Someone reviewing a run needs to know whether it
  * can be relied upon before reading what was said during it.
  */
-export function runDetailPage(input: RunPageInput): string {
-  const { run, config, invocations, analytics, acceptance, isRunning } = input;
+/**
+ * The views of one run, each its own route.
+ *
+ * They were a single page with five stacked sections, which meant a researcher scrolled
+ * past four things to reach the fifth and had no way back to the run from anywhere else.
+ * Each is now addressable on its own and carries the masthead, so the run and the way
+ * across to its other views travel with you.
+ */
+
+export interface TimelinePageInput extends RunPageInput {
+  exportedFiles: number;
+}
+
+export function timelinePage(input: TimelinePageInput): string {
+  const { run, config, analytics, isRunning } = input;
+  return page(
+    `Timeline of ${run.run_id}`,
+    `
+  ${runMasthead({ run, config, active: 'timeline', isRunning })}
+  ${runActions(run, input.exportedFiles)}
+  ${input.explorer}
+
+  <section id="statistics">
+    <h2>Statistics</h2>
+    ${renderStats(analytics)}
+  </section>
+`,
+    { refresh: isRunning },
+  );
+}
+
+export function transcriptPage(input: RunPageInput): string {
+  const { run, config } = input;
+  return page(
+    `Transcript of ${run.run_id}`,
+    `
+  ${runMasthead({ run, config, active: 'transcript', isRunning: input.isRunning })}
+
+  <section>
+    <h2>Chronological record</h2>
+    <p class="note">Every event in the order it was recorded. The timeline is a view of
+    this; this is the record itself.</p>
+    ${renderTimeline(input)}
+  </section>
+`,
+    { refresh: input.isRunning },
+  );
+}
+
+export function turnsPage(input: RunPageInput): string {
+  const { run, config, invocations, acceptance } = input;
 
   const turns = invocations
     .map(
@@ -409,68 +459,14 @@ export function runDetailPage(input: RunPageInput): string {
     .join('\n');
 
   return page(
-    `AGORA run ${run.run_id}`,
+    `Turns of ${run.run_id}`,
     `
-  <header class="page-head">
-    <p class="eyebrow">Run · ${esc(run.experiment_id)}</p>
-    <h1>${esc(config.workshop.topic)}</h1>
-    ${renderRunFacts(run)}
-  </header>
+  ${runMasthead({ run, config, active: 'turns', isRunning: input.isRunning })}
 
-  <div class="toolbar">
-    <form method="post" action="/runs/${esc(run.run_id)}/rerun">
-      <button type="submit">Run again with the same settings</button>
-    </form>
-    <a href="/runs/${esc(run.run_id)}/graph"><button type="button" class="secondary">Graph</button></a>
-    <a href="/runs/${esc(run.run_id)}/structure"><button type="button" class="secondary">Interaction structure</button></a>
-    <a href="/runs/${esc(run.run_id)}/validation"><button type="button" class="secondary">Phase 0 validation package</button></a>
-    <a href="/runs/${esc(run.run_id)}/replay"><button type="button" class="secondary">Standalone replay</button></a>
-    <form method="post" action="/runs/${esc(run.run_id)}/export">
-      <button type="submit" class="secondary">Export bundle again</button>
-    </form>
-    <span class="toolbar-note">${
-      isRunning
-        ? 'In progress. This page refreshes automatically.'
-        : `${invocations.length} turns recorded`
-    }</span>
-  </div>
-
-  <nav class="sub-nav" aria-label="Sections of this run">
-    <a href="#explorer">Timeline</a>
-    <a href="#statistics">Statistics</a>
-    <a href="#checks">Checks</a>
-    <a href="#transcript">Transcript</a>
-    <a href="#turns">Turns</a>
-  </nav>
-
-  ${input.explorer}
-
-  <section id="statistics">
-    <h2>Statistics</h2>
-    ${renderStats(analytics)}
-  </section>
-
-  <section id="checks">
-    <h2>Acceptance checks</h2>
-    <p class="note">These judge this run on its own. A red badge here often means a step
-    has not been taken yet rather than that something went wrong, and where that is the
-    case the card says which step. For the Phase 0 verdict, which draws evidence from
-    several runs together, open the
-    <a href="/runs/${esc(run.run_id)}/validation">validation package</a>.</p>
-    ${renderGates(acceptance, run.run_id)}
-  </section>
-
-  <section id="transcript">
-    <h2>Chronological record</h2>
-    <p class="note">Every event in order, as written. The timeline above is a view of
-    this; this is the record itself.</p>
-    ${renderTimeline(input)}
-  </section>
-
-  <section id="turns">
+  <section>
     <h2>Turns</h2>
-    <p class="note">Every provider call, including attempts that failed. Select an agent
-    to see the exact material it was given before it responded.</p>
+    <p class="note">Every call to a model, including the attempts that failed. Select an
+    agent to see the exact material it was given before it responded.</p>
     <div class="scroll">
       <table class="turns">
         <thead><tr>
@@ -481,8 +477,17 @@ export function runDetailPage(input: RunPageInput): string {
       </table>
     </div>
   </section>
+
+  <section id="checks">
+    <h2>Acceptance checks</h2>
+    <p class="note">These judge this run on its own. A red badge here often means a step
+    has not been taken yet rather than that something went wrong, and where that is the
+    case the card says which step. For the verdict that draws on several runs together,
+    open <a href="/runs/${esc(run.run_id)}/validation">Checks</a>.</p>
+    ${renderGates(acceptance, run.run_id)}
+  </section>
 `,
-    { refresh: isRunning },
+    { refresh: input.isRunning },
   );
 }
 

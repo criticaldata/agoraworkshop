@@ -346,7 +346,7 @@
       html +=
         '<p class="ins-actions">' +
         '<a class="btn-sm" href="/runs/' + runId + '/agents/' + encodeURIComponent(d.id) + '">Trajectory</a>' +
-        '<a class="btn-sm" href="/runs/' + runId + '?agents=' + encodeURIComponent(d.id) + '">Timeline</a>' +
+        '<a class="btn-sm" href="/runs/' + runId + '/timeline?agents=' + encodeURIComponent(d.id) + '">Timeline</a>' +
         '</p>';
       inspector.innerHTML = html;
       return;

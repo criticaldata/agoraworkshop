@@ -100,7 +100,7 @@ export interface ExplorerInput {
 
 export function renderExplorer(input: ExplorerInput): string {
   const { run, config, timeline, query } = input;
-  const base = `/runs/${run.run_id}`;
+  const base = `/runs/${run.run_id}/timeline`;
 
   return `<section id="explorer">
     <div class="ex-head">
@@ -112,7 +112,7 @@ export function renderExplorer(input: ExplorerInput): string {
     ${
       timeline.markers.length === 0
         ? '<p class="ex-empty">No markers match these filters. The records are unchanged; only this view is narrowed.</p>'
-        : `<div class="ex-scroll">${renderGrid(base, timeline, query)}</div>
+        : `<div class="ex-scroll">${renderGrid(base, run.run_id, timeline, query)}</div>
            ${renderLegend(timeline)}`
     }
     ${renderInspector(input, base)}
@@ -200,7 +200,7 @@ const chip = (url: string, label: string, active: boolean): string =>
 
 // --------------------------------------------------------------------- grid
 
-function renderGrid(base: string, timeline: Timeline, query: ExplorerQuery): string {
+function renderGrid(base: string, runId: string, timeline: Timeline, query: ExplorerQuery): string {
   // One column per sequence that carries a marker: no overlap is possible, and the
   // columns stay meaningful when a filter removes most of the run.
   const columns = [...new Set(timeline.markers.map((m) => m.sequence))].sort((a, b) => a - b);
@@ -242,7 +242,7 @@ function renderGrid(base: string, timeline: Timeline, query: ExplorerQuery): str
       return `<div class="ex-lane-name${
         lane.role === 'moderator' ? ' mod' : ''
       }" style="grid-row:${row};grid-column:1">
-          <a href="${base}/agents/${esc(lane.agentId)}">${esc(lane.displayName)}</a>
+          <a href="/runs/${esc(runId)}/agents/${esc(lane.agentId)}">${esc(lane.displayName)}</a>
         </div>
         <div class="ex-rule" style="grid-row:${row};grid-column:2/-1"></div>
         ${cells}`;
@@ -400,7 +400,7 @@ function renderInspector(input: ExplorerInput, base: string): string {
           : ''
       }
       <a class="btn-sm" href="/api/runs/${esc(run.run_id)}/events">Raw events</a>
-      <a class="btn-sm" href="${base}/agents/${esc(marker.agentId)}">This agent through the run</a>
+      <a class="btn-sm" href="/runs/${esc(run.run_id)}/agents/${esc(marker.agentId)}">This agent through the run</a>
     </div>
   </div>`;
 }

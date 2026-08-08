@@ -10,8 +10,18 @@ import {
 import {
   parseExplorerQuery,
   renderExplorer,
+  resolveSelection,
   toFilters,
 } from '../src/server/explorer.js';
+import { graphPage } from '../src/server/graphPage.js';
+import { buildRunGraph } from '../src/analytics/graph.js';
+import {
+  extractRunSemantics,
+  getExtraction,
+  semanticEdges,
+  semanticNodes,
+} from '../src/semantic/pipeline.js';
+import { StubExtractor } from '../src/semantic/extractors.js';
 import { agentPage } from '../src/server/agentPage.js';
 import { parseStructureQuery, structurePage } from '../src/server/structure.js';
 import { comparePage } from '../src/server/compare.js';
@@ -323,5 +333,162 @@ describe('raw API page', () => {
     const html = apiPage(null);
     expect(html).toContain('Record a run to get live links');
     expect(html).not.toContain('${');
+  });
+});
+
+describe('graph page', () => {
+  it('says plainly when nothing has been extracted, and how to do it', async () => {
+    const r = await loaded();
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+    const html = graphPage({
+      run: r.run,
+      config: r.config,
+      graph: buildRunGraph({
+        runId: r.runId,
+        config: r.config,
+        messages: r.messages,
+        opportunities: r.opportunities,
+        invocations: r.invocations,
+        phases: timeline.phases.map((p) => ({
+          phase: String(p.phase),
+          label: p.label,
+          fromSequence: p.fromSequence,
+          toSequence: p.toSequence,
+        })),
+        semantic: null,
+      }),
+      extractions: [],
+      assetVersion: 'testasset',
+    });
+
+    expect(html).toContain('No idea extraction for this run');
+    expect(html).toContain('never started by opening a page');
+    // The Ideas layer cannot be entered when there is nothing derived to show.
+    expect(/data-mode="ideas"[\s\S]{0,80}disabled/.test(html)).toBe(true);
+    expect(html).not.toContain('${');
+  });
+
+  it('warns in the open when the extraction is the meaningless stub', async () => {
+    const r = await loaded();
+    const summary = await extractRunSemantics({
+      db: r.db,
+      runId: r.runId,
+      extractor: new StubExtractor(),
+    });
+    const extraction = getExtraction(r.db, summary.extractionId)!;
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+
+    const html = graphPage({
+      run: r.run,
+      config: r.config,
+      graph: buildRunGraph({
+        runId: r.runId,
+        config: r.config,
+        messages: r.messages,
+        opportunities: r.opportunities,
+        invocations: r.invocations,
+        phases: timeline.phases.map((p) => ({
+          phase: String(p.phase),
+          label: p.label,
+          fromSequence: p.fromSequence,
+          toSequence: p.toSequence,
+        })),
+        semantic: {
+          extraction: {
+            extractionId: extraction.extraction_id,
+            method: extraction.extraction_method,
+            model: extraction.model,
+            pipelineVersion: extraction.pipeline_version,
+            promptVersion: extraction.prompt_version,
+            createdAt: extraction.created_at,
+          },
+          nodes: semanticNodes(r.db, summary.extractionId),
+          edges: semanticEdges(r.db, summary.extractionId),
+        },
+      }),
+      extractions: [extraction],
+      assetVersion: 'testasset',
+    });
+
+    expect(html).toContain('This extraction is the stub');
+    expect(html).toContain('derived mechanically from word frequency and mean nothing');
+    expect(html).toContain('Ideas are derived, not recorded');
+    // Provenance of the reading is on the page, not buried in the database.
+    expect(html).toContain(extraction.pipeline_version);
+    expect(html).toContain(extraction.prompt_version);
+    expect(html).not.toContain('${');
+  });
+
+  it('stamps the client assets so a deploy cannot serve a stale script', async () => {
+    const r = await loaded();
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+    const html = graphPage({
+      run: r.run,
+      config: r.config,
+      graph: buildRunGraph({
+        runId: r.runId,
+        config: r.config,
+        messages: r.messages,
+        opportunities: r.opportunities,
+        invocations: r.invocations,
+        phases: timeline.phases.map((p) => ({
+          phase: String(p.phase),
+          label: p.label,
+          fromSequence: p.fromSequence,
+          toSequence: p.toSequence,
+        })),
+        semantic: null,
+      }),
+      extractions: [],
+      assetVersion: 'abc123',
+    });
+
+    expect(html).toContain('/static/graph.js?v=abc123');
+    expect(html).toContain('/static/cytoscape.min.js?v=abc123');
+  });
+
+  it('offers the same information as text for anyone not reading the picture', async () => {
+    const r = await loaded();
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+    const html = graphPage({
+      run: r.run,
+      config: r.config,
+      graph: buildRunGraph({
+        runId: r.runId,
+        config: r.config,
+        messages: r.messages,
+        opportunities: r.opportunities,
+        invocations: r.invocations,
+        phases: [],
+        semantic: null,
+      }),
+      extractions: [],
+      assetVersion: 'v',
+    });
+
+    expect(html).toContain('Reading this without the canvas');
+    expect(html).toContain(`/runs/${r.runId}/structure`);
+    expect(html).toContain('Recorded entities are filled and solid');
+  });
+});
+
+describe('selecting a marker by message', () => {
+  it('resolves a message id to the marker that carries it', async () => {
+    const r = await loaded();
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+    const marker = timeline.markers.find((m) => m.messageId)!;
+
+    const resolved = resolveSelection(
+      parseExplorerQuery({ message: marker.messageId }),
+      timeline,
+    );
+    expect(resolved.selected).toBe(marker.sequence);
+  });
+
+  it('leaves the selection empty rather than guessing at an unknown message', async () => {
+    const r = await loaded();
+    const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
+    const resolved = resolveSelection(parseExplorerQuery({ message: 'msg_nope' }), timeline);
+    expect(resolved.selected).toBeNull();
   });
 });

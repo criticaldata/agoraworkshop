@@ -11,6 +11,8 @@ import { readEvents } from './events/recorder.js';
 import { displayName } from './config/schema.js';
 import { codeProvenance } from './core/provenance.js';
 import { runValidationPackage } from './scripts/validate.js';
+import { extractRunSemantics, listExtractions } from './semantic/pipeline.js';
+import { OpenAIExtractor, StubExtractor } from './semantic/extractors.js';
 
 const USAGE = `agora — AGORA Phase 0 research instrument
 
@@ -23,6 +25,10 @@ Usage:
   agora analytics <run_id>                       Print the analytics summary as JSON
   agora hash --config <path>                     Print the config hash without running
   agora list                                     List recorded runs
+  agora extract <run_id> [--extractor stub|openai]
+                                                 Read topics, concepts and claims out of a
+                                                 finished run. 'openai' spends tokens.
+  agora extractions <run_id>                     List extractions recorded for a run
   agora validate [--config <path>]               Run the full Phase 0 validation package
                  [--fault-config <path>]         (defaults to the mock configs: no spend)
   agora serve                                    Start the web UI (same as npm start)
@@ -241,6 +247,53 @@ async function main(): Promise<number> {
       });
       console.log(JSON.stringify(result, null, 2));
       return result.ready ? 0 : 1;
+    }
+
+    case 'extract': {
+      const runId = positional[0];
+      if (!runId) {
+        console.error('extract requires a run id');
+        return 2;
+      }
+      const which = flags['extractor'] ?? 'stub';
+      if (which !== 'stub' && which !== 'openai') {
+        console.error(`unknown extractor: ${which}. Use 'stub' or 'openai'.`);
+        return 2;
+      }
+      // The model-backed extractor spends money, so it is never the default and the
+      // cost is stated before the first call rather than after the bill.
+      if (which === 'openai') {
+        const messages = getMessages(db, runId).length;
+        console.error(
+          `Extracting ideas from ${messages} messages with a model. This spends tokens.`,
+        );
+      }
+      const extractor =
+        which === 'openai' ? new OpenAIExtractor({ model: flags['model'] }) : new StubExtractor();
+      const summary = await extractRunSemantics({ db, runId, extractor });
+      console.log(JSON.stringify(summary, null, 2));
+      return summary.status === 'completed' ? 0 : 1;
+    }
+
+    case 'extractions': {
+      const runId = positional[0];
+      if (!runId) {
+        console.error('extractions requires a run id');
+        return 2;
+      }
+      for (const row of listExtractions(db, runId)) {
+        console.log(
+          [
+            row.extraction_id,
+            row.status.padEnd(9),
+            row.extraction_method.padEnd(18),
+            row.model.padEnd(22),
+            row.pipeline_version,
+            row.created_at,
+          ].join('  '),
+        );
+      }
+      return 0;
     }
 
     case 'serve': {

@@ -32,6 +32,12 @@ export interface ExplorerQuery {
   phase: string | null;
   infrastructure: boolean;
   selected: number | null;
+  /**
+   * Select by message rather than by position. Callers that hold a message id, such as
+   * the evidence behind a derived graph node, cannot know the event sequence, and
+   * guessing one would open the wrong marker.
+   */
+  message: string | null;
 }
 
 export function parseExplorerQuery(query: Record<string, unknown>): ExplorerQuery {
@@ -40,6 +46,7 @@ export function parseExplorerQuery(query: Record<string, unknown>): ExplorerQuer
   const channel = query['channel'];
   const phase = query['phase'];
   const selected = Number(query['event']);
+  const message = query['message'];
 
   return {
     agents: list(query['agents']),
@@ -47,7 +54,15 @@ export function parseExplorerQuery(query: Record<string, unknown>): ExplorerQuer
     phase: typeof phase === 'string' && phase.length > 0 ? phase : null,
     infrastructure: query['infra'] === '1',
     selected: Number.isFinite(selected) && selected > 0 ? selected : null,
+    message: typeof message === 'string' && message.length > 0 ? message : null,
   };
+}
+
+/** Resolves a message id to the marker that carries it, so selection can be by either. */
+export function resolveSelection(query: ExplorerQuery, timeline: Timeline): ExplorerQuery {
+  if (query.selected !== null || !query.message) return query;
+  const marker = timeline.markers.find((m) => m.messageId === query.message);
+  return marker ? { ...query, selected: marker.sequence } : query;
 }
 
 export function toFilters(query: ExplorerQuery): TimelineFilters {
@@ -68,6 +83,7 @@ function href(base: string, query: ExplorerQuery, patch: Partial<ExplorerQuery>)
   if (merged.phase) params.set('phase', merged.phase);
   if (merged.infrastructure) params.set('infra', '1');
   if (merged.selected !== null) params.set('event', String(merged.selected));
+  if (merged.message) params.set('message', merged.message);
   const search = params.toString();
   return search ? `${base}?${search}` : base;
 }

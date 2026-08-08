@@ -1,7 +1,8 @@
 import express from 'express';
-import { readdirSync } from 'node:fs';
-import { resolve } from 'node:path';
-import { getDatabase } from '../db/index.js';
+import { readdirSync, readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
+import { join, resolve } from 'node:path';
+import { getDatabase, type Db } from '../db/index.js';
 import { freezeConfig, loadConfigFile } from '../config/load.js';
 import { executeRun, WorkshopRunner } from '../orchestrator/runner.js';
 import {
@@ -30,11 +31,20 @@ import { codeProvenance, describeProvenance } from '../core/provenance.js';
 import { reconcileInterruptedRuns } from '../orchestrator/reconcile.js';
 import { buildValidationSet } from '../acceptance/validationSet.js';
 import { validationPage } from './validation.js';
-import { parseExplorerQuery, renderExplorer, toFilters } from './explorer.js';
+import { parseExplorerQuery, renderExplorer, resolveSelection, toFilters } from './explorer.js';
 import { agentPage } from './agentPage.js';
 import { parseStructureQuery, structurePage } from './structure.js';
 import { comparePage, type ComparePageInput } from './compare.js';
 import { apiPage } from './apiPage.js';
+import { graphPage } from './graphPage.js';
+import { buildRunGraph, type RunGraph } from '../analytics/graph.js';
+import {
+  latestExtraction,
+  listExtractions,
+  semanticEdges,
+  semanticEvidence,
+  semanticNodes,
+} from '../semantic/pipeline.js';
 import {
   agentTrajectory,
   buildTimeline,
@@ -52,6 +62,28 @@ const db = getDatabase();
 // process cannot own, because this process has only just started; the only honest
 // reading is that a previous process was interrupted mid-run.
 const reconciled = reconcileInterruptedRuns(db);
+
+/**
+ * Cache key for the client assets, derived from their contents.
+ *
+ * Keying on the deployed revision instead would be wrong twice over: an edit to a script
+ * would not change the key during development, and a deploy that touched no asset would
+ * throw the cache away for nothing.
+ */
+const ASSET_VERSION = (() => {
+  const dir = resolve(process.env['AGORA_STATIC_DIR'] ?? './static');
+  const hash = createHash('sha256');
+  for (const name of ['cytoscape.min.js', 'graph.js']) {
+    try {
+      hash.update(readFileSync(join(dir, name)));
+    } catch {
+      // A missing asset is a deployment problem, not a reason to refuse to start. The
+      // page will 404 on it and say so.
+      hash.update(name);
+    }
+  }
+  return hash.digest('hex').slice(0, 12);
+})();
 
 const app = express();
 // Access control runs before body parsing, so an unauthenticated request is refused
@@ -196,8 +228,9 @@ app.get('/runs/:runId', (req, res) => {
   const events = readEvents(db, runId);
   const messages = getMessages(db, runId);
   const invocations = getInvocations(db, runId);
-  const query = parseExplorerQuery(req.query as Record<string, unknown>);
-  const timeline = buildTimeline({ config, events, messages, filters: toFilters(query) });
+  const parsed = parseExplorerQuery(req.query as Record<string, unknown>);
+  const timeline = buildTimeline({ config, events, messages, filters: toFilters(parsed) });
+  const query = resolveSelection(parsed, timeline);
 
   res.type('html').send(
     runDetailPage({
@@ -407,6 +440,63 @@ app.get('/runs/:runId/invocations/:invocationId', (req, res) => {
 
 // -------------------------------------------------------------------- api
 
+/**
+ * Vendored client assets for the graph view. Served from the application itself, with a
+ * long cache life because the filenames change only when the files do.
+ */
+app.use(
+  '/static',
+  express.static(resolve(process.env['AGORA_STATIC_DIR'] ?? './static'), {
+    maxAge: '1h',
+    fallthrough: false,
+  }),
+);
+
+app.get('/runs/:runId/graph', (req, res) => {
+  const runId = String(req.params['runId']);
+  const run = getRun(db, runId);
+  if (!run) {
+    res.status(404).type('html').send(page('Not found', '<h1>Run not found</h1>'));
+    return;
+  }
+  const config = runConfig(run);
+  res.type('html').send(
+    graphPage({
+      run,
+      config,
+      graph: composeGraph(db, run, config),
+      extractions: listExtractions(db, runId),
+      assetVersion: ASSET_VERSION,
+    }),
+  );
+});
+
+app.get('/api/runs/:runId/graph', (req, res) => {
+  const runId = String(req.params['runId']);
+  const run = getRun(db, runId);
+  if (!run) {
+    res.status(404).json({ error: 'unknown run' });
+    return;
+  }
+  res.json(composeGraph(db, run, runConfig(run)));
+});
+
+/** Evidence behind one derived node: the messages it was read out of. */
+app.get('/api/runs/:runId/semantic/:nodeId', (req, res) => {
+  const runId = String(req.params['runId']);
+  const nodeId = String(req.params['nodeId']);
+  const extraction = latestExtraction(db, runId);
+  if (!extraction) {
+    res.status(404).json({ error: 'no completed extraction for this run' });
+    return;
+  }
+  res.json({
+    extraction_id: extraction.extraction_id,
+    node_id: nodeId,
+    evidence: semanticEvidence(db, extraction.extraction_id, nodeId),
+  });
+});
+
 app.get('/api', (_req, res) => {
   res.type('html').send(apiPage(listRuns(db, 1)[0] ?? null));
 });
@@ -532,6 +622,47 @@ app.post('/api/runs/:runId/export', (req, res) => {
 });
 
 // ---------------------------------------------------------------- helpers
+
+/**
+ * The graph for a run: recorded communication always, plus the most recent completed
+ * extraction when one exists. Rendering a page never starts an extraction, because
+ * extraction calls a model and costs money.
+ */
+function composeGraph(db: Db, run: RunRow, config: ReturnType<typeof runConfig>): RunGraph {
+  const runId = run.run_id;
+  const messages = getMessages(db, runId);
+  const events = readEvents(db, runId);
+  const timeline = buildTimeline({ config, events, messages });
+  const extraction = latestExtraction(db, runId);
+
+  return buildRunGraph({
+    runId,
+    config,
+    messages,
+    opportunities: getOpportunities(db, runId),
+    invocations: getInvocations(db, runId),
+    phases: timeline.phases.map((p) => ({
+      phase: String(p.phase),
+      label: p.label,
+      fromSequence: p.fromSequence,
+      toSequence: p.toSequence,
+    })),
+    semantic: extraction
+      ? {
+          extraction: {
+            extractionId: extraction.extraction_id,
+            method: extraction.extraction_method,
+            model: extraction.model,
+            pipelineVersion: extraction.pipeline_version,
+            promptVersion: extraction.prompt_version,
+            createdAt: extraction.created_at,
+          },
+          nodes: semanticNodes(db, extraction.extraction_id),
+          edges: semanticEdges(db, extraction.extraction_id),
+        }
+      : null,
+  });
+}
 
 function launch(frozen: ReturnType<typeof freezeConfig>, sourceRunId: string | null): string {
   const runner = new WorkshopRunner({

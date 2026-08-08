@@ -17,7 +17,7 @@ import { REQUIRED_BUNDLE_ITEMS } from '../export/bundleContract.js';
 export const FACTS = {
   eventTypes: 39,
   failureCategories: 12,
-  tables: 7,
+  tables: 11,
   runtimeNode: 22,
 } as const;
 
@@ -246,11 +246,19 @@ function sectionData(): string {
     ['invocations', 'Each provider attempt, including failed ones: the resolved system prompt, the rendered context, the message identifiers included, the generation parameters, the budget position at the time, latency, usage and outcome.'],
     ['messages', 'Each message, with its channel, intended and actual recipients, and the invocation and event that produced it.'],
     ['artifacts', 'Each exported file with its size and SHA-256.'],
+    ['semantic_extractions', 'One row per post-hoc reading of a finished run: the pipeline, model, prompt and code that produced it. Re-running writes a new row, so a graph never changes meaning quietly.'],
+    ['semantic_nodes', 'Topics, concepts and claims read out of the transcript, each with the message it was first observed in. Derived, not authoritative.'],
+    ['semantic_edges', 'Associations between a participant and a derived node, or between derived nodes. Only relations the pipeline can support from the text.'],
+    ['semantic_evidence', 'The audit path: which messages each derived node was read out of, with the quote where there is one. A derived node without a row here is a defect.'],
   ];
 
   return `<section id="data">
   <p class="eyebrow">Persistence</p>
   <h2>Data model</h2>
+  <p class="body">The first seven tables are the experimental record. The four
+  <code>semantic_</code> tables are post-hoc analysis of it: they are produced after a run
+  has finished, they are never shown to a participating agent, and deleting all of them
+  would lose no experimental data.</p>
   <p class="body">${FACTS.tables} tables in SQLite. The database file is the unit of
   backup and the unit of transfer; there is no external service to keep in step with it.</p>
 

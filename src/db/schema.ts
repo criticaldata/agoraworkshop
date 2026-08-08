@@ -153,4 +153,91 @@ CREATE TABLE IF NOT EXISTS artifacts (
 );
 
 CREATE INDEX IF NOT EXISTS idx_artifacts_run ON artifacts(run_id);
+
+-- ---------------------------------------------------------------- semantics
+--
+-- Derived analysis, kept strictly apart from the experimental record above. Nothing in
+-- these tables is authoritative: every row points back to the messages it was derived
+-- from, and deleting all of it would lose no experimental data.
+--
+-- An extraction is a versioned artifact. Re-running the pipeline creates a new row
+-- rather than overwriting the old one, so a graph produced under one prompt and model
+-- can never be silently replaced by one produced under another.
+
+CREATE TABLE IF NOT EXISTS semantic_extractions (
+  extraction_id      TEXT PRIMARY KEY,
+  run_id             TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  pipeline_version   TEXT NOT NULL,
+  extraction_method  TEXT NOT NULL,
+  provider           TEXT NOT NULL,
+  model              TEXT NOT NULL,
+  prompt_version     TEXT NOT NULL,
+  code_commit_sha    TEXT,
+  messages_considered INTEGER NOT NULL,
+  status             TEXT NOT NULL,
+  failure_reason     TEXT,
+  created_at         TEXT NOT NULL,
+  completed_at       TEXT,
+  input_tokens       INTEGER,
+  output_tokens      INTEGER
+);
+
+CREATE INDEX IF NOT EXISTS idx_extractions_run ON semantic_extractions(run_id, created_at);
+
+CREATE TABLE IF NOT EXISTS semantic_nodes (
+  node_id          TEXT PRIMARY KEY,
+  extraction_id    TEXT NOT NULL REFERENCES semantic_extractions(extraction_id) ON DELETE CASCADE,
+  run_id           TEXT NOT NULL,
+  kind             TEXT NOT NULL,
+  label            TEXT NOT NULL,
+  -- concept belongs to a topic; claim belongs to a topic. Null for topics themselves.
+  parent_node_id   TEXT,
+  first_message_id TEXT,
+  first_sequence   INTEGER,
+  first_elapsed_ms INTEGER,
+  mention_count    INTEGER NOT NULL DEFAULT 0,
+  confidence       REAL,
+  -- Machine output is never overwritten. A review is recorded alongside it.
+  review_state     TEXT NOT NULL DEFAULT 'unreviewed',
+  review_label     TEXT,
+  review_note      TEXT,
+  reviewed_at      TEXT,
+  merged_into_id   TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_semantic_nodes_extraction ON semantic_nodes(extraction_id, kind);
+CREATE INDEX IF NOT EXISTS idx_semantic_nodes_run ON semantic_nodes(run_id);
+
+CREATE TABLE IF NOT EXISTS semantic_edges (
+  edge_id        TEXT PRIMARY KEY,
+  extraction_id  TEXT NOT NULL REFERENCES semantic_extractions(extraction_id) ON DELETE CASCADE,
+  run_id         TEXT NOT NULL,
+  relation       TEXT NOT NULL,
+  from_kind      TEXT NOT NULL,
+  from_id        TEXT NOT NULL,
+  to_kind        TEXT NOT NULL,
+  to_id          TEXT NOT NULL,
+  weight         INTEGER NOT NULL DEFAULT 1,
+  confidence     REAL,
+  review_state   TEXT NOT NULL DEFAULT 'unreviewed',
+  reviewed_at    TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_semantic_edges_extraction ON semantic_edges(extraction_id, relation);
+
+-- The audit path. A semantic node or edge without evidence is a bug, not a finding.
+CREATE TABLE IF NOT EXISTS semantic_evidence (
+  id             INTEGER PRIMARY KEY AUTOINCREMENT,
+  extraction_id  TEXT NOT NULL REFERENCES semantic_extractions(extraction_id) ON DELETE CASCADE,
+  run_id         TEXT NOT NULL,
+  subject_kind   TEXT NOT NULL,
+  subject_id     TEXT NOT NULL,
+  message_id     TEXT NOT NULL,
+  invocation_id  TEXT,
+  sequence       INTEGER NOT NULL,
+  agent_id       TEXT NOT NULL,
+  quote          TEXT
+);
+
+CREATE INDEX IF NOT EXISTS idx_semantic_evidence_subject ON semantic_evidence(extraction_id, subject_id);
 `;

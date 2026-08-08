@@ -25,5 +25,8 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY package.json ./
 COPY configs ./configs
+# The graph view's client assets, vendored rather than fetched from a CDN so the
+# deployment depends on nothing external.
+COPY static ./static
 EXPOSE 3000
 CMD ["node", "dist/server/index.js"]

@@ -171,6 +171,8 @@ describe('agent trajectory page', () => {
       r.run,
       r.config,
       agentTrajectory(r.config, 'agent_4', r.events, r.messages, r.opportunities, r.invocations),
+      'full',
+      '/',
     );
 
     expect(html).toContain('Unavailable turns');
@@ -184,6 +186,8 @@ describe('agent trajectory page', () => {
       r.run,
       r.config,
       agentTrajectory(r.config, 'agent_1', r.events, r.messages, r.opportunities, r.invocations),
+      'full',
+      '/',
     ).toLowerCase();
 
     for (const word of ['coalition', 'influence', 'persuasion', 'dominance', 'alliance']) {
@@ -195,7 +199,7 @@ describe('agent trajectory page', () => {
 describe('interaction structure page', () => {
   function structureHtml(r: Awaited<ReturnType<typeof loaded>>, search: Record<string, unknown> = {}) {
     const query = parseStructureQuery(search);
-    return structurePage({
+    return structurePage({ mode: 'full', returnTo: '/',
       run: r.run,
       config: r.config,
       matrix: interactionMatrix(r.config, r.messages, r.invocations, query.metric, {
@@ -341,7 +345,7 @@ describe('graph page', () => {
   it('says plainly when nothing has been extracted, and how to do it', async () => {
     const r = await loaded();
     const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
-    const html = graphPage({
+    const html = graphPage({ mode: 'full', returnTo: '/',
       run: r.run,
       config: r.config,
       graph: buildRunGraph({
@@ -379,7 +383,7 @@ describe('graph page', () => {
     const extraction = getExtraction(r.db, summary.extractionId)!;
     const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
 
-    const html = graphPage({
+    const html = graphPage({ mode: 'full', returnTo: '/',
       run: r.run,
       config: r.config,
       graph: buildRunGraph({
@@ -426,7 +430,7 @@ describe('graph page', () => {
   it('stamps the client assets so a deploy cannot serve a stale script', async () => {
     const r = await loaded();
     const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
-    const html = graphPage({
+    const html = graphPage({ mode: 'full', returnTo: '/',
       run: r.run,
       config: r.config,
       graph: buildRunGraph({
@@ -454,7 +458,7 @@ describe('graph page', () => {
   it('offers the same information as text for anyone not reading the picture', async () => {
     const r = await loaded();
     const timeline = buildTimeline({ config: r.config, events: r.events, messages: r.messages });
-    const html = graphPage({
+    const html = graphPage({ mode: 'full', returnTo: '/',
       run: r.run,
       config: r.config,
       graph: buildRunGraph({

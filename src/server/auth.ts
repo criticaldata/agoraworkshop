@@ -34,6 +34,21 @@ export interface AuthConfig {
 /** Always reachable, so the platform health check works without a credential. */
 const OPEN_PATHS = new Set(['/healthz']);
 
+/**
+ * State-changing requests that change nothing on the server.
+ *
+ * The credential exists to stop a visitor spending money or writing to the record.
+ * Choosing how much of the instrument to be shown does neither: it sets one cookie in
+ * one browser, holding one of two known words, and no other reader can tell it happened.
+ * Demanding the operator's password to press it would put a password prompt in front of
+ * a display preference, which teaches people to type the password at prompts.
+ *
+ * These paths keep the cross-site check, and `scope: 'all'` still puts them behind the
+ * credential along with everything else. Nothing that touches the database, the
+ * filesystem, or a model belongs in this set.
+ */
+const PREFERENCE_PATHS = new Set(['/view-mode']);
+
 export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthConfig {
   const raw = env['AGORA_AUTH_PASSWORD'];
   const password = raw && raw.length > 0 ? raw : null;
@@ -114,7 +129,8 @@ export function createAuthMiddleware(config: AuthConfig): RequestHandler {
       return;
     }
 
-    const mustAuthenticate = changing || config.scope === 'all';
+    const writing = changing && !PREFERENCE_PATHS.has(req.path);
+    const mustAuthenticate = writing || config.scope === 'all';
     if (!mustAuthenticate) {
       next();
       return;

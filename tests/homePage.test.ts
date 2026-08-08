@@ -44,18 +44,18 @@ function event(type: string, elapsed: number): AgoraEvent {
 
 describe('overview page', () => {
   it('is self-contained: no external assets and no scripts', () => {
-    const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
+    const html = homePage({ mode: 'full', latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).not.toMatch(/<script/i);
     expect(html).not.toMatch(/https?:\/\//);
   });
 
   it('sends people to the runs list rather than keeping them on the overview', () => {
-    const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
+    const html = homePage({ mode: 'full', latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).toContain('href="/runs"');
   });
 
   it('states the scope limits rather than only selling the product', () => {
-    const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
+    const html = homePage({ mode: 'full', latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).toContain('What this work does not establish');
     expect(html).toContain('not evidence about how AI agents behave');
     expect(html).toContain('Repeated runs are not expected to produce the same text');
@@ -63,14 +63,14 @@ describe('overview page', () => {
   });
 
   it('explains the failure-versus-abstention distinction in plain language', () => {
-    const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
+    const html = homePage({ mode: 'full', latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).toContain('7 of 10');
     expect(html).toContain('7 of 8');
     expect(html).toContain('Recorded decision not to respond');
   });
 
   it('invites a first run when nothing has been recorded yet', () => {
-    const html = homePage({ latestRun: null, latestEvents: [], runCount: 0 });
+    const html = homePage({ mode: 'full', latestRun: null, latestEvents: [], runCount: 0 });
     expect(html).toContain('No run has been carried out on this instance yet');
     expect(html).toContain('No runs have been recorded on this instance');
   });
@@ -84,7 +84,7 @@ describe('overview page', () => {
       event('timeout', 400),
       event('run_completed', 500),
     ];
-    const html = homePage({ latestRun: run, latestEvents: events, runCount: 3 });
+    const html = homePage({ mode: 'full', latestRun: run, latestEvents: events, runCount: 3 });
 
     expect(html).toContain('2 public messages');
     expect(html).toContain('1 private messages');
@@ -95,7 +95,7 @@ describe('overview page', () => {
   });
 
   it('escapes run identifiers rather than interpolating them raw', () => {
-    const html = homePage({
+    const html = homePage({ mode: 'full',
       latestRun: { ...run, run_id: 'run_<script>' },
       latestEvents: [event('message_generated', 10)],
       runCount: 1,

@@ -19,6 +19,13 @@ import {
   type RunRow,
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
+import {
+  parseViewMode,
+  readViewMode,
+  safeReturnTo,
+  VIEW_MODE_COOKIE,
+} from './viewMode.js';
+import { phase0Summary } from '../acceptance/summary.js';
 import { computeAnalytics } from '../analytics/summary.js';
 import { evaluateGates, finalizeReport } from '../acceptance/gates.js';
 import { exportRun } from '../export/exporter.js';
@@ -127,11 +134,12 @@ app.get('/healthz', (_req, res) => {
 
 // ------------------------------------------------------------------ pages
 
-app.get('/', (_req, res) => {
+app.get('/', (req, res) => {
   const runs = listRuns(db);
   const latestRun = runs.find((run) => run.status === 'COMPLETED') ?? null;
   res.type('html').send(
     homePage({
+      mode: readViewMode(req.headers.cookie),
       latestRun,
       latestEvents: latestRun ? readEvents(db, latestRun.run_id) : [],
       runCount: runs.length,
@@ -139,8 +147,25 @@ app.get('/', (_req, res) => {
   );
 });
 
-app.get('/docs', (_req, res) => {
-  res.type('html').send(docsPage());
+/**
+ * Switching between the simple view and the technical one.
+ *
+ * A preference, not a mutation of any record, but it is kept in a cookie so it survives
+ * a link followed from outside and a page opened tomorrow. The return path is validated
+ * rather than trusted: it arrives in a form field like any other input.
+ */
+app.post('/view-mode', (req, res) => {
+  res.cookie(VIEW_MODE_COOKIE, parseViewMode(req.body?.mode), {
+    httpOnly: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+  });
+  res.redirect(303, safeReturnTo(req.body?.return_to));
+});
+
+app.get('/docs', (req, res) => {
+  res.type('html').send(docsPage(readViewMode(req.headers.cookie)));
 });
 
 app.get('/runs', (req, res) => {
@@ -200,6 +225,8 @@ app.get('/runs', (req, res) => {
       filter: { q, model, status, comparableOnly },
       models: [...new Set(all.map((r) => r.model))].sort(),
       statuses: [...new Set(all.map((r) => r.status))].sort(),
+      mode: readViewMode(req.headers.cookie),
+      returnTo: req.originalUrl,
     }),
   );
 });
@@ -255,6 +282,8 @@ function runViewContext(req: express.Request, res: express.Response) {
     analytics: computeAnalytics(db, runId),
     acceptance: finalizeReport(evaluateGates({ db, runId })),
     isRunning: run.status === 'RUNNING' || active.has(runId),
+    mode: readViewMode(req.headers.cookie),
+    returnTo: req.originalUrl,
   };
 }
 
@@ -268,6 +297,8 @@ app.get('/runs/:runId', (req, res) => {
       graph: composeGraph(db, ctx.run, ctx.config),
       extractions: listExtractions(db, ctx.runId),
       assetVersion: ASSET_VERSION,
+      mode: ctx.mode,
+      returnTo: ctx.returnTo,
     }),
   );
 });
@@ -421,6 +452,8 @@ app.get('/runs/:runId/structure', (req, res) => {
       messages,
       query,
       phases: [...new Set(messages.map((m) => m.workshop_state))],
+      mode: readViewMode(req.headers.cookie),
+      returnTo: req.originalUrl,
     }),
   );
 });
@@ -455,6 +488,8 @@ app.get('/runs/:runId/agents/:agentId', (req, res) => {
         getOpportunities(db, runId),
         getInvocations(db, runId),
       ),
+      readViewMode(req.headers.cookie),
+      req.originalUrl,
     ),
   );
 });
@@ -470,6 +505,9 @@ app.get('/runs/:runId/validation', (req, res) => {
   res.type('html').send(
     validationPage({
       set: buildValidationSet({ db, runId }),
+      checks: phase0Summary(db, runId, finalizeReport(evaluateGates({ db, runId }))),
+      mode: readViewMode(req.headers.cookie),
+      returnTo: req.originalUrl,
       run,
       config: runConfig(run),
       analytics: computeAnalytics(db, runId),

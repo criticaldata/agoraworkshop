@@ -116,11 +116,11 @@ async function renderedPages(): Promise<Array<[string, string]>> {
   });
 
   return [
-    ['overview', homePage({ latestRun: run, latestEvents: input.events, runCount: 1 })],
+    ['overview', homePage({ mode: 'full', latestRun: run, latestEvents: input.events, runCount: 1 })],
     ['documentation', docsPage()],
     [
       'runs list',
-      runsPage({
+      runsPage({ mode: 'full', returnTo: '/',
         groups: [
           {
             configHash: run.config_hash,
@@ -141,20 +141,20 @@ async function renderedPages(): Promise<Array<[string, string]>> {
         statuses: ['COMPLETED'],
       }),
     ],
-    ['timeline view', timelinePage({
+    ['timeline view', timelinePage({ mode: 'full', returnTo: '/',
         ...input,
         isRunning: false,
         explorer,
         exportedFiles: 0,
         assetVersion: 'testasset',
       })],
-    ['transcript view', transcriptPage({ ...input, isRunning: false, explorer: '' })],
-    ['turns view', turnsPage({ ...input, isRunning: false, explorer: '' })],
+    ['transcript view', transcriptPage({ mode: 'full', returnTo: '/', ...input, isRunning: false, explorer: '' })],
+    ['turns view', turnsPage({ mode: 'full', returnTo: '/', ...input, isRunning: false, explorer: '' })],
     ['provenance', provenancePage(run, failed)],
     ['replay', renderReplayHtml(input)],
     [
       'interaction structure',
-      structurePage({
+      structurePage({ mode: 'full', returnTo: '/',
         run,
         config: input.config,
         matrix: interactionMatrix(input.config, input.messages, input.invocations),
@@ -176,6 +176,8 @@ async function renderedPages(): Promise<Array<[string, string]>> {
           getOpportunities(db, runId),
           input.invocations,
         ),
+        'full',
+        '/',
       ),
     ],
     [

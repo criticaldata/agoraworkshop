@@ -11,6 +11,7 @@ import {
 } from '../analytics/interaction.js';
 import { EXPLORER_STYLES } from './explorer.js';
 import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
+import type { ViewMode } from './viewMode.js';
 
 /**
  * One participant's course through a run.
@@ -23,6 +24,8 @@ export function agentPage(
   run: RunRow,
   config: ExperimentConfig,
   trajectory: AgentTrajectory,
+  mode: ViewMode,
+  returnTo: string,
 ): string {
   const m = trajectory.metrics;
 
@@ -35,6 +38,8 @@ export function agentPage(
     run,
     config,
     active: 'agent',
+    mode,
+    returnTo,
     context: { label: trajectory.displayName },
   })}
 
@@ -114,6 +119,7 @@ export function agentPage(
     </p>
   </section>
 `,
+    { mode },
   );
 }
 

@@ -60,6 +60,11 @@
           facts: n.facts,
           parentId: n.parentId || null,
           reviewState: n.reviewState || null,
+          /* Turns the apparatus owed this participant and failed to deliver. Recorded,
+             not inferred: the count comes straight from the invocation outcomes. */
+          failures:
+            Number((n.facts && n.facts.infrastructure_failures) || 0) +
+            Number((n.facts && n.facts.unavailable_turns) || 0),
         },
       };
     });
@@ -120,6 +125,14 @@
       {
         selector: 'node[kind = "moderator"]',
         style: { shape: 'ellipse', width: 32, height: 32, 'background-color': '#14181f', 'border-color': '#14181f', 'font-weight': 'bold' },
+      },
+      /* A turn the apparatus failed to deliver is marked on the participant it was owed
+         to. It is drawn on the node rather than mixed into the edges, because no message
+         exists for a turn that never happened, and a silence caused by the instrument
+         must never be read as a silence chosen by an agent. */
+      {
+        selector: 'node[failures > 0]',
+        style: { 'border-width': 5, 'border-style': 'double', 'border-color': '#b45309' },
       },
       /* Derived entities are hollow and dashed, and shaped differently again so the
          distinction never rests on colour alone. */
@@ -529,19 +542,28 @@
     });
   }
 
-  document.getElementById('gr-fit').addEventListener('click', function () {
+  /* Not every control is on every version of the page: the simple view leaves out the
+     ones that answer questions Phase 0 has not asked. A missing control is not an error,
+     so binding one is allowed to find nothing. */
+  function on(id, handler) {
+    var el = document.getElementById(id);
+    if (el) el.addEventListener('click', handler);
+  }
+
+  on('gr-fit', function () {
     cy.fit(cy.elements().not('.hidden'), 40);
   });
-  document.getElementById('gr-relayout').addEventListener('click', function () {
+  on('gr-relayout', function () {
     state.frozen = false;
-    document.getElementById('gr-freeze').classList.remove('on');
+    var freeze = document.getElementById('gr-freeze');
+    if (freeze) freeze.classList.remove('on');
     runLayout();
   });
-  document.getElementById('gr-freeze').addEventListener('click', function () {
+  on('gr-freeze', function () {
     state.frozen = !state.frozen;
     this.classList.toggle('on', state.frozen);
   });
-  document.getElementById('gr-clear').addEventListener('click', function () {
+  on('gr-clear', function () {
     state.focus = null;
     state.query = '';
     if (search) search.value = '';

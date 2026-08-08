@@ -132,7 +132,7 @@ describe('validation package view', () => {
     exportRun({ db, runId: baseline.id, outDir: tempDir() });
     const run = getRun(db, baseline.id)!;
 
-    const html = validationPage({
+    const html = validationPage({ mode: 'full', returnTo: '/', checks: [],
       set: buildValidationSet({ db, runId: baseline.id }),
       run,
       config: runConfig(run),
@@ -215,7 +215,7 @@ describe('a failing gate says what to do about it', () => {
     await runner.execute();
     const run = getRun(db, runner.id)!;
 
-    const html = validationPage({
+    const html = validationPage({ mode: 'full', returnTo: '/', checks: [],
       set: buildValidationSet({ db, runId: runner.id }),
       run,
       config: runConfig(run),

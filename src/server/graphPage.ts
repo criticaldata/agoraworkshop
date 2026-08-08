@@ -5,6 +5,7 @@ import type { ExperimentConfig } from '../config/schema.js';
 import type { RunGraph } from '../analytics/graph.js';
 import type { ExtractionRow } from '../semantic/types.js';
 import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
+import type { ViewMode } from './viewMode.js';
 
 /**
  * The graph view.
@@ -30,20 +31,31 @@ export interface GraphPageInput {
    * the current page for an hour.
    */
   assetVersion: string;
+  mode: ViewMode;
+  returnTo: string;
 }
 
 export function graphPage(input: GraphPageInput): string {
-  const { run, graph, extractions } = input;
+  const { run, graph, extractions, mode } = input;
   const runId = run.run_id;
+  const participants = input.config.participants.length;
 
   return page(
     `Graph of ${runId}`,
     `
   <style>${GRAPH_STYLES}${RUN_NAV_STYLES}</style>
 
-  ${runMasthead({ run, config: input.config, active: 'graph' })}
+  ${runMasthead({
+    run,
+    config: input.config,
+    active: 'graph',
+    mode,
+    returnTo: input.returnTo,
+  })}
 
-  <div class="gr-modes" role="tablist" aria-label="Graph layers">
+  ${
+    mode === 'full'
+      ? `<div class="gr-modes" role="tablist" aria-label="Graph layers">
     <button type="button" class="gr-mode on" data-mode="interaction" role="tab"
             aria-selected="true">Interaction</button>
     <button type="button" class="gr-mode" data-mode="ideas" role="tab"
@@ -55,7 +67,11 @@ export function graphPage(input: GraphPageInput): string {
     }</p>
   </div>
 
-  ${renderProvenance(graph, extractions, runId)}
+  ${renderProvenance(graph, extractions, runId)}`
+      : `<p class="gr-lede">${participants} agents and a moderator, in a controlled
+  workshop. Every line is a message that was sent and delivered. Select one to see the
+  message, the exact context the agent was given, and the model call behind it.</p>`
+  }
 
   ${renderControls(input)}
 
@@ -69,17 +85,21 @@ export function graphPage(input: GraphPageInput): string {
   </div>
 
   ${renderScrubber(graph)}
-  ${renderLegend()}
+  ${renderLegend(mode)}
 
   <section>
     <h2>Reading this without the canvas</h2>
     <p class="note">The graph is a drawing of counts that are also available as text.
     Nothing here is reachable only by pointing at a picture.</p>
     <p class="ins-actions">
-      <a class="btn-sm" href="/runs/${esc(runId)}/structure">Interaction matrix</a>
+      ${
+        mode === 'full'
+          ? `<a class="btn-sm" href="/runs/${esc(runId)}/structure">Interaction matrix</a>
       <a class="btn-sm" href="/runs/${esc(runId)}/timeline">Interaction timeline</a>
       <a class="btn-sm" href="/api/runs/${esc(runId)}/graph">This graph as JSON</a>
-      <a class="btn-sm" href="/api/runs/${esc(runId)}/messages">Raw messages</a>
+      <a class="btn-sm" href="/api/runs/${esc(runId)}/messages">Raw messages</a>`
+          : `<a class="btn-sm" href="/runs/${esc(runId)}/timeline">Every message, in order</a>`
+      }
     </p>
   </section>
 
@@ -90,6 +110,7 @@ export function graphPage(input: GraphPageInput): string {
   <script src="/static/cytoscape.min.js?v=${esc(input.assetVersion)}"></script>
   <script src="/static/graph.js?v=${esc(input.assetVersion)}"></script>
 `,
+    { mode },
   );
 }
 
@@ -152,9 +173,12 @@ function renderControls(input: GraphPageInput): string {
     input.config.moderator.id,
     ...input.config.participants.map((p) => p.id),
   ];
+  const full = input.mode === 'full';
 
   return `<div class="ex-filters gr-controls">
-    <fieldset>
+    ${
+      full
+        ? `<fieldset>
       <legend>Show</legend>
       <div class="chips" id="gr-kinds">
         ${kindToggle('agent', 'Agents', true)}
@@ -165,7 +189,9 @@ function renderControls(input: GraphPageInput): string {
       </div>
       <p class="ex-hint">Concepts and claims start hidden: a long run produces many, and
       they bury the structure on first sight.</p>
-    </fieldset>
+    </fieldset>`
+        : ''
+    }
     <fieldset>
       <legend>Communication</legend>
       <div class="chips" id="gr-relations">
@@ -203,19 +229,27 @@ function renderControls(input: GraphPageInput): string {
           .join('')}
       </div>
     </fieldset>
-    <fieldset>
+    ${
+      full
+        ? `<fieldset>
       <legend>Search</legend>
       <div class="gr-search">
         <label class="visually-hidden" for="gr-q">Search the graph</label>
         <input id="gr-q" type="search" placeholder="agent, topic, concept, claim">
       </div>
-    </fieldset>
+    </fieldset>`
+        : ''
+    }
     <fieldset>
       <legend>Layout</legend>
       <div class="chips">
         <button type="button" class="chip" id="gr-fit">Fit</button>
-        <button type="button" class="chip" id="gr-relayout">Re-lay out</button>
-        <button type="button" class="chip" id="gr-freeze">Freeze</button>
+        ${
+          full
+            ? `<button type="button" class="chip" id="gr-relayout">Re-lay out</button>
+        <button type="button" class="chip" id="gr-freeze">Freeze</button>`
+            : ''
+        }
         <button type="button" class="chip" id="gr-clear">Clear focus</button>
       </div>
     </fieldset>
@@ -287,19 +321,31 @@ function renderTransport(): string {
   </div>`;
 }
 
-function renderLegend(): string {
+function renderLegend(mode: ViewMode): string {
+  const derived =
+    mode === 'full'
+      ? `<li><span class="gr-key k-topic"></span> Topic <span class="muted">derived</span></li>
+    <li><span class="gr-key k-concept"></span> Concept <span class="muted">derived</span></li>
+    <li><span class="gr-key k-claim"></span> Claim <span class="muted">derived</span></li>`
+      : '';
+
   return `<ul class="gr-legend">
     <li><span class="gr-key k-agent"></span> Agent <span class="muted">recorded</span></li>
     <li><span class="gr-key k-moderator"></span> Moderator <span class="muted">recorded</span></li>
-    <li><span class="gr-key k-topic"></span> Topic <span class="muted">derived</span></li>
-    <li><span class="gr-key k-concept"></span> Concept <span class="muted">derived</span></li>
-    <li><span class="gr-key k-claim"></span> Claim <span class="muted">derived</span></li>
+    <li><span class="gr-key k-failed"></span> Turn the apparatus failed to deliver</li>
+    ${derived}
     <li><span class="gr-line solid"></span> Public message</li>
     <li><span class="gr-line dashed"></span> Private message</li>
-    <li><span class="gr-line dotted"></span> Derived relation</li>
+    ${mode === 'full' ? '<li><span class="gr-line dotted"></span> Derived relation</li>' : ''}
   </ul>
-  <p class="ex-hint">Recorded entities are filled and solid. Derived ones are outlined and
-  dotted, so an analysis is never mistaken for a record.</p>`;
+  <p class="ex-hint">${
+    mode === 'full'
+      ? `Recorded entities are filled and solid. Derived ones are outlined and dotted, so an
+  analysis is never mistaken for a record. A double ring counts turns the apparatus never
+  delivered, which is not the same as an agent choosing not to speak.`
+      : `A double ring counts turns the apparatus never delivered. That is a failure of the
+  instrument, and it is drawn apart from an agent choosing not to speak.`
+  }</p>`;
 }
 
 export const GRAPH_STYLES = `
@@ -314,6 +360,12 @@ export const GRAPH_STYLES = `
 .gr-mode.on { background: var(--ink); border-color: var(--ink); color: #fff; }
 .gr-mode:disabled { opacity: .45; cursor: not-allowed; }
 .gr-mode-note { flex: 1 1 20rem; margin: 0; font-size: .8rem; color: var(--muted); }
+
+/* The one sentence the simple view exists to deliver. It sits where the layer switch and
+   the extraction provenance sit in the full view, so the page opens on what it is rather
+   than on what else it could show. */
+.gr-lede { max-width: 46rem; margin: 0 0 1rem; font-size: 1rem; line-height: 1.5;
+           color: var(--ink); }
 
 .gr-prov { border: 1px solid var(--line); border-left-width: 3px; border-radius: 10px;
            padding: .9rem 1.1rem; margin-bottom: 1rem; background: var(--panel); }
@@ -403,6 +455,8 @@ export const GRAPH_STYLES = `
 .gr-key.k-topic { background: transparent; border: 2px dashed var(--priv); border-radius: 3px; }
 .gr-key.k-concept { background: transparent; border: 2px dashed var(--ok); }
 .gr-key.k-claim { background: transparent; border: 2px dashed var(--muted); border-radius: 0; }
+/* The double ring the canvas draws on a participant the apparatus failed. */
+.gr-key.k-failed { background: transparent; border: 3px double #b45309; }
 .gr-line { width: 1.4rem; height: 0; border-top: 2px solid var(--muted); display: inline-block; }
 .gr-line.dashed { border-top-style: dashed; }
 .gr-line.dotted { border-top-style: dotted; }

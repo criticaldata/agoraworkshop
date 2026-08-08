@@ -10,6 +10,7 @@ import type { ReplayInput } from '../export/replayHtml.js';
 import type { RunRow, InvocationRow, RunSummary } from '../db/queries.js';
 import { EXPLORER_STYLES } from './explorer.js';
 import { runActions, runMasthead, RUN_NAV_STYLES } from './runNav.js';
+import { modeToggle, type ViewMode } from './viewMode.js';
 
 /**
  * Operator views.
@@ -31,6 +32,11 @@ nav.top a:focus-visible, .btn:focus-visible, button:focus-visible {
   outline: 2px solid var(--accent); outline-offset: 3px; }
 
 .page-head { margin-bottom: 1.5rem; }
+/* The heading and the way into the technical views share a line: the switch belongs with
+   the title of what it is switching, not floating above it. */
+.rp-head { display: flex; align-items: flex-start; justify-content: space-between;
+           gap: 1rem; flex-wrap: wrap; margin-bottom: 0; }
+.rp-head + .page-head { margin-top: 0; }
 .lede { color: var(--muted); max-width: 46rem; margin: 0 0 1.5rem; }
 
 /* ---------- toolbar ---------- */
@@ -129,7 +135,11 @@ code { font-family: var(--mono); font-size: .88em; }
 }
 `;
 
-export function page(title: string, body: string, opts: { refresh?: boolean } = {}): string {
+export function page(
+  title: string,
+  body: string,
+  opts: { refresh?: boolean; mode?: ViewMode } = {},
+): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -147,8 +157,13 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
     <a href="/">Overview</a>
     <a href="/docs">Documentation</a>
     <a href="/runs">Runs</a>
-    <a href="/compare">Compare</a>
-    <a href="/api">Raw API</a>
+    ${
+      /* Comparison and the raw API answer questions that come after Phase 0. They are
+         still served; they are just not offered until someone asks for them. */
+      opts.mode === 'simple'
+        ? ''
+        : '<a href="/compare">Compare</a><a href="/api">Raw API</a>'
+    }
   </nav>
 ${body}
 </main>
@@ -187,6 +202,8 @@ export interface RunsPageInput {
   filter: RunsFilter;
   models: string[];
   statuses: string[];
+  mode: ViewMode;
+  returnTo: string;
 }
 
 /**
@@ -203,7 +220,7 @@ export function runsPage(input: RunsPageInput): string {
   const filtered = filter.q || filter.model || filter.status || filter.comparableOnly;
 
   const body = groups.length
-    ? groups.map((group) => renderGroup(group, summaries)).join('\n')
+    ? groups.map((group) => renderGroup(group, summaries, input.mode)).join('\n')
     : filtered
       ? `<div class="group"><p class="empty">No runs match these filters. Every run is
          still recorded; only this list is narrowed.</p></div>`
@@ -213,9 +230,14 @@ export function runsPage(input: RunsPageInput): string {
   return page(
     'AGORA · runs',
     `
+  <header class="page-head rp-head">
+    <div>
+      <p class="eyebrow">Runs</p>
+      <h1>Workshop runs</h1>
+    </div>
+    ${modeToggle(input.mode, input.returnTo)}
+  </header>
   <header class="page-head">
-    <p class="eyebrow">Runs</p>
-    <h1>Workshop runs</h1>
     <p class="lede">Runs are grouped by the fingerprint of the settings they used. Runs
     within a group were carried out under identical conditions and can be compared with
     one another. Runs in different groups cannot.</p>
@@ -244,7 +266,7 @@ export function runsPage(input: RunsPageInput): string {
   ${renderRunsFilter(input)}
   ${body}
 `,
-    { refresh: running },
+    { mode: input.mode, refresh: running },
   );
 }
 
@@ -307,7 +329,11 @@ function renderRunsFilter(input: RunsPageInput): string {
   </div>`;
 }
 
-function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): string {
+function renderGroup(
+  group: RunGroup,
+  summaries: Map<string, RunSummary>,
+  mode: ViewMode,
+): string {
   const rows = group.runs
     .map((run) => {
       const s = summaries.get(run.run_id);
@@ -350,7 +376,9 @@ function renderGroup(group: RunGroup, summaries: Map<string, RunSummary>): strin
     <p class="group-note">${esc(group.topic)}</p>
     ${
       group.runs.filter((r) => r.status === 'COMPLETED').length >= 2
-        ? `<p class="group-compare"><a class="btn-sm" href="/compare?hash=${esc(
+        ? mode === 'simple'
+        ? ''
+        : `<p class="group-compare"><a class="btn-sm" href="/compare?hash=${esc(
             group.configHash,
           )}">Compare these runs</a></p>`
         : '<p class="group-compare muted">One completed run so far. A second under the same settings makes run-to-run variation visible.</p>'
@@ -377,6 +405,10 @@ const tokenPair = (input: number | null, output: number | null): string =>
 
 export interface RunPageInput extends ReplayInput {
   isRunning: boolean;
+  /** How much of the instrument is advertised. See viewMode.ts. */
+  mode: ViewMode;
+  /** Where the mode switch returns to. */
+  returnTo: string;
   /** The interaction timeline, rendered by the explorer module. */
   explorer: string;
 }
@@ -406,8 +438,8 @@ export function timelinePage(input: TimelinePageInput): string {
   return page(
     `Timeline of ${run.run_id}`,
     `
-  ${runMasthead({ run, config, active: 'timeline', isRunning })}
-  ${runActions(run, input.exportedFiles)}
+  ${runMasthead({ run, config, active: 'timeline', isRunning, mode: input.mode, returnTo: input.returnTo })}
+  ${runActions(run, input.exportedFiles, input.mode)}
   ${input.explorer}
 
   <section id="statistics">
@@ -417,7 +449,7 @@ export function timelinePage(input: TimelinePageInput): string {
 
   <script src="/static/timeline.js?v=${esc(input.assetVersion)}"></script>
 `,
-    { refresh: isRunning },
+    { refresh: isRunning, mode: input.mode },
   );
 }
 
@@ -426,7 +458,7 @@ export function transcriptPage(input: RunPageInput): string {
   return page(
     `Transcript of ${run.run_id}`,
     `
-  ${runMasthead({ run, config, active: 'transcript', isRunning: input.isRunning })}
+  ${runMasthead({ run, config, active: 'transcript', isRunning: input.isRunning, mode: input.mode, returnTo: input.returnTo })}
 
   <section>
     <h2>Chronological record</h2>
@@ -435,7 +467,7 @@ export function transcriptPage(input: RunPageInput): string {
     ${renderTimeline(input)}
   </section>
 `,
-    { refresh: input.isRunning },
+    { mode: input.mode, refresh: input.isRunning },
   );
 }
 
@@ -465,7 +497,7 @@ export function turnsPage(input: RunPageInput): string {
   return page(
     `Turns of ${run.run_id}`,
     `
-  ${runMasthead({ run, config, active: 'turns', isRunning: input.isRunning })}
+  ${runMasthead({ run, config, active: 'turns', isRunning: input.isRunning, mode: input.mode, returnTo: input.returnTo })}
 
   <section>
     <h2>Turns</h2>
@@ -491,7 +523,7 @@ export function turnsPage(input: RunPageInput): string {
     ${renderGates(acceptance, run.run_id)}
   </section>
 `,
-    { refresh: input.isRunning },
+    { mode: input.mode, refresh: input.isRunning },
   );
 }
 

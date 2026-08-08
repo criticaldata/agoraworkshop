@@ -7,12 +7,18 @@ import { displayName } from '../config/schema.js';
 import { shown, UNAVAILABLE } from '../core/provenance.js';
 import type { RunRow } from '../db/queries.js';
 import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
+import type { Phase0Check } from '../acceptance/summary.js';
+import type { ViewMode } from './viewMode.js';
 
 export interface ValidationPageInput {
   set: ValidationSet;
   run: RunRow;
   config: ExperimentConfig;
   analytics: RunAnalytics;
+  /** The four Phase 0 questions, answered from the same evidence as the gates. */
+  checks: Phase0Check[];
+  mode: ViewMode;
+  returnTo: string;
   /** Other runs recorded under the same config hash, this one excluded. */
   comparableRunIds: string[];
   /** An invocation to link to, so the provenance claim can be checked immediately. */
@@ -73,6 +79,27 @@ const VALIDATION_STYLES = `
 
 .vp-links { display: flex; gap: .5rem; flex-wrap: wrap; }
 .vp-links a, .vp-links button { font-size: .85rem; }
+
+/* The four questions. A row per question, the mark first, so the column of marks can be
+   read down in one pass and a gap in it is as loud as a failure. */
+.vp-four { list-style: none; margin: 1rem 0 0; padding: 0; display: grid; gap: .1rem;
+           border: 1px solid var(--line); border-radius: 12px; background: var(--panel);
+           overflow: hidden; }
+.vp-four li { display: grid; grid-template-columns: 1.9rem 1fr; gap: .1rem .75rem;
+              padding: .8rem 1.1rem; }
+.vp-four li + li { border-top: 1px solid var(--line); }
+.vp-mark { grid-row: span 2; align-self: start; font-size: 1.15rem; line-height: 1.35;
+           text-align: center; }
+.vp-mark.ok { color: var(--ok); }
+.vp-mark.bad { color: var(--bad); }
+.vp-mark.unproven { color: var(--warn); }
+.vp-four b { font-weight: 650; font-size: .95rem; }
+.vp-four .why { margin: .15rem 0 0; font-size: .84rem; color: var(--muted); }
+.vp-four .why .state { text-transform: uppercase; letter-spacing: .07em; font-size: .68rem;
+                       font-weight: 700; margin-right: .4rem; }
+.vp-four .why .state.unproven { color: var(--warn); }
+.vp-four .why .state.bad { color: var(--bad); }
+.vp-four .why .state.ok { color: var(--ok); }
 `;
 
 const tone = (status: ValidationSetGate['status']): string =>
@@ -108,7 +135,13 @@ export function validationPage(input: ValidationPageInput): string {
     `
   <style>${VALIDATION_STYLES}${RUN_NAV_STYLES}</style>
 
-  ${runMasthead({ run, config, active: 'checks' })}
+  ${runMasthead({
+    run,
+    config,
+    active: 'checks',
+    mode: input.mode,
+    returnTo: input.returnTo,
+  })}
 
   <header class="page-head">
     <p class="eyebrow">Phase 0 validation package</p>
@@ -142,16 +175,22 @@ export function validationPage(input: ValidationPageInput): string {
     </div>
   </div>
 
-  <nav class="sub-nav" aria-label="Sections">
+  ${fourChecks(input.checks)}
+
+  ${
+    input.mode === 'full'
+      ? `<nav class="sub-nav" aria-label="Sections">
     <a href="#configuration">Configuration</a>
     <a href="#execution">Execution</a>
     <a href="#gates">Gates</a>
     <a href="#evidence-runs">Evidence runs</a>
     <a href="#provenance">Provenance</a>
     <a href="#evidence">Files</a>
-  </nav>
+  </nav>`
+      : ''
+  }
 
-  <section id="configuration">
+  ${input.mode === 'full' ? `<section id="configuration">
     <h2>Experimental configuration</h2>
     <dl class="vp-grid">
       <div><dt>Run</dt><dd class="mono">${esc(run.run_id)}</dd></div>
@@ -192,7 +231,9 @@ export function validationPage(input: ValidationPageInput): string {
       <div><dt>Infrastructure failures</dt><dd>${analytics.total_infrastructure_failures}</dd></div>
       <div><dt>Completion status</dt><dd>${esc(analytics.workshop_completion_status)}</dd></div>
     </dl>
-  </section>
+  </section>`
+      : ''
+  }
 
   <section id="gates">
     <h2>Phase 0 gates</h2>
@@ -201,7 +242,9 @@ export function validationPage(input: ValidationPageInput): string {
     ${set.gates.map((g) => gateCard(g, run.run_id)).join('\n')}
   </section>
 
-  <section id="evidence-runs">
+  ${
+    input.mode === 'full'
+      ? `<section id="evidence-runs">
     <h2>Evidence runs</h2>
     <p class="note">A single run is not expected to demonstrate everything. Each run below
     is listed with its own outcome and with what it is being used to show.</p>
@@ -284,7 +327,9 @@ export function validationPage(input: ValidationPageInput): string {
               .join(', ')
       }
     </p>
-  </section>
+  </section>`
+      : ''
+  }
 
   <section>
     <h2>Scope</h2>
@@ -294,7 +339,42 @@ export function validationPage(input: ValidationPageInput): string {
     only the experimental conditions are reproducible.</p>
   </section>
 `,
+    { mode: input.mode },
   );
+}
+
+/**
+ * The four questions, answered.
+ *
+ * A tick is only ever drawn for PASS. A question that never arose gets a dash and says
+ * so in words, because a grey mark next to three green ones is read as a tick by anyone
+ * moving quickly, and an untested claim is the one thing this page must not imply.
+ */
+function fourChecks(checks: Phase0Check[]): string {
+  const mark: Record<Phase0Check['status'], string> = {
+    PASS: '✓',
+    FAIL: '✕',
+    NOT_EXERCISED: '–',
+  };
+  const title: Record<Phase0Check['status'], string> = {
+    PASS: 'Passed',
+    FAIL: 'Failed',
+    NOT_EXERCISED: 'Not tested by this run',
+  };
+
+  return `<ul class="vp-four">${checks
+    .map((c) => {
+      const t = tone(c.status);
+      return `<li>
+      <span class="vp-mark ${t}" role="img" aria-label="${esc(title[c.status])}"
+            title="${esc(title[c.status])}">${mark[c.status]}</span>
+      <b>${esc(c.question)}</b>
+      <p class="why"><span class="state ${t}">${esc(label(c.status))}</span> ${esc(
+        c.detail,
+      )}</p>
+    </li>`;
+    })
+    .join('')}</ul>`;
 }
 
 function gateCard(gate: ValidationSetGate, runId: string): string {

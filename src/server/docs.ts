@@ -1,4 +1,5 @@
 import { esc } from '../export/replayHtml.js';
+import type { ViewMode } from './viewMode.js';
 import { BASE_STYLES } from './theme.js';
 import { REQUIRED_BUNDLE_ITEMS } from '../export/bundleContract.js';
 
@@ -21,7 +22,7 @@ export const FACTS = {
   runtimeNode: 22,
 } as const;
 
-export function docsPage(): string {
+export function docsPage(mode: ViewMode = 'full'): string {
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -38,8 +39,7 @@ export function docsPage(): string {
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>
   <a href="/runs">Runs</a>
-  <a href="/compare">Compare</a>
-  <a href="/api">Raw API</a>
+  ${mode === 'simple' ? '' : '<a href="/compare">Compare</a><a href="/api">Raw API</a>'}
 </nav>
 
 <main>

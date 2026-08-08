@@ -1,4 +1,5 @@
 import { esc } from '../export/replayHtml.js';
+import type { ViewMode } from './viewMode.js';
 import { BASE_STYLES } from './theme.js';
 import type { AgoraEvent } from '../events/types.js';
 import type { RunRow } from '../db/queries.js';
@@ -17,6 +18,7 @@ import type { RunRow } from '../db/queries.js';
  */
 
 export interface HomeInput {
+  mode: ViewMode;
   latestRun: RunRow | null;
   latestEvents: AgoraEvent[];
   runCount: number;
@@ -52,8 +54,13 @@ export function homePage(input: HomeInput): string {
   <a href="/">Overview</a>
   <a href="/docs">Documentation</a>
   <a href="/runs">Runs</a>
-  <a href="/compare">Compare</a>
-  <a href="/api">Raw API</a>
+  ${
+    /* Comparison and the raw API answer questions that come after Phase 0. Served, but
+       not offered until someone asks for them. */
+    input.mode === 'simple'
+      ? ''
+      : '<a href="/compare">Compare</a><a href="/api">Raw API</a>'
+  }
 </nav>
 
 <main>

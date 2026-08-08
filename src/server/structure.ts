@@ -14,6 +14,7 @@ import {
 } from '../analytics/interaction.js';
 import { EXPLORER_STYLES } from './explorer.js';
 import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
+import type { ViewMode } from './viewMode.js';
 
 /**
  * Interaction structure: who communicated with whom.
@@ -72,6 +73,8 @@ export interface StructureInput {
   query: StructureQuery;
   /** Phases the run actually entered, so the filter never offers an empty one. */
   phases: string[];
+  mode: ViewMode;
+  returnTo: string;
 }
 
 export function structurePage(input: StructureInput): string {
@@ -83,7 +86,7 @@ export function structurePage(input: StructureInput): string {
     `
   <style>${EXPLORER_STYLES}${STRUCTURE_STYLES}${RUN_NAV_STYLES}</style>
 
-  ${runMasthead({ run, config, active: 'structure' })}
+  ${runMasthead({ run, config, active: 'structure', mode: input.mode, returnTo: input.returnTo })}
 
   <header class="page-head">
     <h1>Who communicated with whom</h1>
@@ -127,6 +130,7 @@ export function structurePage(input: StructureInput): string {
     </p>
   </section>
 `,
+    { mode: input.mode },
   );
 }
 

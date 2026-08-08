@@ -58,7 +58,7 @@ describe('runs list', () => {
       },
     ];
 
-    const html = runsPage({
+    const html = runsPage({ mode: 'full', returnTo: '/',
       groups,
       summaries: runSummaries(db, [runId]),
       configs: ['a.yaml'],
@@ -85,7 +85,7 @@ describe('runs list', () => {
     expect(summary.public_messages).toBeGreaterThan(0);
     expect(summary.private_messages).toBeGreaterThan(0);
 
-    const html = runsPage({
+    const html = runsPage({ mode: 'full', returnTo: '/',
       groups: [
         {
           configHash: run.config_hash,
@@ -110,7 +110,7 @@ describe('runs list', () => {
   });
 
   it('gives a direction rather than a blank space when there are no runs', () => {
-    const html = runsPage({
+    const html = runsPage({ mode: 'full', returnTo: '/',
       groups: [],
       summaries: new Map(),
       configs: ['a.yaml'],
@@ -150,7 +150,7 @@ describe('run views', () => {
       runId,
       run,
       invocations,
-      timeline: timelinePage({
+      timeline: timelinePage({ mode: 'full', returnTo: '/',
         ...base,
         exportedFiles: 0,
         assetVersion: 'testasset',
@@ -164,8 +164,8 @@ describe('run views', () => {
           query,
         }),
       }),
-      transcript: transcriptPage({ ...base, explorer: '' }),
-      turns: turnsPage({ ...base, explorer: '' }),
+      transcript: transcriptPage({ mode: 'full', returnTo: '/', ...base, explorer: '' }),
+      turns: turnsPage({ mode: 'full', returnTo: '/', ...base, explorer: '' }),
     };
   }
 

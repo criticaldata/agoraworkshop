@@ -1,6 +1,7 @@
 import { esc } from '../export/replayHtml.js';
 import type { ExperimentConfig } from '../config/schema.js';
 import type { RunRow } from '../db/queries.js';
+import { modeToggle, VIEW_MODE_STYLES, type ViewMode } from './viewMode.js';
 
 /**
  * The masthead carried by every view of a run.
@@ -67,16 +68,30 @@ const VIEWS: ViewLink[] = [
   },
   {
     view: 'checks',
-    label: 'Checks',
+    label: 'Validation',
     href: (id) => `/runs/${id}/validation`,
     hint: 'Whether this run supports what it is being asked to support',
   },
 ];
 
+/**
+ * What the simple view puts in the strip.
+ *
+ * The graph is the demonstration and the validation is the warrant for it. The other
+ * four views answer questions that come after Phase 0, so they are not advertised until
+ * someone asks for them — but a view being looked at is always in the strip, whichever
+ * mode is on, so a link followed from outside never lands somewhere with no way back.
+ */
+const SIMPLE_VIEWS: RunView[] = ['graph', 'checks'];
+
 export interface MastheadInput {
   run: RunRow;
   config: ExperimentConfig;
   active: RunView;
+  /** How much of the instrument is advertised. See viewMode.ts. */
+  mode: ViewMode;
+  /** Where the mode switch returns to, so switching keeps you on this page. */
+  returnTo: string;
   /** Shown after the run identity when a view is about one participant. */
   context?: { label: string; href?: string } | null;
   /** Live runs refresh; the masthead says so rather than leaving it to be noticed. */
@@ -84,7 +99,14 @@ export interface MastheadInput {
 }
 
 export function runMasthead(input: MastheadInput): string {
-  const { run, config, active } = input;
+  const { run, config, active, mode } = input;
+
+  const views =
+    mode === 'full'
+      ? VIEWS
+      : VIEWS.filter((v) => SIMPLE_VIEWS.includes(v.view) || v.view === active);
+
+  const participants = `${config.participants.length} agents + moderator`;
 
   const statusTone =
     run.status === 'COMPLETED'
@@ -117,15 +139,21 @@ export function runMasthead(input: MastheadInput): string {
         <div><dt>Run</dt><dd class="mono">${esc(run.run_id.replace(/^run_/, ''))}</dd></div>
         <div><dt>Status</dt><dd><span class="pill ${statusTone}">${esc(run.status)}</span></dd></div>
         <div><dt>Model</dt><dd class="mono">${esc(run.provider)} ${esc(run.model)}</dd></div>
-        <div><dt>Settings</dt><dd class="mono" title="${esc(run.config_hash)}">${esc(
-          run.config_hash.slice(7, 19),
-        )}</dd></div>
-        <div><dt>Moderator</dt><dd>${esc(config.moderator.mode ?? 'llm')}</dd></div>
+        <div><dt>Participants</dt><dd>${esc(participants)}</dd></div>
+        ${
+          mode === 'full'
+            ? `<div><dt>Settings</dt><dd class="mono" title="${esc(run.config_hash)}">${esc(
+                run.config_hash.slice(7, 19),
+              )}</dd></div>
+        <div><dt>Moderator</dt><dd>${esc(config.moderator.mode ?? 'llm')}</dd></div>`
+            : ''
+        }
       </dl>
     </div>
 
+    <div class="rn-strip">
     <nav class="rn-views" aria-label="Ways of looking at this run">
-      ${VIEWS.map(
+      ${views.map(
         (v) =>
           `<a class="rn-view${v.view === active ? ' on' : ''}"
               href="${esc(v.href(run.run_id))}"
@@ -133,8 +161,16 @@ export function runMasthead(input: MastheadInput): string {
                 v.label,
               )}</a>`,
       ).join('')}
-      <span class="rn-scale" aria-hidden="true">summary to source</span>
+      ${
+        mode === 'full'
+          ? '<span class="rn-scale" aria-hidden="true">summary to source</span>'
+          : ''
+      }
     </nav>
+    <!-- Outside the strip of views, because it does not select one: it changes how much
+         of the instrument the whole interface offers. -->
+    <div class="rn-end">${modeToggle(mode, input.returnTo)}</div>
+    </div>
   </header>`;
 }
 
@@ -145,7 +181,7 @@ export function runMasthead(input: MastheadInput): string {
  * you already have; a button here starts a run or writes files. Mixing them into one
  * strip is how someone spends money meaning to navigate.
  */
-export function runActions(run: RunRow, exportedFiles: number): string {
+export function runActions(run: RunRow, exportedFiles: number, mode: ViewMode): string {
   return `<div class="rn-actions">
     <form method="post" action="/runs/${esc(run.run_id)}/rerun">
       <button type="submit">Run again with the same settings</button>
@@ -155,12 +191,17 @@ export function runActions(run: RunRow, exportedFiles: number): string {
         exportedFiles > 0 ? 'Export bundle again' : 'Export bundle'
       }</button>
     </form>
-    <a href="/runs/${esc(run.run_id)}/replay"><button type="button" class="secondary">Standalone replay</button></a>
-    <a href="/api/runs/${esc(run.run_id)}"><button type="button" class="secondary">Raw data</button></a>
+    ${
+      mode === 'full'
+        ? `<a href="/runs/${esc(run.run_id)}/replay"><button type="button" class="secondary">Standalone replay</button></a>
+    <a href="/api/runs/${esc(run.run_id)}"><button type="button" class="secondary">Raw data</button></a>`
+        : ''
+    }
   </div>`;
 }
 
 export const RUN_NAV_STYLES = `
+${VIEW_MODE_STYLES}
 /* Every view of a run shares one frame width, so the masthead does not change size as
    you move between tabs. The shared stylesheet holds operator pages to a reading measure,
    which suits a column of prose and starves a canvas or a wide table.
@@ -202,8 +243,9 @@ main > section > h2 + p,
                color: var(--muted); }
 .rn-facts dd { margin: 0; font-size: .8rem; }
 
-.rn-views { display: flex; align-items: flex-end; gap: .1rem; margin-top: .7rem;
-            flex-wrap: wrap; }
+.rn-strip { display: flex; align-items: flex-end; gap: 1rem; margin-top: .7rem; }
+.rn-views { display: flex; align-items: flex-end; gap: .1rem; flex-wrap: wrap;
+            flex: 1 1 auto; min-width: 0; }
 .rn-view {
   flex: 0 0 auto; padding: .4rem .85rem; font-size: .9rem; font-weight: 600;
   color: var(--muted); text-decoration: none;
@@ -218,6 +260,8 @@ main > section > h2 + p,
   border-color: var(--line); border-bottom: 1px solid var(--panel);
 }
 .rn-view:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+/* The way to the rest of the instrument, at the end of the row but not among the views. */
+.rn-end { flex: 0 0 auto; padding-bottom: .35rem; }
 /* Left to right is summary to source. Stated once, quietly, at the end of the strip. */
 .rn-scale { margin-left: auto; padding: 0 .2rem .5rem 1rem; align-self: flex-end;
             font-size: .62rem; letter-spacing: .09em; text-transform: uppercase;

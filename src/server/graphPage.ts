@@ -230,29 +230,35 @@ const relToggle = (relation: string, label: string, on: boolean): string =>
      aria-pressed="${on}">${esc(label)}</button>`;
 
 function renderScrubber(graph: RunGraph): string {
+  const span = Math.max(1, graph.maxSequence - graph.minSequence);
+
   return `<div class="gr-time">
-    <div class="gr-time-bands">${graph.phases
-      .filter((p) => p.phase !== 'CREATED' && p.phase !== 'COMPLETED')
-      .map((p) => {
-        const span = Math.max(1, graph.maxSequence - graph.minSequence);
-        const left = ((p.fromSequence - graph.minSequence) / span) * 100;
-        const width = ((p.toSequence - p.fromSequence) / span) * 100;
-        return `<span class="gr-time-band" style="left:${Math.max(0, left).toFixed(
-          2,
-        )}%;width:${Math.max(2, width).toFixed(2)}%">${esc(p.label)}</span>`;
-      })
-      .join('')}</div>
-    <div class="gr-time-row">
+    <div class="gr-time-controls">
       <button type="button" class="gr-btn" id="gr-play" aria-label="Play">Play</button>
       <button type="button" class="gr-btn" id="gr-prev" aria-label="Previous event">Back</button>
       <button type="button" class="gr-btn" id="gr-next" aria-label="Next event">Forward</button>
+      <span class="gr-time-read" id="gr-time-read">whole run</span>
+    </div>
+
+    <div class="gr-track">
+      <div class="gr-time-bands" aria-hidden="true">${graph.phases
+        .filter((p) => p.phase !== 'CREATED' && p.phase !== 'COMPLETED')
+        .map((p) => {
+          const width = Math.max(1, p.toSequence - p.fromSequence + 1);
+          return `<span class="gr-time-band" style="flex-grow:${width}" title="${esc(
+            `${p.label}: positions ${p.fromSequence} to ${p.toSequence}`,
+          )}">${esc(p.label)}</span>`;
+        })
+        .join('')}</div>
       <label class="visually-hidden" for="gr-scrub">Position in the run</label>
       <input id="gr-scrub" type="range" min="${graph.minSequence}" max="${graph.maxSequence}"
              value="${graph.maxSequence}" step="1">
-      <span class="gr-time-read" id="gr-time-read">whole run</span>
     </div>
+
     <p class="ex-hint">The control moves through the recorded order of events. What it
-    shows is what had been recorded by that point, not what any agent knew.</p>
+    shows is what had been recorded by that point, not what any agent knew. Phase bands
+    are proportional to the number of positions in each phase; the readout above gives the
+    exact phase at the current position.</p>
   </div>`;
 }
 
@@ -319,19 +325,27 @@ export const GRAPH_STYLES = `
                    background: var(--paper); color: var(--ink); }
 
 .gr-time { margin-top: .8rem; }
-.gr-time-bands { position: relative; height: 1.1rem; margin-bottom: .2rem; }
-.gr-time-band { position: absolute; top: 0; font-size: .62rem; letter-spacing: .06em;
-                text-transform: uppercase; color: var(--muted); font-weight: 700;
-                border-left: 2px solid var(--line); padding-left: .3rem;
-                white-space: nowrap; overflow: hidden; }
-.gr-time-row { display: flex; align-items: center; gap: .5rem; }
+.gr-time-controls { display: flex; align-items: center; gap: .5rem; margin-bottom: .5rem; }
+/* The bands and the slider share one column so a band sits over the stretch of track it
+   describes. They were laid out across the whole row while the track began after the
+   buttons, which put every band to the left of the positions it named. */
+.gr-track { display: flex; flex-direction: column; }
+.gr-time-bands { display: flex; align-items: flex-end; }
+/* Proportional to the positions in the phase, but never narrower than its own name: a
+   one-position phase would otherwise clip to a single letter. The width of a short band
+   is therefore approximate, which is why the exact phase is read out above. */
+.gr-time-band { flex-basis: 0; min-width: max-content;
+                font-size: .62rem; letter-spacing: .06em; text-transform: uppercase;
+                color: var(--muted); font-weight: 700;
+                border-left: 2px solid var(--line); padding: 0 .5rem .25rem .3rem;
+                white-space: nowrap; }
 .gr-btn { font: inherit; font-size: .78rem; padding: .18rem .6rem; border-radius: 6px;
           border: 1px solid var(--line); background: var(--paper); color: var(--ink);
           cursor: pointer; }
 .gr-btn:hover { border-color: var(--accent); color: var(--accent); }
-#gr-scrub { flex: 1; accent-color: var(--accent); }
+#gr-scrub { width: 100%; margin: 0; accent-color: var(--accent); }
 .gr-time-read { font-family: var(--mono); font-size: .74rem; color: var(--muted);
-                min-width: 7rem; text-align: right; }
+                margin-left: auto; }
 
 .gr-legend { list-style: none; display: flex; flex-wrap: wrap; gap: .5rem 1rem;
              margin: .8rem 0 0; padding: 0; font-size: .78rem; color: var(--ink); }

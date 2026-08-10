@@ -279,3 +279,45 @@ describe('the four Phase 0 questions', () => {
     expect(full).toContain('id="provenance"');
   });
 });
+
+describe('the eighteen acceptance metrics on the page', () => {
+  it('shows the numbered thresholds under technical detail, not in the simple view', async () => {
+    const r = await loaded();
+
+    const simple = validationHtml(r, 'simple');
+    const full = validationHtml(r, 'full');
+
+    // The simple view answers the four questions and stops. A reader deciding whether
+    // the instrument is trustworthy is not asked to read eighteen thresholds first.
+    // Asserted on the markup rather than the class name, which appears in the shared
+    // stylesheet in both modes.
+    expect(simple).not.toContain('<details class="vp-metrics">');
+    expect(simple).not.toContain('acceptance metrics behind this gate');
+    expect(simple).toContain('vp-four');
+
+    // The full view carries every metric, each with the threshold it was measured
+    // against, so the verdict can be checked rather than taken on trust.
+    expect(full).toContain(`<details class="vp-metrics">`);
+    for (const id of ['M1', 'M8', 'M9', 'M12', 'M13', 'M18']) {
+      expect(full).toContain(`<code>${id}</code>`);
+    }
+    expect(full).toContain('response_opportunities');
+  });
+
+  it('never renders a passing mark for a threshold that was never exercised', async () => {
+    const r = await loaded();
+    const set = buildValidationSet({ db: r.db, runId: r.runId });
+    const metrics = set.gates.flatMap((g) => g.metrics);
+
+    // A clean run cannot demonstrate failure attribution, and the page must say so in
+    // those words rather than leaving the reader to infer it from silence.
+    const unexercised = metrics.filter((m) => m.status === 'NOT_EXERCISED');
+    expect(unexercised.length).toBeGreaterThan(0);
+
+    const full = validationHtml(r, 'full');
+    for (const metric of unexercised) {
+      expect(full).toContain('NOT EXERCISED');
+      expect(metric.observed.length).toBeGreaterThan(0);
+    }
+  });
+});

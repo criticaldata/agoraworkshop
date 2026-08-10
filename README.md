@@ -184,6 +184,37 @@ Each gate reports one of three statuses:
 **PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
 defect in the instrument and not a pass, which is why the fault-injection configs exist.
 
+### The eighteen acceptance metrics
+
+Each gate is composed of numbered metrics, in `src/acceptance/metrics.ts`. A gate's prose
+evidence says what was seen; a metric says which agreed threshold it was measured against,
+so a verdict can be checked rather than taken on trust.
+
+| Gate | Metrics | Thresholds |
+| --- | --- | --- |
+| 1 — Infrastructure | M1–M8 | opportunity coverage, sequence integrity, public routing, private isolation, state machine, bounded execution, persistence, export |
+| 2 — Failure attribution | M9–M12 | classification coverage, behaviour/infrastructure separation, retry traceability, controlled fault validation |
+| 3 — Reproducibility | M13–M18 | config snapshot, deterministic fingerprint, code provenance, invocation traceability, context integrity, repeated-run evidence |
+
+Three properties hold throughout:
+
+- **Metrics only tighten.** A failing metric fails its gate; no metric can turn a failing
+  prose check into a pass. Adding a threshold can never make a previously failing run
+  look acceptable.
+- **Nothing is confirmed by its own bookkeeping.** M3 re-derives the recipient set from
+  the frozen config rather than reading back the `actual_recipients` the router wrote,
+  because comparing the router to itself proves only that it is self-consistent.
+- **Coverage and accuracy are separate findings.** M12 reports `FAIL` when an injected
+  fault was classified as the wrong thing, and `NOT_EXERCISED` when a required failure
+  mode was never injected at all. The first is a defect; the second is missing evidence.
+
+Every metric is tested twice — once on a run that satisfies it, and once on the same run
+after one stored record has been damaged. A check that cannot be made to fail is not
+evidence (`tests/acceptanceMetrics.test.ts`).
+
+The full table appears on `/runs/:id/validation` under **Technical details**. The default
+view answers the four Phase 0 questions instead; the thresholds are for an auditor.
+
 ### The validation set
 
 One run is not expected to demonstrate all three gates. `agora validate` and

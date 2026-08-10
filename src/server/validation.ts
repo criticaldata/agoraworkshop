@@ -9,6 +9,7 @@ import type { RunRow } from '../db/queries.js';
 import { runMasthead, RUN_NAV_STYLES } from './runNav.js';
 import type { Phase0Check } from '../acceptance/summary.js';
 import type { ViewMode } from './viewMode.js';
+import type { MetricResult } from '../acceptance/metrics.js';
 
 export interface ValidationPageInput {
   set: ValidationSet;
@@ -100,6 +101,22 @@ const VALIDATION_STYLES = `
 .vp-four .why .state.unproven { color: var(--warn); }
 .vp-four .why .state.bad { color: var(--bad); }
 .vp-four .why .state.ok { color: var(--ok); }
+
+/* The numbered thresholds. Dense, monospaced and folded away: this is the auditor's
+   view rather than the reader's, and it should look like a table of measurements. */
+.vp-metrics { margin-top: .6rem; }
+.vp-metrics summary { cursor: pointer; font-size: .85rem; font-weight: 600; }
+.vp-metrics table { width: 100%; border-collapse: collapse; font-size: .8rem;
+                    table-layout: fixed; margin-top: .5rem; }
+.vp-metrics th, .vp-metrics td { white-space: normal; text-align: left;
+                                 overflow-wrap: anywhere; vertical-align: top;
+                                 padding: .4rem .6rem .4rem 0;
+                                 border-bottom: 1px solid var(--line); }
+.vp-metrics th { color: var(--muted); font-weight: 600; font-size: .68rem;
+                 text-transform: uppercase; letter-spacing: .07em; }
+.vp-metrics code { font-size: .74rem; }
+.vp-metrics tr.bad td { color: var(--bad); }
+.vp-metrics tr.unproven td { color: var(--warn); }
 `;
 
 const tone = (status: ValidationSetGate['status']): string =>
@@ -239,7 +256,7 @@ export function validationPage(input: ValidationPageInput): string {
     <h2>Phase 0 gates</h2>
     <p class="note">Each verdict is followed by the evidence it was computed from and the
     run that evidence came from.</p>
-    ${set.gates.map((g) => gateCard(g, run.run_id)).join('\n')}
+    ${set.gates.map((g) => gateCard(g, run.run_id, input.mode)).join('\n')}
   </section>
 
   ${
@@ -377,7 +394,35 @@ function fourChecks(checks: Phase0Check[]): string {
     .join('')}</ul>`;
 }
 
-function gateCard(gate: ValidationSetGate, runId: string): string {
+/**
+ * The numbered thresholds behind a gate.
+ *
+ * Kept folded away and out of the simple view: a reader deciding whether to trust the
+ * instrument needs the verdict and the evidence, and only an auditor needs to see which
+ * of eighteen agreed thresholds each sentence corresponds to. It is here so that the
+ * verdict can be checked rather than taken on trust.
+ */
+function metricTable(metrics: MetricResult[]): string {
+  if (metrics.length === 0) return '';
+  return `<details class="vp-metrics">
+    <summary>Show the ${metrics.length} acceptance metrics behind this gate</summary>
+    <table>
+      <thead><tr><th>Metric</th><th>Threshold</th><th>Result</th><th>Observed</th></tr></thead>
+      <tbody>${metrics
+        .map(
+          (m) => `<tr class="${tone(m.status)}">
+        <td><code>${esc(m.id)}</code> ${esc(m.name)}</td>
+        <td><code>${esc(m.threshold)}</code></td>
+        <td><span class="pill ${tone(m.status)}">${esc(label(m.status))}</span></td>
+        <td>${esc(m.observed)}</td>
+      </tr>`,
+        )
+        .join('')}</tbody>
+    </table>
+  </details>`;
+}
+
+function gateCard(gate: ValidationSetGate, runId: string, mode: ViewMode): string {
   const hasDetail =
     gate.evidence.length > 0 || gate.failures.length > 0 || gate.not_exercised.length > 0;
   const steps = gate.next_steps ?? [];
@@ -399,5 +444,6 @@ function gateCard(gate: ValidationSetGate, runId: string): string {
     </details>`
         : ''
     }
+    ${mode === 'full' ? metricTable(gate.metrics ?? []) : ''}
   </article>`;
 }

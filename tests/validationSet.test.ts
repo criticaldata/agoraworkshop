@@ -10,6 +10,11 @@ import { computeAnalytics } from '../src/analytics/summary.js';
 import { runConfig } from '../src/db/queries.js';
 import { baseConfigObject, frozen, tempDb, tempDir } from './helpers.js';
 
+/**
+ * The Phase 0 minimum requires a fault run to demonstrate timeout, provider error and
+ * malformed response. Injecting fewer leaves a failure mode undemonstrated, which
+ * metric M12 reports as unproven rather than passed.
+ */
 const withFaults = () =>
   frozen({
     fault_injection: {
@@ -20,6 +25,20 @@ const withFaults = () =>
           state: 'PUBLIC_DISCUSSION',
           occurrence: 1,
           kind: 'timeout',
+          recover_after_attempts: 1,
+        },
+        {
+          agent_id: 'agent_3',
+          state: 'PUBLIC_DISCUSSION',
+          occurrence: 1,
+          kind: 'provider_error',
+          recover_after_attempts: 1,
+        },
+        {
+          agent_id: 'agent_4',
+          state: 'FINAL_DISCUSSION',
+          occurrence: 1,
+          kind: 'malformed_response',
           recover_after_attempts: 1,
         },
       ],

@@ -10,9 +10,21 @@ import {
   runsWithConfigHash,
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
-import { isVisibleTo } from '../orchestrator/visibility.js';
 import { computeAnalytics } from '../analytics/summary.js';
 import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
+import { auditPrivacyLeaks, type LeakAudit } from './privacy.js';
+import {
+  computeMetrics,
+  metricsForGate,
+  statusFromMetrics,
+  type MetricGate,
+  type MetricResult,
+} from './metrics.js';
+
+// The privacy audit moved to its own module so the metric layer can use it without an
+// import cycle. It is re-exported here because it has always been part of this API.
+export { auditPrivacyLeaks };
+export type { LeakAudit };
 
 /**
  * `NOT_EXERCISED` is deliberately distinct from both PASS and FAIL. It means the
@@ -44,7 +56,18 @@ export interface GateResult {
   not_exercised: string[];
   /** Ordered actions that would resolve what is outstanding. Empty when nothing helps. */
   next_steps: NextStep[];
+  /**
+   * The numbered acceptance metrics this gate is composed of.
+   *
+   * The prose above says what was seen; these say which agreed threshold it was measured
+   * against. They are combined into `status` such that a metric can only ever make a gate
+   * stricter — a failing metric fails the gate, and no metric can rescue a prose failure.
+   */
+  metrics: MetricResult[];
 }
+
+/** A gate before its numbered metrics are attached. */
+type GateDraft = Omit<GateResult, 'metrics'>;
 
 /** Only an all-PASS report is evidence. NOT_EXERCISED is missing evidence, not a pass. */
 function gateStatus(failures: string[], notExercised: string[]): GateStatus {
@@ -79,62 +102,6 @@ export interface AcceptanceReport {
   ready_for_controlled_behavioral_experiment: boolean;
 }
 
-export interface LeakAudit {
-  invocationsChecked: number;
-  contextReferencesChecked: number;
-  violations: Array<{
-    invocation_id: string;
-    agent_id: string;
-    message_id: string;
-    reason: string;
-  }>;
-}
-
-/**
- * Recomputes, from stored data alone, whether any agent was ever exposed to a message
- * it was not authorised to see. This is the strongest available evidence that
- * public/private separation held, because it re-derives visibility rather than
- * trusting the routing decision that was made at the time.
- */
-export function auditPrivacyLeaks(db: Db, runId: string): LeakAudit {
-  const run = getRun(db, runId);
-  if (!run) throw new Error(`unknown run: ${runId}`);
-  const config = runConfig(run);
-
-  const messages = new Map(getMessages(db, runId).map((m) => [m.message_id, m]));
-  const invocations = getInvocations(db, runId);
-
-  const violations: LeakAudit['violations'] = [];
-  let references = 0;
-
-  for (const invocation of invocations) {
-    const ids = JSON.parse(invocation.context_message_ids) as string[];
-    for (const id of ids) {
-      references += 1;
-      const message = messages.get(id);
-      if (!message) {
-        violations.push({
-          invocation_id: invocation.invocation_id,
-          agent_id: invocation.agent_id,
-          message_id: id,
-          reason: 'context referenced a message that is not in the message store',
-        });
-        continue;
-      }
-      if (!isVisibleTo(config, message, invocation.agent_id)) {
-        violations.push({
-          invocation_id: invocation.invocation_id,
-          agent_id: invocation.agent_id,
-          message_id: id,
-          reason: `agent was exposed to a ${message.channel} message it is not authorised to see`,
-        });
-      }
-    }
-  }
-
-  return { invocationsChecked: invocations.length, contextReferencesChecked: references, violations };
-}
-
 export interface EvaluateGatesOptions {
   db: Db;
   runId: string;
@@ -153,10 +120,53 @@ export interface EvaluateGatesOptions {
   pendingArtifactNames?: string[];
 }
 
+/**
+ * Attaches a gate's numbered metrics and re-derives its status from both halves.
+ *
+ * The rule is one-directional on purpose. A metric that fails takes the gate down with
+ * it, and a metric that was never exercised leaves the gate unproven, but no metric can
+ * turn a prose failure into a pass. Adding a threshold to this file can therefore never
+ * make a previously failing run look acceptable.
+ */
+function withMetrics(result: GateDraft, all: MetricResult[], gate: MetricGate): GateResult {
+  const metrics = metricsForGate(all, gate);
+  const fromMetrics = statusFromMetrics(metrics);
+  const status: GateStatus =
+    result.status === 'FAIL' || fromMetrics === 'FAIL'
+      ? 'FAIL'
+      : result.status === 'NOT_EXERCISED' || fromMetrics === 'NOT_EXERCISED'
+        ? 'NOT_EXERCISED'
+        : 'PASS';
+
+  return {
+    ...result,
+    status,
+    metrics,
+    failures: [
+      ...result.failures,
+      ...metrics.filter((m) => m.status === 'FAIL').map((m) => `${m.id} ${m.name}: ${m.observed}`),
+    ],
+    not_exercised: [
+      ...result.not_exercised,
+      ...metrics
+        .filter((m) => m.status === 'NOT_EXERCISED')
+        .map((m) => `${m.id} ${m.name}: ${m.observed}`),
+    ],
+  };
+}
+
 export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
   const { db, runId } = options;
   const run = getRun(db, runId);
   if (!run) throw new Error(`unknown run: ${runId}`);
+
+  const metrics = computeMetrics({
+    db,
+    runId,
+    failureEvidenceRunId: options.failureEvidenceRunId ?? null,
+    reproducibilityRunId: options.reproducibilityRunId ?? null,
+    pendingArtifactNames: options.pendingArtifactNames ?? [],
+  });
 
   return {
     run_id: runId,
@@ -170,13 +180,21 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
       reproducibility_run_id: options.reproducibilityRunId ?? null,
     },
     gates: {
-      infrastructure_validated: gateInfrastructure(db, runId, options.pendingArtifactNames ?? []),
-      failure_attribution_validated: gateFailureAttribution(
-        db,
-        runId,
-        options.failureEvidenceRunId ?? null,
+      infrastructure_validated: withMetrics(
+        gateInfrastructure(db, runId, options.pendingArtifactNames ?? []),
+        metrics,
+        1,
       ),
-      baseline_reproducible: gateReproducible(db, runId, options.reproducibilityRunId ?? null),
+      failure_attribution_validated: withMetrics(
+        gateFailureAttribution(db, runId, options.failureEvidenceRunId ?? null),
+        metrics,
+        2,
+      ),
+      baseline_reproducible: withMetrics(
+        gateReproducible(db, runId, options.reproducibilityRunId ?? null),
+        metrics,
+        3,
+      ),
     },
     ready_for_controlled_behavioral_experiment: false,
   };
@@ -191,7 +209,7 @@ export function finalizeReport(report: AcceptanceReport): AcceptanceReport {
   };
 }
 
-function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): GateResult {
+function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): GateDraft {
   const evidence: string[] = [];
   const failures: string[] = [];
   const nextSteps: NextStep[] = [];
@@ -312,7 +330,7 @@ function gateFailureAttribution(
   db: Db,
   runId: string,
   evidenceRunId: string | null,
-): GateResult {
+): GateDraft {
   const evidence: string[] = [];
   const failures: string[] = [];
   const notExercised: string[] = [];
@@ -424,7 +442,7 @@ function gateFailureAttribution(
   };
 }
 
-function gateReproducible(db: Db, runId: string, rerunId: string | null): GateResult {
+function gateReproducible(db: Db, runId: string, rerunId: string | null): GateDraft {
   const evidence: string[] = [];
   const failures: string[] = [];
   const nextSteps: NextStep[] = [];

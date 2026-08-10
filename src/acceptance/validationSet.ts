@@ -11,6 +11,7 @@ import {
   type NextStep,
 } from './gates.js';
 import { runProvenance } from '../db/queries.js';
+import type { MetricResult } from './metrics.js';
 import type { CodeProvenance } from '../core/provenance.js';
 
 /**
@@ -57,6 +58,8 @@ export interface ValidationSetGate {
   failures: string[];
   not_exercised: string[];
   next_steps: NextStep[];
+  /** The numbered acceptance metrics this gate was composed from. */
+  metrics: MetricResult[];
 }
 
 export interface ValidationSet {
@@ -254,5 +257,6 @@ function gate(
     failures: result.failures,
     not_exercised: result.not_exercised ?? [],
     next_steps: result.next_steps ?? [],
+    metrics: result.metrics ?? [],
   };
 }

@@ -1,5 +1,6 @@
 /**
- * The eighteen Phase 0 acceptance metrics.
+ * The Phase 0 acceptance metrics: the specification's eighteen, and four strengthenings
+ * of them added at review (M19–M22, each declaring its parent in `STRENGTHENS`).
  *
  * The gate report has always carried prose evidence, which reads well and proves
  * little on its own: a reader cannot tell which sentence corresponds to which agreed
@@ -35,7 +36,11 @@ import {
 import { readEvents } from '../events/recorder.js';
 import { canonicalize, configHash } from '../config/hash.js';
 import { WORKSHOP_STATES, type ExperimentConfig } from '../config/schema.js';
-import { breakoutRecipients, publicRecipients } from '../orchestrator/visibility.js';
+import {
+  breakoutRecipients,
+  publicRecipients,
+  type StoredMessage,
+} from '../orchestrator/visibility.js';
 import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
 import { auditPrivacyLeaks } from './privacy.js';
 import type { GateStatus } from './gates.js';
@@ -43,7 +48,25 @@ import type { GateStatus } from './gates.js';
 export type MetricId =
   | 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'M7' | 'M8'
   | 'M9' | 'M10' | 'M11' | 'M12'
-  | 'M13' | 'M14' | 'M15' | 'M16' | 'M17' | 'M18';
+  | 'M13' | 'M14' | 'M15' | 'M16' | 'M17' | 'M18'
+  // Beyond the specification's eighteen. Each strengthens one of them from a one-way
+  // check into the two-way claim the reviewer actually wanted; see STRENGTHENS.
+  | 'M19' | 'M20' | 'M21' | 'M22';
+
+/**
+ * Which of the eighteen each additional metric strengthens, and why the original was
+ * not enough on its own. Recorded here so the extra numbers never read as scope creep.
+ */
+export const STRENGTHENS: Partial<Record<MetricId, string>> = {
+  M19: 'M4, which forbids an agent seeing what it should not. M19 also requires that it ' +
+    'saw everything it should have: an omission is invisible to a leak check.',
+  M20: 'M11, which proves a retry can be traced to its parent. M20 requires that the ' +
+    'retry did not also repeat the parent\'s effect.',
+  M21: 'M3, which counts deliveries against the config. M21 forbids the same message ' +
+    'being delivered to the same agent twice, which leaves the count correct.',
+  M22: 'M11, by requiring that every attempt, successful or not, is charged exactly ' +
+    'once. A retry that costs nothing would make budgets unenforceable.',
+};
 
 export type MetricGate = 1 | 2 | 3;
 
@@ -814,7 +837,265 @@ function m18(db: Db, run: RunRow, rerunId: string | null): MetricResult {
     status, observed, [...distinct].slice(0, 10));
 }
 
+// ------------------------------------------- strengthened checks (beyond the eighteen)
+
+/**
+ * Who may see a message, worked out from the configuration's group membership alone.
+ *
+ * Deliberately a second implementation rather than a call to `isVisibleTo`. That helper
+ * is what routing and context assembly both use, so asking it whether routing was right
+ * would be asking the same code to mark its own work. It also consults the message's
+ * recorded `actual_recipients`, which is the very field under suspicion. This reads the
+ * frozen config and nothing else.
+ */
+function authorisedToSee(config: ExperimentConfig, message: StoredMessage, agentId: string): boolean {
+  if (message.sender_agent_id === agentId) return true;
+  if (message.channel === 'public') return true;
+
+  const group = config.channels.private.breakout_groups.find((g) => g.id === message.breakout_group_id);
+  if (group?.members.includes(agentId)) return true;
+  if (agentId === config.moderator.id && config.channels.private.moderator_observes_private) return true;
+  return false;
+}
+
+function m19(db: Db, runId: string, config: ExperimentConfig): MetricResult {
+  const invocations = getInvocations(db, runId);
+  if (invocations.length === 0) {
+    return metric('M19', 1, 'Authorized-context equality',
+      'context_message_ids == authorized_visible_messages, exactly', 'NOT_EXERCISED',
+      'this run made no invocations, so no context was assembled');
+  }
+
+  const events = readEvents(db, runId);
+  const sequenceOfEvent = new Map(events.map((e) => [e.event_id, e.sequence]));
+
+  // The event log is the one total order over the run. Message and invocation tables
+  // each carry their own counter, so neither can say which came first.
+  const startedAt = new Map<string, number>();
+  for (const event of events) {
+    if (event.event_type !== 'agent_invocation_started') continue;
+    const id = (event.payload as { invocation_id?: unknown }).invocation_id;
+    if (typeof id === 'string') startedAt.set(id, event.sequence);
+  }
+
+  const messages = getMessages(db, runId);
+  const policy = config.context_policy;
+  const problems: string[] = [];
+  const refs: string[] = [];
+
+  for (const invocation of invocations) {
+    const cutoff = startedAt.get(invocation.invocation_id);
+    if (cutoff === undefined) {
+      problems.push(`${invocation.invocation_id}: no start event, so its context cannot be placed in time`);
+      refs.push(invocation.invocation_id);
+      continue;
+    }
+
+    const eligible = messages.filter((message) => {
+      const born = message.source_event_id ? sequenceOfEvent.get(message.source_event_id) : undefined;
+      if (born === undefined) return false;
+      if (born >= cutoff) return false; // Not yet said when this turn began.
+      if (!authorisedToSee(config, message, invocation.agent_id)) return false;
+      if (message.channel === 'public' && !policy.include_public_history) return false;
+      if (message.channel === 'private' && !policy.include_own_private) return false;
+      return true;
+    });
+
+    const ordered = [...eligible].sort((a, b) => a.sequence - b.sequence);
+    const expected = policy.max_messages === null ? ordered : ordered.slice(-policy.max_messages);
+    const expectedIds = new Set(expected.map((m) => m.message_id));
+    const actualIds = new Set(JSON.parse(invocation.context_message_ids) as string[]);
+
+    // Both directions. The first is a leak, which M4 also catches. The second is an
+    // omission, which no leak check can see: the agent answered without something it
+    // was entitled to, and the transcript looks perfectly normal afterwards.
+    const surplus = [...actualIds].filter((id) => !expectedIds.has(id));
+    const missing = [...expectedIds].filter((id) => !actualIds.has(id));
+
+    if (surplus.length > 0) {
+      problems.push(`${invocation.invocation_id}: saw ${surplus.length} message(s) it was not authorised to see`);
+      refs.push(invocation.invocation_id);
+    }
+    if (missing.length > 0) {
+      problems.push(
+        `${invocation.invocation_id}: was denied ${missing.length} message(s) it was authorised to see`,
+      );
+      refs.push(invocation.invocation_id);
+    }
+  }
+
+  const [status, observed] = zeroIsPass(
+    problems.length,
+    `every one of ${invocations.length} contexts held exactly the messages the frozen config ` +
+      'authorises at that point in the run — no omission and no surplus, re-derived from group ' +
+      'membership rather than from the recorded recipients',
+    () => problems.slice(0, 3).join('; '),
+  );
+  return metric('M19', 1, 'Authorized-context equality',
+    'context_message_ids == authorized_visible_messages, exactly', status, observed, refs.slice(0, 10));
+}
+
+function m20(db: Db, runId: string): MetricResult {
+  const opportunities = getOpportunities(db, runId);
+  const invocations = getInvocations(db, runId);
+  if (opportunities.length === 0) {
+    return metric('M20', 2, 'Retry action idempotency', 'duplicate_actions_per_opportunity = 0',
+      'NOT_EXERCISED', 'this run created no response opportunities');
+  }
+
+  const messages = getMessages(db, runId);
+  const byOpportunity = new Map<string, InvocationRow[]>();
+  for (const invocation of invocations) {
+    const list = byOpportunity.get(invocation.opportunity_id) ?? [];
+    list.push(invocation);
+    byOpportunity.set(invocation.opportunity_id, list);
+  }
+
+  const problems: string[] = [];
+  const refs: string[] = [];
+  let retried = 0;
+
+  for (const opportunity of opportunities) {
+    const attempts = byOpportunity.get(opportunity.opportunity_id) ?? [];
+    if (attempts.length > 1) retried += 1;
+
+    // One turn, at most one utterance, however many times the provider was asked.
+    const produced = attempts.filter((i) => i.output_message_id !== null);
+    if (produced.length > 1) {
+      problems.push(
+        `${opportunity.opportunity_id}: ${produced.length} attempts each produced a message`,
+      );
+      refs.push(opportunity.opportunity_id);
+    }
+
+    const fromThisTurn = messages.filter((m) =>
+      attempts.some((i) => i.invocation_id === m.source_invocation_id),
+    );
+    if (fromThisTurn.length > 1) {
+      problems.push(`${opportunity.opportunity_id}: ${fromThisTurn.length} messages attributed to one turn`);
+      refs.push(opportunity.opportunity_id);
+    }
+    // The turn's recorded outcome must name the message it actually produced.
+    if (opportunity.message_id && !fromThisTurn.some((m) => m.message_id === opportunity.message_id)) {
+      problems.push(`${opportunity.opportunity_id}: names a message no attempt of it produced`);
+      refs.push(opportunity.opportunity_id);
+    }
+  }
+
+  const status: GateStatus =
+    problems.length > 0 ? 'FAIL' : retried === 0 ? 'NOT_EXERCISED' : 'PASS';
+  const observed =
+    problems.length > 0
+      ? problems.slice(0, 3).join('; ')
+      : retried === 0
+        ? `no opportunity needed a second attempt in this run, so repetition under retry was ` +
+          'never put under load. No duplicate action was found, but none could have occurred.'
+        : `${retried} opportunities took more than one attempt, and each still produced at most ` +
+          'one message';
+
+  return metric('M20', 2, 'Retry action idempotency', 'duplicate_actions_per_opportunity = 0',
+    status, observed, refs.slice(0, 10));
+}
+
+function m21(db: Db, runId: string): MetricResult {
+  const deliveries = deriveDeliveries(db, runId);
+  if (deliveries.length === 0) {
+    return metric('M21', 1, 'Delivery uniqueness', 'duplicate_deliveries = 0', 'NOT_EXERCISED',
+      'nothing was delivered in this run');
+  }
+
+  const seen = new Map<string, number>();
+  for (const delivery of deliveries) {
+    const key = `${delivery.message_id}->${delivery.recipient_agent_id}`;
+    seen.set(key, (seen.get(key) ?? 0) + 1);
+  }
+  const duplicated = [...seen.entries()].filter(([, count]) => count > 1);
+
+  const [status, observed] = zeroIsPass(
+    duplicated.length,
+    `${deliveries.length} deliveries across ${seen.size} distinct message-recipient pairs: ` +
+      'no agent received the same message twice',
+    (n) => `${n} message-recipient pairs were delivered more than once`,
+  );
+  return metric('M21', 1, 'Delivery uniqueness', 'duplicate_deliveries = 0', status, observed,
+    duplicated.slice(0, 10).map(([key]) => key));
+}
+
+function m22(db: Db, runId: string): MetricResult {
+  const invocations = getInvocations(db, runId);
+  if (invocations.length === 0) {
+    return metric('M22', 2, 'Budget accounting under retry',
+      'every attempt charged exactly once', 'NOT_EXERCISED', 'this run made no invocations');
+  }
+
+  const byAgent = new Map<string, InvocationRow[]>();
+  for (const invocation of invocations) {
+    const list = byAgent.get(invocation.agent_id) ?? [];
+    list.push(invocation);
+    byAgent.set(invocation.agent_id, list);
+  }
+
+  const problems: string[] = [];
+  const refs: string[] = [];
+  let retriedAttempts = 0;
+
+  for (const [agentId, all] of byAgent) {
+    const ordered = [...all].sort((a, b) => a.sequence - b.sequence);
+    let tokens = 0;
+    ordered.forEach((invocation, index) => {
+      if (invocation.attempt > 1) retriedAttempts += 1;
+
+      // The watermark taken before each call must have advanced by exactly one call
+      // since the previous attempt. A retry charged nothing would leave it unchanged;
+      // a double charge would skip a number.
+      if (invocation.budget_calls_used_before !== index) {
+        problems.push(
+          `${agentId}: attempt ${index + 1} was recorded against ${invocation.budget_calls_used_before} ` +
+            `prior calls, expected ${index}`,
+        );
+        refs.push(invocation.invocation_id);
+      }
+      if (invocation.budget_tokens_used_before !== tokens) {
+        problems.push(
+          `${agentId}: attempt ${index + 1} was recorded against ${invocation.budget_tokens_used_before} ` +
+            `prior tokens, expected ${tokens}`,
+        );
+        refs.push(invocation.invocation_id);
+      }
+      tokens += (invocation.input_tokens ?? 0) + (invocation.output_tokens ?? 0);
+    });
+  }
+
+  const status: GateStatus =
+    problems.length > 0 ? 'FAIL' : retriedAttempts === 0 ? 'NOT_EXERCISED' : 'PASS';
+  const observed =
+    problems.length > 0
+      ? problems.slice(0, 3).join('; ')
+      : retriedAttempts === 0
+        ? `${invocations.length} attempts each charged exactly once, but no retry occurred, so ` +
+          'whether a failed attempt is also charged was never put under load.'
+        : `${invocations.length} attempts across ${byAgent.size} agents each charged exactly once, ` +
+          `including ${retriedAttempts} retried attempts: a failed attempt costs the same as a successful one`;
+
+  return metric('M22', 2, 'Budget accounting under retry', 'every attempt charged exactly once',
+    status, observed, refs.slice(0, 10));
+}
+
 // --------------------------------------------------------------------------- assembly
+
+/**
+ * For a claim that only a retrying run can demonstrate.
+ *
+ * The demonstration is read off the evidence run, because a clean baseline cannot show
+ * that a retry avoided repeating itself — it never retried. But these metrics also carry
+ * an invariant that holds everywhere (one message per turn; a monotone ledger), so a
+ * primary run that actually breaks it still fails, rather than being excused because the
+ * interesting run was elsewhere.
+ */
+function demonstratedOn(primary: MetricResult, evidence: MetricResult | null): MetricResult {
+  if (primary.status === 'FAIL') return primary;
+  return evidence ?? primary;
+}
 
 /** Keeps whichever of two readings of the same rule is less favourable. */
 function worse(primary: MetricResult, other: MetricResult | null): MetricResult {
@@ -861,6 +1142,13 @@ export function computeMetrics(input: MetricInput): MetricResult[] {
     m16(db, runId),
     m17(db, runId),
     m18(db, run, input.reproducibilityRunId ?? null),
+
+    // The strengthened checks. M20 and M22 are claims about retries, so like M9 and M11
+    // they are answered by the run that actually retried something.
+    m19(db, runId, config),
+    demonstratedOn(m20(db, runId), evidenceRunId === runId ? null : m20(db, evidenceRunId)),
+    m21(db, runId),
+    demonstratedOn(m22(db, runId), evidenceRunId === runId ? null : m22(db, evidenceRunId)),
   ];
 }
 

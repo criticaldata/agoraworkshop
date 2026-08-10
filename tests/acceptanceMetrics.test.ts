@@ -7,6 +7,7 @@ import {
   statusFromMetrics,
   metricsForGate,
   REQUIRED_INJECTED_FAULTS,
+  STRENGTHENS,
   type MetricId,
   type MetricResult,
 } from '../src/acceptance/metrics.js';
@@ -64,7 +65,7 @@ function measure(db: Db, runId: string, id: MetricId): MetricResult {
 }
 
 describe('acceptance metrics: shape', () => {
-  it('computes all eighteen, each assigned to the gate the specification puts it in', async () => {
+  it('computes the specification eighteen plus the four strengthened checks', async () => {
     const { db, runId } = await cleanRun();
     const metrics = computeMetrics({ db, runId });
 
@@ -72,9 +73,16 @@ describe('acceptance metrics: shape', () => {
       'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8',
       'M9', 'M10', 'M11', 'M12',
       'M13', 'M14', 'M15', 'M16', 'M17', 'M18',
+      'M19', 'M20', 'M21', 'M22',
     ]);
-    expect(metricsForGate(metrics, 1).map((m) => m.id)).toEqual(['M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8']);
-    expect(metricsForGate(metrics, 2).map((m) => m.id)).toEqual(['M9', 'M10', 'M11', 'M12']);
+    // The eighteen are exactly those that claim no parent metric; the four that do are
+    // additions, and the distinction is checkable rather than a matter of comment.
+    expect(metrics.filter((m) => !STRENGTHENS[m.id])).toHaveLength(18);
+
+    expect(metricsForGate(metrics, 1).map((m) => m.id)).toEqual([
+      'M1', 'M2', 'M3', 'M4', 'M5', 'M6', 'M7', 'M8', 'M19', 'M21',
+    ]);
+    expect(metricsForGate(metrics, 2).map((m) => m.id)).toEqual(['M9', 'M10', 'M11', 'M12', 'M20', 'M22']);
     expect(metricsForGate(metrics, 3).map((m) => m.id)).toEqual(['M13', 'M14', 'M15', 'M16', 'M17', 'M18']);
 
     // Every metric states the threshold it was measured against, so a reader never has
@@ -633,5 +641,286 @@ describe('metrics compose into gates without ever loosening them', () => {
     expect(find(gate.metrics, 'M9').status).toBe('PASS');
     expect(find(gate.metrics, 'M11').status).toBe('PASS');
     expect(find(gate.metrics, 'M12').status).toBe('PASS');
+  });
+});
+
+/**
+ * The two strengthened claims, checked directly rather than inferred from M4 and M11.
+ *
+ * Each is verified in both directions: that it holds on a real run, and that damaging
+ * exactly the thing it protects makes it fail. Where a weaker metric already existed,
+ * the test also shows what that weaker metric misses.
+ */
+
+describe('M19 authorized-context equality', () => {
+  it('holds on a real run, re-derived from the config rather than the router', async () => {
+    const { db, runId } = await cleanRun();
+    const metric = measure(db, runId, 'M19');
+    expect(metric.status).toBe('PASS');
+    expect(metric.observed).toContain('no omission and no surplus');
+  });
+
+  it('fails on an omission that a leak check cannot see', async () => {
+    const { db, runId } = await cleanRun();
+
+    // Find a context holding more than one message and quietly remove one. Nothing
+    // unauthorised has been added, so no leak exists and nothing looks wrong.
+    const target = db
+      .prepare(
+        `SELECT invocation_id, context_message_ids, context_public_ids, context_private_ids
+         FROM invocations WHERE run_id = ? AND json_array_length(context_message_ids) > 1 LIMIT 1`,
+      )
+      .get(runId) as {
+      invocation_id: string;
+      context_message_ids: string;
+      context_public_ids: string;
+      context_private_ids: string;
+    };
+
+    const all = JSON.parse(target.context_message_ids) as string[];
+    const dropped = all[0]!;
+    const keep = (list: string) =>
+      JSON.stringify((JSON.parse(list) as string[]).filter((id) => id !== dropped));
+
+    db.prepare(
+      `UPDATE invocations SET context_message_ids = ?, context_public_ids = ?,
+       context_private_ids = ? WHERE invocation_id = ?`,
+    ).run(
+      JSON.stringify(all.filter((id) => id !== dropped)),
+      keep(target.context_public_ids),
+      keep(target.context_private_ids),
+      target.invocation_id,
+    );
+
+    const equality = measure(db, runId, 'M19');
+    expect(equality.status).toBe('FAIL');
+    expect(equality.observed).toContain('was denied');
+
+    // This is the gap the strengthening closes. The agent answered without something it
+    // was entitled to, and the privacy metric is entirely satisfied.
+    expect(measure(db, runId, 'M4').status).toBe('PASS');
+  });
+
+  it('fails on a surplus message the config never authorised', async () => {
+    const { db, runId } = await cleanRun();
+
+    const priv = db
+      .prepare(
+        `SELECT message_id FROM messages WHERE run_id = ? AND channel = 'private'
+         AND breakout_group_id = 'breakout_a' LIMIT 1`,
+      )
+      .get(runId) as { message_id: string };
+
+    // agent_5 is in breakout_b, so a breakout_a message is not its to see.
+    const outsider = db
+      .prepare(`SELECT invocation_id, context_message_ids, context_private_ids FROM invocations
+                WHERE run_id = ? AND agent_id = 'agent_5' LIMIT 1`)
+      .get(runId) as { invocation_id: string; context_message_ids: string; context_private_ids: string };
+
+    const withExtra = (list: string) =>
+      JSON.stringify([...(JSON.parse(list) as string[]), priv.message_id]);
+
+    db.prepare(
+      `UPDATE invocations SET context_message_ids = ?, context_private_ids = ? WHERE invocation_id = ?`,
+    ).run(withExtra(outsider.context_message_ids), withExtra(outsider.context_private_ids), outsider.invocation_id);
+
+    const equality = measure(db, runId, 'M19');
+    expect(equality.status).toBe('FAIL');
+    expect(equality.observed).toContain('not authorised');
+  });
+
+  it('does not consult the recipients the router recorded', async () => {
+    const { db, runId } = await cleanRun();
+
+    // Corrupting the router's own record of who received a private message must not
+    // change the verdict: authority comes from the frozen config's group membership.
+    db.prepare(
+      `UPDATE messages SET actual_recipients = '["agent_5"]', intended_recipients = '["agent_5"]'
+       WHERE run_id = ? AND channel = 'private'`,
+    ).run(runId);
+
+    expect(measure(db, runId, 'M19').status).toBe('PASS');
+  });
+});
+
+describe('M20 retry action idempotency', () => {
+  it('is unproven on a run where nothing was ever retried', async () => {
+    const { db, runId } = await cleanRun();
+    const metric = measure(db, runId, 'M20');
+    expect(metric.status).toBe('NOT_EXERCISED');
+    expect(metric.observed).toContain('never put under load');
+  });
+
+  it('passes on a run where turns were retried and still spoke once', async () => {
+    const { db, runId } = await faultRun();
+    const metric = measure(db, runId, 'M20');
+    expect(metric.status).toBe('PASS');
+    expect(metric.observed).toContain('at most one message');
+  });
+
+  it('fails when two attempts at one turn both produced a message', async () => {
+    const { db, runId } = await faultRun();
+
+    // A retry that repeats the parent's effect: the failed first attempt is made to
+    // claim the message the successful second attempt produced.
+    const pair = db
+      .prepare(
+        `SELECT a.invocation_id AS failed, b.output_message_id AS msg
+         FROM invocations a JOIN invocations b ON a.opportunity_id = b.opportunity_id
+         WHERE a.run_id = ? AND a.attempt < b.attempt AND b.output_message_id IS NOT NULL LIMIT 1`,
+      )
+      .get(runId) as { failed: string; msg: string };
+
+    db.prepare(`UPDATE invocations SET output_message_id = ? WHERE invocation_id = ?`).run(
+      pair.msg,
+      pair.failed,
+    );
+
+    const metric = measure(db, runId, 'M20');
+    expect(metric.status).toBe('FAIL');
+    expect(metric.observed).toContain('each produced a message');
+  });
+
+  it('fails when one turn is credited with two messages', async () => {
+    const { db, runId } = await faultRun();
+    const source = db
+      .prepare(`SELECT source_invocation_id FROM messages WHERE run_id = ?
+                AND source_invocation_id IS NOT NULL LIMIT 1`)
+      .get(runId) as { source_invocation_id: string };
+
+    db.prepare(
+      `UPDATE messages SET source_invocation_id = ? WHERE message_id = (
+         SELECT message_id FROM messages WHERE run_id = ? AND source_invocation_id != ? LIMIT 1)`,
+    ).run(source.source_invocation_id, runId, source.source_invocation_id);
+
+    const metric = measure(db, runId, 'M20');
+    expect(metric.status).toBe('FAIL');
+    expect(metric.observed).toContain('messages attributed to one turn');
+  });
+});
+
+describe('M21 delivery uniqueness', () => {
+  it('fails when the same message is delivered to the same agent twice', async () => {
+    const { db, runId } = await cleanRun();
+    expect(measure(db, runId, 'M21').status).toBe('PASS');
+
+    const original = db
+      .prepare(`SELECT * FROM events WHERE run_id = ? AND event_type = 'message_delivered' LIMIT 1`)
+      .get(runId) as Record<string, unknown>;
+    const next = db.prepare(`SELECT MAX(sequence) AS s FROM events WHERE run_id = ?`).get(runId) as {
+      s: number;
+    };
+
+    db.prepare(
+      `INSERT INTO events (event_id, run_id, experiment_id, config_hash, sequence, timestamp,
+        elapsed_ms, event_type, workshop_state, agent_id, channel, parent_event_id,
+        causal_event_ids, payload)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    ).run(
+      'evt_duplicate_delivery',
+      runId,
+      original['experiment_id'],
+      original['config_hash'],
+      next.s + 1,
+      original['timestamp'],
+      original['elapsed_ms'],
+      'message_delivered',
+      original['workshop_state'],
+      original['agent_id'],
+      original['channel'],
+      original['parent_event_id'],
+      original['causal_event_ids'],
+      original['payload'],
+    );
+
+    const metric = measure(db, runId, 'M21');
+    expect(metric.status).toBe('FAIL');
+    expect(metric.observed).toContain('delivered more than once');
+  });
+});
+
+describe('M22 budget accounting under retry', () => {
+  it('is unproven when no attempt ever failed', async () => {
+    const { db, runId } = await cleanRun();
+    const metric = measure(db, runId, 'M22');
+    expect(metric.status).toBe('NOT_EXERCISED');
+    expect(metric.observed).toContain('never put under load');
+  });
+
+  it('confirms a failed attempt costs the same as a successful one', async () => {
+    const { db, runId } = await faultRun();
+    const metric = measure(db, runId, 'M22');
+    expect(metric.status).toBe('PASS');
+    expect(metric.observed).toContain('retried attempts');
+
+    // Stated independently of the metric: every attempt on record advanced the ledger,
+    // so the number of attempts an agent made equals the calls it was charged for.
+    const rows = db
+      .prepare(
+        `SELECT agent_id, COUNT(*) AS attempts, MAX(budget_calls_used_before) AS last_watermark
+         FROM invocations WHERE run_id = ? GROUP BY agent_id`,
+      )
+      .all(runId) as Array<{ agent_id: string; attempts: number; last_watermark: number }>;
+    for (const row of rows) expect(row.last_watermark).toBe(row.attempts - 1);
+  });
+
+  it('fails when a retry was not charged', async () => {
+    const { db, runId } = await faultRun();
+
+    // Make one retry free: it reuses the watermark its parent attempt was charged at.
+    const retry = db
+      .prepare(
+        `SELECT invocation_id, budget_calls_used_before FROM invocations
+         WHERE run_id = ? AND attempt > 1 ORDER BY sequence LIMIT 1`,
+      )
+      .get(runId) as { invocation_id: string; budget_calls_used_before: number };
+
+    db.prepare(`UPDATE invocations SET budget_calls_used_before = ? WHERE invocation_id = ?`).run(
+      retry.budget_calls_used_before - 1,
+      retry.invocation_id,
+    );
+
+    const metric = measure(db, runId, 'M22');
+    expect(metric.status).toBe('FAIL');
+    expect(metric.observed).toContain('prior calls, expected');
+  });
+
+  it('fails when an attempt is charged twice', async () => {
+    const { db, runId } = await faultRun();
+    const row = db
+      .prepare(`SELECT invocation_id, budget_calls_used_before FROM invocations
+                WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`)
+      .get(runId) as { invocation_id: string; budget_calls_used_before: number };
+
+    db.prepare(`UPDATE invocations SET budget_calls_used_before = ? WHERE invocation_id = ?`).run(
+      row.budget_calls_used_before + 1,
+      row.invocation_id,
+    );
+
+    expect(measure(db, runId, 'M22').status).toBe('FAIL');
+  });
+
+  it('fails when the token watermark does not match what earlier attempts used', async () => {
+    const { db, runId } = await faultRun();
+    const row = db
+      .prepare(`SELECT invocation_id FROM invocations WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`)
+      .get(runId) as { invocation_id: string };
+
+    db.prepare(`UPDATE invocations SET budget_tokens_used_before = 999999 WHERE invocation_id = ?`)
+      .run(row.invocation_id);
+
+    const metric = measure(db, runId, 'M22');
+    expect(metric.status).toBe('FAIL');
+    expect(metric.observed).toContain('prior tokens, expected');
+  });
+});
+
+describe('the strengthened metrics are accounted for', () => {
+  it('records which of the eighteen each one strengthens', () => {
+    for (const id of ['M19', 'M20', 'M21', 'M22'] as const) {
+      expect(STRENGTHENS[id]).toBeTruthy();
+    }
+    // The original eighteen stand on the specification alone and claim no parent.
+    expect(STRENGTHENS['M4']).toBeUndefined();
   });
 });

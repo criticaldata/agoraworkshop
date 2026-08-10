@@ -212,6 +212,32 @@ Every metric is tested twice — once on a run that satisfies it, and once on th
 after one stored record has been damaged. A check that cannot be made to fail is not
 evidence (`tests/acceptanceMetrics.test.ts`).
 
+#### Four strengthenings
+
+Four further metrics were added at review, each because the specification's version is a
+one-way check where the property wanted is two-way. Each declares its parent in
+`STRENGTHENS`, so the additions never read as scope creep.
+
+| Metric | Threshold | Strengthens |
+| --- | --- | --- |
+| **M19** Authorized-context equality | `context_message_ids == authorized_visible_messages`, exactly | M4. A leak check forbids seeing too much; M19 also forbids seeing too little. |
+| **M20** Retry action idempotency | `duplicate_actions_per_opportunity = 0` | M11. A traceable retry may still have repeated its parent's effect. |
+| **M21** Delivery uniqueness | `duplicate_deliveries = 0` | M3. Delivering the same message twice leaves the count correct. |
+| **M22** Budget accounting under retry | every attempt charged exactly once | M11. A retry that costs nothing makes budgets unenforceable. |
+
+M19 is the one that changes what is provable. An omission — an agent denied a message it
+was entitled to — produces no leak, no error, and a transcript that reads normally, so
+M4 passes on it. M19 re-derives each context from the frozen config's group membership,
+deliberately as a second implementation that never calls `isVisibleTo` and never reads
+`actual_recipients`, and requires set equality in both directions. The test suite proves
+the gap directly: it removes one authorized message from a stored context and asserts
+that M19 fails **while M4 still passes**.
+
+M20 and M22 are claims only a retrying run can demonstrate, so they are read off the
+fault-injection run like M9 and M11 — but a primary run that genuinely breaks the
+invariant still fails, rather than being excused because the interesting run was
+elsewhere.
+
 The full table appears on `/runs/:id/validation` under **Technical details**. The default
 view answers the four Phase 0 questions instead; the thresholds are for an auditor.
 

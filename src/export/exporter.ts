@@ -5,6 +5,9 @@ import { stringify as toYaml } from 'yaml';
 import type { Db } from '../db/index.js';
 import {
   getInvocations,
+  getContextSummaries,
+  getToolCalls,
+  getCheckpoints,
   getMessages,
   getOpportunities,
   getRun,
@@ -60,6 +63,9 @@ export function exportRun(options: ExportOptions): ExportResult {
   const invocations = getInvocations(db, runId);
   const opportunities = getOpportunities(db, runId);
   const transitions = getTransitions(db, runId);
+  const summaries = getContextSummaries(db, runId);
+  const toolCalls = getToolCalls(db, runId);
+  const checkpoints = getCheckpoints(db, runId);
   const analytics = computeAnalytics(db, runId);
   const leaks = auditPrivacyLeaks(db, runId);
 
@@ -162,6 +168,17 @@ export function exportRun(options: ExportOptions): ExportResult {
       )
       .join('\n')}\n`,
   );
+  write('summaries.jsonl', 'provenance', `${summaries.map((row) => JSON.stringify({ ...row, source_message_ids: JSON.parse(row.source_message_ids) })).join('\n')}\n`);
+  write('tool_calls.jsonl', 'provenance', `${toolCalls.map((row) => JSON.stringify({ ...row, input: JSON.parse(row.input_json), result: row.result_json ? JSON.parse(row.result_json) : null })).join('\n')}\n`);
+  write('checkpoints.jsonl', 'provenance', `${checkpoints.map((row) => JSON.stringify({ ...row, state: JSON.parse(row.state_json) })).join('\n')}\n`);
+  const traceIndex = opportunities.map((opportunity) => ({
+    trace_id: opportunity.trace_id,
+    opportunity_id: opportunity.opportunity_id,
+    invocation_ids: invocations.filter((row) => row.opportunity_id === opportunity.opportunity_id).map((row) => row.invocation_id),
+    message_id: opportunity.message_id,
+    tool_call_ids: toolCalls.filter((row) => row.opportunity_id === opportunity.opportunity_id).map((row) => row.tool_call_id),
+  }));
+  write('trace_index.jsonl', 'provenance', `${traceIndex.map((row) => JSON.stringify(row)).join('\n')}\n`);
 
   write(
     'opportunities.jsonl',

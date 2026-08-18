@@ -30,6 +30,7 @@ export interface RunRow {
 export interface OpportunityRow {
   opportunity_id: string;
   run_id: string;
+  trace_id: string | null;
   sequence: number;
   agent_id: string;
   workshop_state: string;
@@ -49,6 +50,7 @@ export interface InvocationRow {
   invocation_id: string;
   run_id: string;
   opportunity_id: string;
+  trace_id: string | null;
   sequence: number;
   agent_id: string;
   workshop_state: string;

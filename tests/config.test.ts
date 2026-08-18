@@ -196,13 +196,13 @@ describe('config validation', () => {
     ).toThrow(/live canary.*mock/i);
   });
 
-  it('does not silently substitute a provider for the context-contract mock', () => {
+  it('selects the explicit context-contract mock instead of substituting another provider', () => {
     const config = freezeConfig(
       baseConfigObject({
         model: { ...(baseConfigObject().model as object), provider: 'mock_context_contract' },
       }),
     ).config;
-    expect(() => buildProvider(config)).toThrow(/not available/);
+    expect(buildProvider(config).provider.name).toBe('mock_context_contract');
   });
 
   it('rejects a moderator id that collides with a participant', () => {

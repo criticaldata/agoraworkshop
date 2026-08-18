@@ -8,7 +8,7 @@ import {
   type InfrastructureFailure,
   type OpportunityResolution,
 } from '../events/types.js';
-import { newInvocationId, newMessageId, newOpportunityId, newRunId, nowIso } from '../core/ids.js';
+import { newInvocationId, newMessageId, newOpportunityId, newRunId, newTraceId, nowIso } from '../core/ids.js';
 import { codeProvenance, type CodeProvenance } from '../core/provenance.js';
 import { ABSTAIN_TOKEN, PASS_TOKEN } from '../prompts/registry.js';
 import { assembleContext } from './context.js';
@@ -96,6 +96,8 @@ export class WorkshopRunner {
   private deadlineHit = false;
   private cancelRequested = false;
   private readonly occurrences = new Map<string, number>();
+  /** Scoped to one response opportunity and automatically attached to its events. */
+  private activeTraceId: string | null = null;
 
   constructor(options: ExecuteRunOptions) {
     this.db = options.db;
@@ -358,19 +360,30 @@ export class WorkshopRunner {
   // ----------------------------------------------------------------- turns
 
   private async takeTurn(spec: TurnSpec): Promise<void> {
+    const traceId = newTraceId();
+    this.activeTraceId = traceId;
+    try {
+      await this.takeTurnWithTrace(spec, traceId);
+    } finally {
+      this.activeTraceId = null;
+    }
+  }
+
+  private async takeTurnWithTrace(spec: TurnSpec, traceId: string): Promise<void> {
     const opportunityId = newOpportunityId();
     this.opportunitySequence += 1;
     const createdAt = nowIso();
 
     this.db
       .prepare(
-        `INSERT INTO opportunities (opportunity_id, run_id, sequence, agent_id, workshop_state,
+        `INSERT INTO opportunities (opportunity_id, run_id, trace_id, sequence, agent_id, workshop_state,
            channel, breakout_group_id, round_index, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
       )
       .run(
         opportunityId,
         this.runId,
+        traceId,
         this.opportunitySequence,
         spec.agentId,
         spec.state,
@@ -385,6 +398,7 @@ export class WorkshopRunner {
       channel: spec.channel,
       payload: {
         opportunity_id: opportunityId,
+        trace_id: traceId,
         round_index: spec.roundIndex,
         breakout_group_id: spec.breakoutGroupId ?? null,
       },
@@ -437,9 +451,14 @@ export class WorkshopRunner {
         included_message_ids: context.includedMessageIds,
         public_message_ids: context.publicMessageIds,
         private_message_ids: context.privateMessageIds,
+        summary_ids: context.summaryRecords.map((summary) => summary.summary_id),
+        summary_source_message_ids: context.summaryRecords.flatMap(
+          (summary) => summary.source_message_ids,
+        ),
         included_count: context.includedMessageIds.length,
       },
     });
+    this.persistSummaries(context, opportunityId);
 
     const occurrenceKey = `${spec.agentId}::${spec.state}`;
     const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
@@ -471,6 +490,11 @@ export class WorkshopRunner {
         messages: context.renderedMessages,
         model: this.config.model,
         timeoutMs: this.config.runtime.timeout_seconds * 1000,
+        traceId: this.activeTraceId ?? undefined,
+        configHash: this.frozen.hash,
+        contextMessageIds: context.includedMessageIds,
+        summaryIds: context.summaryRecords.map((summary) => summary.summary_id),
+        capabilityManifest: this.config.capabilities.manifest,
         workshopState: spec.state,
       });
 
@@ -772,14 +796,15 @@ export class WorkshopRunner {
 
     this.db
       .prepare(
-        `INSERT INTO messages (message_id, run_id, sequence, channel, breakout_group_id,
+        `INSERT INTO messages (message_id, run_id, trace_id, sequence, channel, breakout_group_id,
            sender_agent_id, intended_recipients, actual_recipients, workshop_state, created_at,
            content, source_invocation_id, source_event_id, artifact_refs)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]')`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]')`,
       )
       .run(
         messageId,
         this.runId,
+        this.activeTraceId,
         message.sequence,
         message.channel,
         message.breakout_group_id,
@@ -826,6 +851,36 @@ export class WorkshopRunner {
 
   // ------------------------------------------------------------ persistence
 
+  private persistSummaries(
+    context: ReturnType<typeof assembleContext>,
+    opportunityId: string,
+  ): void {
+    for (const summary of context.summaryRecords) {
+      this.db
+        .prepare(
+          `INSERT INTO context_summaries (summary_id, run_id, trace_id, opportunity_id, agent_id,
+             scope, summarizer_version, source_message_ids, source_hash, content, content_hash,
+             fidelity_hash, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          summary.summary_id,
+          this.runId,
+          this.activeTraceId,
+          opportunityId,
+          summary.agent_id,
+          summary.scope,
+          summary.summarizer_version,
+          JSON.stringify(summary.source_message_ids),
+          summary.source_hash,
+          summary.content,
+          summary.content_hash,
+          summary.fidelity_hash,
+          nowIso(),
+        );
+    }
+  }
+
   private writeInvocation(input: {
     invocationId: string;
     opportunityId: string;
@@ -842,20 +897,21 @@ export class WorkshopRunner {
     const { spec, result, context } = input;
     this.db
       .prepare(
-        `INSERT INTO invocations (invocation_id, run_id, opportunity_id, sequence, agent_id,
+        `INSERT INTO invocations (invocation_id, run_id, opportunity_id, trace_id, sequence, agent_id,
            workshop_state, channel, attempt, provider, requested_model, responded_model,
            generation_params, prompt_version, system_prompt, rendered_messages,
            context_message_ids, context_public_ids, context_private_ids, context_policy_version,
            capability_manifest, budget_calls_used_before, budget_tokens_used_before,
            request_ts, response_ts, latency_ms, outcome, failure_category, error_message,
            finish_reason, input_tokens, output_tokens, output_message_id, raw_metadata)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  ?, ?, ?, ?, ?)`,
       )
       .run(
         input.invocationId,
         this.runId,
         input.opportunityId,
+        this.activeTraceId,
         this.invocationSequence,
         spec.agentId,
         spec.state,
@@ -989,10 +1045,15 @@ export class WorkshopRunner {
     type: Parameters<EventRecorder['record']>[0]['event_type'],
     input: Omit<Parameters<EventRecorder['record']>[0], 'event_type' | 'workshop_state'>,
   ): AgoraEvent {
+    const traceId = input.trace_id ?? this.activeTraceId;
     const event = this.recorder.record({
       ...input,
+      trace_id: traceId,
       event_type: type,
       workshop_state: this.state,
+      payload: traceId
+        ? { ...(input.payload ?? {}), trace_id: input.payload?.['trace_id'] ?? traceId }
+        : input.payload,
     });
     this.onEvent?.(event);
     return event;

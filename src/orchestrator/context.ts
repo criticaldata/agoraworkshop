@@ -7,6 +7,7 @@ import {
   turnInstruction,
   type TurnInstructionInput,
 } from '../prompts/registry.js';
+import { buildContextSummaries, type ContextSummaryRecord } from './summaries.js';
 
 export interface AssembledContext {
   systemPrompt: string;
@@ -16,6 +17,7 @@ export interface AssembledContext {
   includedMessageIds: string[];
   publicMessageIds: string[];
   privateMessageIds: string[];
+  summaryRecords: ContextSummaryRecord[];
   turnInstruction: string;
 }
 
@@ -72,6 +74,12 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
     breakoutMembers: input.breakoutMembers,
   };
   const instruction = turnInstruction(instructionInput);
+  const summaryRecords = buildContextSummaries({
+    config,
+    agentId,
+    messages: ordered,
+    render: (message) => renderMessage(config, message),
+  });
 
   const transcript =
     trimmed.length === 0
@@ -87,6 +95,9 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
       content: [
         `WORKSHOP PHASE: ${state}`,
         ``,
+        ...(summaryRecords.length > 0
+          ? ['CONTEXT SUMMARIES (scope-separated):', ...summaryRecords.map((summary) => summary.content), '']
+          : []),
         `TRANSCRIPT SO FAR (oldest first):`,
         transcript,
         ``,
@@ -103,6 +114,7 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
     includedMessageIds: trimmed.map((m) => m.message_id),
     publicMessageIds: trimmed.filter((m) => m.channel === 'public').map((m) => m.message_id),
     privateMessageIds: trimmed.filter((m) => m.channel === 'private').map((m) => m.message_id),
+    summaryRecords,
     turnInstruction: instruction,
   };
 }

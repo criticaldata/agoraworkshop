@@ -124,6 +124,7 @@ export interface AgoraEvent {
   workshop_state: string;
   agent_id: string | null;
   channel: string | null;
+  trace_id: string | null;
   parent_event_id: string | null;
   causal_event_ids: string[];
   payload: Record<string, unknown>;

@@ -2,6 +2,7 @@ import type { ExperimentConfig } from '../config/schema.js';
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAIProvider } from './openai.js';
 import { MockProvider } from './mock.js';
+import { MockContextContractProvider } from './mockContextContract.js';
 import { FaultInjectingProvider } from './faultInjection.js';
 import type { AgentProvider } from './types.js';
 
@@ -14,7 +15,7 @@ function baseProvider(config: ExperimentConfig): AgentProvider {
     case 'mock':
       return new MockProvider();
     case 'mock_context_contract':
-      throw new Error('mock_context_contract is not available until the Phase 0.1 provider is installed');
+      return new MockContextContractProvider();
   }
 }
 

@@ -1,11 +1,33 @@
 import { describe, expect, it } from 'vitest';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
-import { getInvocations, getMessages, getRun, runConfig } from '../src/db/queries.js';
+import { getInvocations, getMessages, getOpportunities, getRun, runConfig } from '../src/db/queries.js';
 import { readEvents } from '../src/events/recorder.js';
 import { assembleContext } from '../src/orchestrator/context.js';
 import { frozen, tempDb } from './helpers.js';
 
 describe('context provenance', () => {
+  it('propagates one immutable trace id from opportunity through invocation and message events', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({ db, frozen: frozen() });
+    await runner.execute();
+
+    const opportunities = getOpportunities(db, runner.id) as Array<{ opportunity_id: string; trace_id: string }>;
+    const invocations = getInvocations(db, runner.id) as Array<{ opportunity_id: string; trace_id: string }>;
+    const events = readEvents(db, runner.id);
+
+    expect(opportunities.length).toBeGreaterThan(0);
+    for (const opportunity of opportunities) {
+      expect(opportunity.trace_id).toMatch(/^trace_/);
+      expect(invocations.filter((invocation) => invocation.opportunity_id === opportunity.opportunity_id)
+        .every((invocation) => invocation.trace_id === opportunity.trace_id)).toBe(true);
+      const opportunityEvents = events.filter(
+        (event) => event.payload['opportunity_id'] === opportunity.opportunity_id,
+      );
+      expect(opportunityEvents.length).toBeGreaterThan(0);
+      expect(opportunityEvents.every((event) => event.payload['trace_id'] === opportunity.trace_id)).toBe(true);
+    }
+  });
+
   it('records the exact source message ids for every invocation', async () => {
     const db = tempDb();
     const runner = new WorkshopRunner({ db, frozen: frozen() });

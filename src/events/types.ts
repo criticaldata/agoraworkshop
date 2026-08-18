@@ -10,6 +10,7 @@ export const EVENT_TYPES = [
   'run_failed',
   'run_cancelled',
   'run_interrupted',
+  'run_resumed',
 
   'state_transition_started',
   'state_transition_completed',

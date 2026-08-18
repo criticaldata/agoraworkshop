@@ -19,6 +19,7 @@ const USAGE = `agora — AGORA WORKSHOP Phase 0 research instrument
 Usage:
   agora run --config <path>                      Launch a workshop from a frozen config
   agora rerun <run_id>                           Re-launch the same frozen config as a new run
+  agora resume <run_id>                          Continue a recovery-enabled interrupted run
   agora replay <run_id>                          Print the chronological event timeline
   agora export <run_id> [options]                Write the full artifact bundle to disk
   agora accept <run_id> [options]                Evaluate the three Phase 0 gates
@@ -114,6 +115,18 @@ async function main(): Promise<number> {
       });
       exportOnCompletion(db, result.runId, result.status, console.error);
       console.log(JSON.stringify({ ...result, sourceRunId }, null, 2));
+      return result.status === 'COMPLETED' ? 0 : 1;
+    }
+
+    case 'resume': {
+      const runId = positional[0];
+      if (!runId) { console.error('resume requires a run id'); return 2; }
+      const source = getRun(db, runId);
+      if (!source) { console.error(`unknown run: ${runId}`); return 2; }
+      const frozen = freezeConfig(JSON.parse(source.config_json), source.config_source_path);
+      const result = await executeRun({ db, frozen, resumeRunId: runId, provenance: codeProvenance() });
+      exportOnCompletion(db, result.runId, result.status, console.error);
+      console.log(JSON.stringify(result, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;
     }
 

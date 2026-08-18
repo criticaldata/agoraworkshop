@@ -27,7 +27,8 @@ export class EventRecorder {
     private readonly experimentId: string,
     private readonly configHash: string,
     private readonly startedAtMs: number,
-  ) {}
+    initialSequence = 0,
+  ) { this.sequence = initialSequence; }
 
   get lastSequence(): number {
     return this.sequence;

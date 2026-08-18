@@ -29,6 +29,7 @@ import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 import { ToolGateway } from '../tools/gateway.js';
+import { getMessages, getOpportunities, getRun } from '../db/queries.js';
 
 export type TerminationReason =
   | 'completed'
@@ -50,6 +51,7 @@ export interface ExecuteRunOptions {
   db: Db;
   frozen: FrozenConfig;
   runId?: string;
+  resumeRunId?: string;
   sourceRunId?: string | null;
   /** Which code produced this run. Defaults to reading the environment. */
   provenance?: CodeProvenance;
@@ -101,16 +103,31 @@ export class WorkshopRunner {
   private toolCallSequence = 0;
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
+  private resumeSkipCount = 0;
+  private readonly resuming: boolean;
 
   constructor(options: ExecuteRunOptions) {
     this.db = options.db;
     this.frozen = options.frozen;
     this.config = options.frozen.config;
-    this.runId = options.runId ?? newRunId();
+    this.runId = options.resumeRunId ?? options.runId ?? newRunId();
+    this.resuming = options.resumeRunId !== undefined;
     this.onEvent = options.onEvent;
     this.startedAtMs = Date.now();
     this.deadlineMs = this.startedAtMs + this.config.workshop.max_duration_seconds * 1000;
     this.budgets = new BudgetLedger(this.config);
+    if (this.resuming) {
+      const existing = getRun(this.db, this.runId);
+      if (!existing || existing.status !== 'INTERRUPTED' || !this.config.recovery?.enabled) {
+        throw new Error('resume requires an INTERRUPTED run with recovery.enabled=true');
+      }
+      this.history = getMessages(this.db, this.runId);
+      this.messageSequence = this.history.at(-1)?.sequence ?? 0;
+      const opportunities = getOpportunities(this.db, this.runId);
+      this.opportunitySequence = opportunities.length;
+      this.resumeSkipCount = opportunities.filter((row) => row.resolution !== null).length;
+      this.invocationSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM invocations WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
+    }
 
     if (options.provider) {
       this.provider = options.provider;
@@ -127,7 +144,7 @@ export class WorkshopRunner {
     this.provenance = options.provenance ?? codeProvenance();
     const provenance = this.provenance;
 
-    this.db
+    if (!this.resuming) this.db
       .prepare(
         `INSERT INTO runs (run_id, experiment_id, config_hash, config_json, config_canonical,
            config_source_path, source_run_id, status, provider, model, code_commit_sha,
@@ -152,12 +169,16 @@ export class WorkshopRunner {
         nowIso(),
       );
 
+    const previousEventSequence = this.resuming
+      ? (this.db.prepare('SELECT MAX(sequence) AS n FROM events WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0
+      : 0;
     this.recorder = new EventRecorder(
       this.db,
       this.runId,
       this.config.experiment_id,
       this.frozen.hash,
       this.startedAtMs,
+      previousEventSequence,
     );
   }
 
@@ -181,6 +202,10 @@ export class WorkshopRunner {
   }
 
   async execute(): Promise<RunResult> {
+    if (this.resuming) {
+      this.db.prepare(`UPDATE runs SET status = 'RUNNING', termination_reason = NULL, failure_reason = NULL, ended_at = NULL WHERE run_id = ?`).run(this.runId);
+      this.emit('run_resumed', { payload: { skipped_resolved_opportunities: this.resumeSkipCount } });
+    }
     this.emit('run_created', {
       payload: {
         config_hash: this.frozen.hash,
@@ -363,6 +388,7 @@ export class WorkshopRunner {
   // ----------------------------------------------------------------- turns
 
   private async takeTurn(spec: TurnSpec): Promise<void> {
+    if (this.resumeSkipCount > 0) { this.resumeSkipCount -= 1; return; }
     const traceId = newTraceId();
     this.activeTraceId = traceId;
     try {

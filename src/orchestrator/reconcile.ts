@@ -43,7 +43,8 @@ export function reconcileInterruptedRuns(db: Db, at = nowIso()): ReconcileResult
     for (const run of stale) {
       const dangling = getOpportunities(db, run.run_id).filter((o) => o.resolution === null);
 
-      for (const opportunity of dangling) {
+      const recoveryEnabled = (() => { try { return JSON.parse(run.config_json).recovery?.enabled === true; } catch { return false; } })();
+      for (const opportunity of recoveryEnabled ? [] : dangling) {
         // An interrupted turn is an infrastructure failure, never an abstention. The
         // agent was never given the chance to stay silent, so silence here says
         // nothing about its behaviour.

@@ -23,6 +23,7 @@ import { displayName } from '../config/schema.js';
 import { nowIso } from '../core/ids.js';
 import { runProvenance } from '../db/queries.js';
 import { REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
+import { evaluatePhase01 } from '../acceptance/phase01.js';
 
 
 export interface ExportOptions {
@@ -254,6 +255,7 @@ export function exportRun(options: ExportOptions): ExportResult {
   );
 
   write('analytics.json', 'analytics', json(analytics));
+  write('phase0_1_report.json', 'acceptance', json({ metrics: evaluatePhase01(db, runId) }));
 
   const acceptance = finalizeReport(
     evaluateGates({

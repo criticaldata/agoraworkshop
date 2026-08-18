@@ -167,6 +167,28 @@ CREATE TABLE IF NOT EXISTS context_summaries (
 
 CREATE INDEX IF NOT EXISTS idx_summaries_run_trace ON context_summaries(run_id, trace_id);
 
+CREATE TABLE IF NOT EXISTS tool_calls (
+  tool_call_id        TEXT PRIMARY KEY,
+  run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  trace_id            TEXT NOT NULL,
+  opportunity_id      TEXT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+  sequence            INTEGER NOT NULL,
+  attempt             INTEGER NOT NULL,
+  agent_id            TEXT NOT NULL,
+  tool_id             TEXT NOT NULL,
+  workshop_state      TEXT NOT NULL,
+  channel             TEXT NOT NULL,
+  result_scope        TEXT,
+  input_json          TEXT NOT NULL,
+  result_json         TEXT,
+  outcome             TEXT NOT NULL,
+  failure_category    TEXT,
+  error_message       TEXT,
+  created_at          TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tool_calls_run_trace ON tool_calls(run_id, trace_id, sequence);
+
 CREATE TABLE IF NOT EXISTS artifacts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   run_id       TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,

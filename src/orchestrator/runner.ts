@@ -1,6 +1,6 @@
 import type { Db } from '../db/index.js';
 import type { FrozenConfig } from '../config/load.js';
-import type { ExperimentConfig, WorkshopState } from '../config/schema.js';
+import type { ExperimentConfig, FaultKind, WorkshopState } from '../config/schema.js';
 import { EventRecorder } from '../events/recorder.js';
 import {
   FAILURE_EVENT_TYPE,
@@ -8,7 +8,7 @@ import {
   type InfrastructureFailure,
   type OpportunityResolution,
 } from '../events/types.js';
-import { newInvocationId, newMessageId, newOpportunityId, newRunId, newTraceId, nowIso } from '../core/ids.js';
+import { newInvocationId, newMessageId, newOpportunityId, newRunId, newToolCallId, newTraceId, nowIso } from '../core/ids.js';
 import { codeProvenance, type CodeProvenance } from '../core/provenance.js';
 import { ABSTAIN_TOKEN, PASS_TOKEN } from '../prompts/registry.js';
 import { assembleContext } from './context.js';
@@ -28,6 +28,7 @@ import { buildProvider } from '../providers/registry.js';
 import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
+import { ToolGateway } from '../tools/gateway.js';
 
 export type TerminationReason =
   | 'completed'
@@ -96,6 +97,8 @@ export class WorkshopRunner {
   private deadlineHit = false;
   private cancelRequested = false;
   private readonly occurrences = new Map<string, number>();
+  private readonly toolGateway = new ToolGateway();
+  private toolCallSequence = 0;
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
 
@@ -464,6 +467,7 @@ export class WorkshopRunner {
     const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
     this.occurrences.set(occurrenceKey, occurrence);
     this.faults?.setContext({ state: spec.state, occurrence });
+    this.executeToolProbes(spec, opportunityId, occurrence, contextEvent.event_id);
 
     const maxAttempts = this.config.runtime.max_retries + 1;
     let attempts = 0;
@@ -851,6 +855,129 @@ export class WorkshopRunner {
 
   // ------------------------------------------------------------ persistence
 
+  private executeToolProbes(
+    spec: TurnSpec,
+    opportunityId: string,
+    occurrence: number,
+    parentEventId: string,
+  ): void {
+    if (!this.config.tool_probe?.enabled) return;
+    const probes = this.config.tool_probe.probes.filter(
+      (probe) =>
+        probe.agent_id === spec.agentId && probe.state === spec.state && probe.occurrence === occurrence,
+    );
+    for (const probe of probes) {
+      const configuredFault = this.config.fault_injection?.faults.find(
+        (fault) =>
+          fault.agent_id === spec.agentId &&
+          fault.state === spec.state &&
+          fault.occurrence === occurrence &&
+          isToolFailureKind(fault.kind),
+      );
+      const maxAttempts = this.config.runtime.max_retries + 1;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const toolCallId = newToolCallId();
+        this.toolCallSequence += 1;
+        const started = this.emit('tool_call_started', {
+          agent_id: spec.agentId,
+          channel: spec.channel,
+          parent_event_id: parentEventId,
+          payload: { opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt },
+        });
+        const forcedFault =
+          configuredFault &&
+          (configuredFault.recover_after_attempts === null || attempt <= configuredFault.recover_after_attempts)
+            ? configuredFault.kind
+            : null;
+        const result = forcedFault
+          ? {
+              ok: false as const,
+              category: forcedFault,
+              message: `injected tool fault: ${forcedFault} (attempt ${attempt})`,
+            }
+          : this.toolGateway.execute({
+              agentId: spec.agentId,
+              toolId: probe.tool_id,
+              input: probe.input,
+              manifest: this.config.capabilities.manifest,
+            });
+        if (result.ok) {
+          this.writeToolCall({
+            toolCallId, opportunityId, spec, toolId: probe.tool_id, input: probe.input, attempt,
+            resultScope: result.resultScope, result: result.result, failure: null,
+          });
+          this.emit('tool_call_succeeded', {
+            agent_id: spec.agentId,
+            channel: spec.channel,
+            parent_event_id: started.event_id,
+            payload: { opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt },
+          });
+          break;
+        }
+        this.writeToolCall({
+          toolCallId, opportunityId, spec, toolId: probe.tool_id, input: probe.input, attempt,
+          resultScope: null, result: null, failure: result,
+        });
+        this.emit('tool_call_failed', {
+          agent_id: spec.agentId,
+          channel: spec.channel,
+          parent_event_id: started.event_id,
+          payload: {
+            opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt,
+            failure_category: result.category, error: result.message,
+          },
+        });
+        if (attempt < maxAttempts) {
+          this.emit('tool_retry_scheduled', {
+            agent_id: spec.agentId,
+            channel: spec.channel,
+            parent_event_id: started.event_id,
+            payload: { opportunity_id: opportunityId, tool_id: probe.tool_id, failed_attempt: attempt },
+          });
+        }
+      }
+    }
+  }
+
+  private writeToolCall(input: {
+    toolCallId: string;
+    opportunityId: string;
+    spec: TurnSpec;
+    toolId: string;
+    input: Record<string, unknown>;
+    attempt: number;
+    resultScope: 'public' | 'private' | null;
+    result: Record<string, unknown> | null;
+    failure: { ok: false; category: InfrastructureFailure; message: string } | null;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO tool_calls (tool_call_id, run_id, trace_id, opportunity_id, sequence, attempt, agent_id,
+           tool_id, workshop_state, channel, result_scope, input_json, result_json, outcome,
+           failure_category, error_message, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        input.toolCallId,
+        this.runId,
+        this.activeTraceId,
+        input.opportunityId,
+        this.toolCallSequence,
+        input.attempt,
+        input.spec.agentId,
+        input.toolId,
+        input.spec.state,
+        input.spec.channel,
+        input.resultScope,
+        JSON.stringify(input.input),
+        input.result === null ? null : JSON.stringify(input.result),
+        input.failure ? 'infra_failure' : 'success',
+        input.failure?.category ?? null,
+        input.failure?.message ?? null,
+        nowIso(),
+      );
+  }
+
   private persistSummaries(
     context: ReturnType<typeof assembleContext>,
     opportunityId: string,
@@ -1065,6 +1192,12 @@ type ContentClassification =
   | { kind: 'abstain' }
   | { kind: 'no_op' }
   | { kind: 'malformed' };
+
+function isToolFailureKind(
+  kind: FaultKind,
+): kind is 'tool_timeout' | 'tool_unavailable' | 'tool_invalid_response' {
+  return kind === 'tool_timeout' || kind === 'tool_unavailable' || kind === 'tool_invalid_response';
+}
 
 /**
  * Behaviour-vs-infrastructure is decided here for output content.

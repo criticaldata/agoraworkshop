@@ -21,6 +21,11 @@ export const EVENT_TYPES = [
   'agent_invocation_succeeded',
   'agent_invocation_failed',
 
+  'tool_call_started',
+  'tool_call_succeeded',
+  'tool_call_failed',
+  'tool_retry_scheduled',
+
   'message_generated',
   'message_routed',
   'message_delivered',
@@ -82,6 +87,9 @@ export const INFRASTRUCTURE_FAILURES = [
   'retry_exhausted',
   /** The process stopped while the run was still in progress. */
   'interrupted',
+  'tool_timeout',
+  'tool_unavailable',
+  'tool_invalid_response',
   'unknown',
 ] as const;
 export type InfrastructureFailure = (typeof INFRASTRUCTURE_FAILURES)[number];
@@ -109,6 +117,9 @@ export const FAILURE_EVENT_TYPE: Record<InfrastructureFailure, EventType> = {
   budget_exhausted: 'budget_exhausted',
   retry_exhausted: 'retry_exhausted',
   interrupted: 'run_interrupted',
+  tool_timeout: 'tool_call_failed',
+  tool_unavailable: 'tool_call_failed',
+  tool_invalid_response: 'tool_call_failed',
   unknown: 'provider_error',
 };
 

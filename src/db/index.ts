@@ -18,6 +18,7 @@ const ADDED_COLUMNS: Record<string, Array<[string, string]>> = {
   opportunities: [['trace_id', 'trace_id TEXT']],
   invocations: [['trace_id', 'trace_id TEXT']],
   messages: [['trace_id', 'trace_id TEXT']],
+  tool_calls: [['attempt', 'attempt INTEGER NOT NULL DEFAULT 1']],
 };
 
 /**

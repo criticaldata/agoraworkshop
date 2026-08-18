@@ -35,6 +35,9 @@ export const FAULT_KINDS = [
   'provider_error',
   'network_error',
   'malformed_response',
+  'tool_timeout',
+  'tool_unavailable',
+  'tool_invalid_response',
 ] as const;
 
 export type FaultKind = (typeof FAULT_KINDS)[number];

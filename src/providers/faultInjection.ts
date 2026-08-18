@@ -7,7 +7,7 @@ import {
   type AgentProvider,
 } from './types.js';
 
-const FAULT_TO_CATEGORY: Record<FaultKind, InfrastructureFailure> = {
+const FAULT_TO_CATEGORY: Partial<Record<FaultKind, InfrastructureFailure>> = {
   timeout: 'timeout',
   rate_limit: 'rate_limit',
   provider_error: 'provider_error',
@@ -58,7 +58,8 @@ export class FaultInjectingProvider implements AgentProvider {
         fault !== undefined &&
         request.attempt > fault.recover_after_attempts;
 
-      if (fault && !clears) {
+      const category = fault ? FAULT_TO_CATEGORY[fault.kind] : undefined;
+      if (fault && category && !clears) {
         const requestTs = new Date().toISOString();
         const startedAt = Date.now();
         return failureResult(
@@ -66,7 +67,7 @@ export class FaultInjectingProvider implements AgentProvider {
           request,
           requestTs,
           startedAt,
-          FAULT_TO_CATEGORY[fault.kind],
+          category,
           `injected fault: ${fault.kind} (attempt ${request.attempt})`,
           { injected: true, fault_kind: fault.kind, occurrence: fault.occurrence },
         );

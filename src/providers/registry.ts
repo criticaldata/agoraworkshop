@@ -13,6 +13,8 @@ function baseProvider(config: ExperimentConfig): AgentProvider {
       return new AnthropicProvider();
     case 'mock':
       return new MockProvider();
+    case 'mock_context_contract':
+      throw new Error('mock_context_contract is not available until the Phase 0.1 provider is installed');
   }
 }
 

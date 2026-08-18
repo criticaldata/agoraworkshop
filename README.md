@@ -184,7 +184,7 @@ Each gate reports one of three statuses:
 **PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
 defect in the instrument and not a pass, which is why the fault-injection configs exist.
 
-### The eighteen acceptance metrics
+### The twenty-two acceptance metrics
 
 Each gate is composed of numbered metrics, in `src/acceptance/metrics.ts`. A gate's prose
 evidence says what was seen; a metric says which agreed threshold it was measured against,

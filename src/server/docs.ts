@@ -249,6 +249,7 @@ function sectionData(): string {
     ['messages', 'Each message, with its channel, intended and actual recipients, and the invocation and event that produced it.'],
     ['context_summaries', 'Channel-scoped extractive summaries with source message identifiers and content/fidelity hashes. Raw messages remain authoritative.'],
     ['tool_calls', 'Every deterministic tool probe and retry, including its trace, scope, structured input/output, and classified failure if any.'],
+    ['run_checkpoints', 'Immutable recovery snapshot after each resolved opportunity, including scheduler counters, budget state and event sequence.'],
     ['artifacts', 'Each exported file with its size and SHA-256.'],
     ['semantic_extractions', 'One row per post-hoc reading of a finished run: the pipeline, model, prompt and code that produced it. Re-running writes a new row, so a graph never changes meaning quietly.'],
     ['semantic_nodes', 'Topics, concepts and claims read out of the transcript, each with the message it was first observed in. Derived, not authoritative.'],

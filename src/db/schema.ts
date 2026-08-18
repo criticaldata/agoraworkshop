@@ -189,6 +189,19 @@ CREATE TABLE IF NOT EXISTS tool_calls (
 
 CREATE INDEX IF NOT EXISTS idx_tool_calls_run_trace ON tool_calls(run_id, trace_id, sequence);
 
+CREATE TABLE IF NOT EXISTS run_checkpoints (
+  checkpoint_id       TEXT PRIMARY KEY,
+  run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  sequence            INTEGER NOT NULL,
+  opportunity_id      TEXT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+  event_sequence      INTEGER NOT NULL,
+  state_json          TEXT NOT NULL,
+  created_at          TEXT NOT NULL,
+  UNIQUE(run_id, opportunity_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkpoints_run_seq ON run_checkpoints(run_id, sequence);
+
 CREATE TABLE IF NOT EXISTS artifacts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   run_id       TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,

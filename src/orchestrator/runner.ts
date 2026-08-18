@@ -8,7 +8,7 @@ import {
   type InfrastructureFailure,
   type OpportunityResolution,
 } from '../events/types.js';
-import { newInvocationId, newMessageId, newOpportunityId, newRunId, newToolCallId, newTraceId, nowIso } from '../core/ids.js';
+import { newCheckpointId, newInvocationId, newMessageId, newOpportunityId, newRunId, newToolCallId, newTraceId, nowIso } from '../core/ids.js';
 import { codeProvenance, type CodeProvenance } from '../core/provenance.js';
 import { ABSTAIN_TOKEN, PASS_TOKEN } from '../prompts/registry.js';
 import { assembleContext } from './context.js';
@@ -1094,6 +1094,33 @@ export class WorkshopRunner {
         messageId,
         attempts,
         opportunityId,
+      );
+    this.writeCheckpoint(opportunityId);
+  }
+
+  private writeCheckpoint(opportunityId: string): void {
+    if (!this.config.recovery?.enabled) return;
+    this.db
+      .prepare(
+        `INSERT INTO run_checkpoints (checkpoint_id, run_id, sequence, opportunity_id, event_sequence,
+           state_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        newCheckpointId(),
+        this.runId,
+        this.opportunitySequence,
+        opportunityId,
+        this.recorder.lastSequence,
+        JSON.stringify({
+          config_hash: this.frozen.hash,
+          workshop_state: this.state,
+          message_sequence: this.messageSequence,
+          opportunity_sequence: this.opportunitySequence,
+          invocation_sequence: this.invocationSequence,
+          global_round: this.globalRound,
+          budgets: this.budgets.all(),
+        }),
+        nowIso(),
       );
   }
 

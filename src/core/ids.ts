@@ -7,6 +7,7 @@ export const newTraceId = (): string => `trace_${randomUUID()}`;
 export const newInvocationId = (): string => `inv_${randomUUID()}`;
 export const newMessageId = (): string => `msg_${randomUUID()}`;
 export const newToolCallId = (): string => `tool_${randomUUID()}`;
+export const newCheckpointId = (): string => `checkpoint_${randomUUID()}`;
 
 export function nowIso(): string {
   return new Date().toISOString();

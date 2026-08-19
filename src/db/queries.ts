@@ -126,6 +126,10 @@ export interface CheckpointRow {
   checkpoint_id: string; run_id: string; sequence: number; opportunity_id: string;
   event_sequence: number; state_json: string; created_at: string;
 }
+export interface BackupVerificationRow {
+  backup_verification_id: string; run_id: string; backup_path: string; backup_sha256: string;
+  backup_bytes: number; config_hash: string; event_count: number; verified_at: string;
+}
 
 /** Rebuilds the provenance record stored on a run. */
 export function runProvenance(row: RunRow): CodeProvenance {
@@ -206,6 +210,9 @@ export function getToolCalls(db: Db, runId: string): ToolCallRow[] {
 }
 export function getCheckpoints(db: Db, runId: string): CheckpointRow[] {
   return db.prepare(`SELECT * FROM run_checkpoints WHERE run_id = ? ORDER BY sequence`).all(runId) as CheckpointRow[];
+}
+export function getBackupVerifications(db: Db, runId: string): BackupVerificationRow[] {
+  return db.prepare(`SELECT * FROM backup_verifications WHERE run_id = ? ORDER BY verified_at`).all(runId) as BackupVerificationRow[];
 }
 
 export function runsWithConfigHash(db: Db, configHash: string): RunRow[] {

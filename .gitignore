@@ -3,6 +3,8 @@ dist/
 data/
 exports/
 phase0_validation/
+phase0_1_validation/
+phase0_1_exercised/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm

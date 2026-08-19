@@ -1,3 +1,6 @@
+import { createHash, randomUUID } from 'node:crypto';
+import { readFileSync, statSync } from 'node:fs';
+import { nowIso } from '../core/ids.js';
 import { openDatabase, type Db } from './index.js';
 import { getRun } from './queries.js';
 
@@ -25,3 +28,37 @@ export function verifyRestore(
   }
 }
 
+export interface BackupVerification {
+  backup_verification_id: string;
+  run_id: string;
+  backup_path: string;
+  backup_sha256: string;
+  backup_bytes: number;
+  config_hash: string;
+  event_count: number;
+  verified_at: string;
+}
+
+/** Records restore evidence only after reopening the snapshot and checking its run. */
+export function recordBackupVerification(db: Db, runId: string, backupPath: string): BackupVerification {
+  const restored = verifyRestore(backupPath, runId);
+  const row: BackupVerification = {
+    backup_verification_id: `backup_${randomUUID()}`,
+    run_id: runId,
+    backup_path: backupPath,
+    backup_sha256: createHash('sha256').update(readFileSync(backupPath)).digest('hex'),
+    backup_bytes: statSync(backupPath).size,
+    config_hash: restored.config_hash,
+    event_count: restored.event_count,
+    verified_at: nowIso(),
+  };
+  db.prepare(
+    `INSERT INTO backup_verifications
+      (backup_verification_id, run_id, backup_path, backup_sha256, backup_bytes, config_hash, event_count, verified_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+  ).run(
+    row.backup_verification_id, row.run_id, row.backup_path, row.backup_sha256,
+    row.backup_bytes, row.config_hash, row.event_count, row.verified_at,
+  );
+  return row;
+}

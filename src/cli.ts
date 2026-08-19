@@ -13,6 +13,7 @@ import { codeProvenance } from './core/provenance.js';
 import { runValidationPackage } from './scripts/validate.js';
 import { extractRunSemantics, listExtractions } from './semantic/pipeline.js';
 import { OpenAIExtractor, StubExtractor } from './semantic/extractors.js';
+import { backupDatabase, recordBackupVerification } from './db/backup.js';
 
 const USAGE = `agora — AGORA WORKSHOP Phase 0 research instrument
 
@@ -20,6 +21,7 @@ Usage:
   agora run --config <path>                      Launch a workshop from a frozen config
   agora rerun <run_id>                           Re-launch the same frozen config as a new run
   agora resume <run_id>                          Continue a recovery-enabled interrupted run
+  agora backup <run_id> --out <path>             Create and verify a SQLite recovery snapshot
   agora replay <run_id>                          Print the chronological event timeline
   agora export <run_id> [options]                Write the full artifact bundle to disk
   agora accept <run_id> [options]                Evaluate the three Phase 0 gates
@@ -128,6 +130,17 @@ async function main(): Promise<number> {
       exportOnCompletion(db, result.runId, result.status, console.error);
       console.log(JSON.stringify(result, null, 2));
       return result.status === 'COMPLETED' ? 0 : 1;
+    }
+
+    case 'backup': {
+      const runId = positional[0];
+      const target = flags['out'];
+      if (!runId) { console.error('backup requires a run id'); return 2; }
+      if (!target) { console.error('backup requires --out <path>'); return 2; }
+      if (!getRun(db, runId)) { console.error(`unknown run: ${runId}`); return 2; }
+      await backupDatabase(db, target);
+      console.log(JSON.stringify(recordBackupVerification(db, runId, target), null, 2));
+      return 0;
     }
 
     case 'replay': {

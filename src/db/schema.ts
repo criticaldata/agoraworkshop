@@ -202,6 +202,19 @@ CREATE TABLE IF NOT EXISTS run_checkpoints (
 
 CREATE INDEX IF NOT EXISTS idx_checkpoints_run_seq ON run_checkpoints(run_id, sequence);
 
+CREATE TABLE IF NOT EXISTS backup_verifications (
+  backup_verification_id TEXT PRIMARY KEY,
+  run_id                 TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  backup_path            TEXT NOT NULL,
+  backup_sha256          TEXT NOT NULL,
+  backup_bytes           INTEGER NOT NULL,
+  config_hash            TEXT NOT NULL,
+  event_count            INTEGER NOT NULL,
+  verified_at            TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_backup_verifications_run ON backup_verifications(run_id, verified_at);
+
 CREATE TABLE IF NOT EXISTS artifacts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,
   run_id       TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,

@@ -8,6 +8,7 @@ import {
   getContextSummaries,
   getToolCalls,
   getCheckpoints,
+  getBackupVerifications,
   getMessages,
   getOpportunities,
   getRun,
@@ -67,6 +68,7 @@ export function exportRun(options: ExportOptions): ExportResult {
   const summaries = getContextSummaries(db, runId);
   const toolCalls = getToolCalls(db, runId);
   const checkpoints = getCheckpoints(db, runId);
+  const backupVerifications = getBackupVerifications(db, runId);
   const analytics = computeAnalytics(db, runId);
   const leaks = auditPrivacyLeaks(db, runId);
 
@@ -172,6 +174,7 @@ export function exportRun(options: ExportOptions): ExportResult {
   write('summaries.jsonl', 'provenance', `${summaries.map((row) => JSON.stringify({ ...row, source_message_ids: JSON.parse(row.source_message_ids) })).join('\n')}\n`);
   write('tool_calls.jsonl', 'provenance', `${toolCalls.map((row) => JSON.stringify({ ...row, input: JSON.parse(row.input_json), result: row.result_json ? JSON.parse(row.result_json) : null })).join('\n')}\n`);
   write('checkpoints.jsonl', 'provenance', `${checkpoints.map((row) => JSON.stringify({ ...row, state: JSON.parse(row.state_json) })).join('\n')}\n`);
+  write('backup_verifications.jsonl', 'provenance', `${backupVerifications.map((row) => JSON.stringify(row)).join('\n')}\n`);
   const traceIndex = opportunities.map((opportunity) => ({
     trace_id: opportunity.trace_id,
     opportunity_id: opportunity.opportunity_id,
@@ -328,6 +331,11 @@ function bundleReadme(
     `| \`transcript_public.txt\` | Public channel transcript. |`,
     `| \`messages_private.jsonl\` | Breakout messages, kept separate from the public transcript. |`,
     `| \`invocations.jsonl\` | Per-invocation context provenance: exact system prompt, rendered context, included message ids. |`,
+    `| \`summaries.jsonl\` | Channel-scoped summaries with source identifiers and fidelity hashes. |`,
+    `| \`tool_calls.jsonl\` | Tool requests, results, scopes, retries and classified failures. |`,
+    `| \`checkpoints.jsonl\` | Recovery checkpoints recorded after resolved opportunities. |`,
+    `| \`backup_verifications.jsonl\` | Run-linked backup hashes and successful restore verification records. |`,
+    `| \`trace_index.jsonl\` | End-to-end opportunity, invocation, message and tool-call trace links. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
     `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates, with evidence. |`,

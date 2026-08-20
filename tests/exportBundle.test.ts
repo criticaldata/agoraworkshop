@@ -46,11 +46,15 @@ describe('artifact bundle', () => {
     expect([...REQUIRED_BUNDLE_FILES].filter((name) => !written.has(name))).toEqual([]);
   });
 
-  it('reports coverage of all fifteen required items in the manifest', async () => {
+  it('reports coverage of all twenty-one required items in the manifest', async () => {
     const { manifest } = await bundle();
-    expect(manifest.contents).toHaveLength(15);
+    expect(manifest.contents).toHaveLength(21);
     expect(manifest.contents).toHaveLength(REQUIRED_BUNDLE_ITEMS.length);
     expect(manifest.contents.filter((c) => !c.present)).toEqual([]);
+    expect(REQUIRED_BUNDLE_FILES).toEqual(expect.arrayContaining([
+      'summaries.jsonl', 'tool_calls.jsonl', 'checkpoints.jsonl', 'trace_index.jsonl',
+      'backup_verifications.jsonl', 'phase0_1_report.json',
+    ]));
   });
 
   it('records hashes that match the bytes actually on disk', async () => {

@@ -27,16 +27,22 @@ export function buildContextSummaries(input: {
   agentId: string;
   messages: StoredMessage[];
   render: (message: StoredMessage) => string;
+  opportunityId?: string;
 }): ContextSummaryRecord[] {
   const policy = input.config.context_policy.summarization;
   if (!policy?.enabled) return [];
 
   const grouped = new Map<string, StoredMessage[]>();
   for (const message of input.messages) {
-    const scope =
-      message.channel === 'public'
-        ? 'public'
-        : `breakout:${message.breakout_group_id ?? 'private'}:recipient:${input.agentId}`;
+    const scopeKind = message.channel === 'public'
+      ? 'public'
+      : message.breakout_group_id
+        ? 'breakout'
+        : 'private';
+    if (!policy.scopes.includes(scopeKind)) continue;
+    const scope = scopeKind === 'public'
+      ? 'public'
+      : `${scopeKind}:${message.breakout_group_id ?? 'direct'}:recipient:${input.agentId}`;
     const current = grouped.get(scope) ?? [];
     current.push(message);
     grouped.set(scope, current);
@@ -53,7 +59,7 @@ export function buildContextSummaries(input: {
     const contentHash = sha256(content);
     return {
       summary_id: `summary_${createHash('sha256')
-        .update(`${scope}\u0000${input.agentId}\u0000${policy.version}\u0000${sourceHash}`, 'utf8')
+        .update(`${input.opportunityId ?? 'unbound'}\u0000${scope}\u0000${input.agentId}\u0000${policy.version}\u0000${sourceHash}`, 'utf8')
         .digest('hex')}`,
       scope,
       agent_id: input.agentId,
@@ -75,4 +81,3 @@ export function auditSummaryFidelity(summary: ContextSummaryRecord): boolean {
       sha256(`${summary.source_hash}\u0000${summary.content_hash}\u0000${summary.summarizer_version}`)
   );
 }
-

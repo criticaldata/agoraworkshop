@@ -2,6 +2,8 @@ import type { ExperimentConfig } from '../config/schema.js';
 
 export interface StoredMessage {
   message_id: string;
+  /** The response-opportunity trace that produced this message. */
+  trace_id?: string | null;
   sequence: number;
   channel: 'public' | 'private';
   breakout_group_id: string | null;

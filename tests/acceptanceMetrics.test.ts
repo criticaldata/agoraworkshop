@@ -386,6 +386,32 @@ describe('M11 retry traceability', () => {
 });
 
 describe('M12 controlled failure validation', () => {
+  it('does not misclassify a tool fault as an unrecorded provider fault', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({
+      db,
+      frozen: frozen({
+        capabilities: {
+          tools_enabled: true,
+          manifest: [{ id: 'echo', allowed_agents: ['agent_1'], result_scope: 'private', max_calls_per_opportunity: 1 }],
+        },
+        tool_probe: {
+          enabled: true,
+          probes: [{ agent_id: 'agent_1', state: 'INTRODUCTION', occurrence: 1, tool_id: 'echo', input: { value: 'fault' } }],
+        },
+        fault_injection: {
+          enabled: true,
+          faults: [{ agent_id: 'agent_1', state: 'INTRODUCTION', occurrence: 1, kind: 'tool_timeout', recover_after_attempts: null }],
+        },
+      }),
+    });
+    await runner.execute();
+
+    const metric = measure(db, runner.id, 'M12');
+    expect(metric.status).toBe('NOT_EXERCISED');
+    expect(metric.observed).not.toContain('tool_timeout was injected but never recorded');
+  });
+
   it('passes when every injected fault was classified as the condition injected', async () => {
     const { db, runId } = await faultRun();
     expect(measure(db, runId, 'M12').status).toBe('PASS');
@@ -653,6 +679,21 @@ describe('metrics compose into gates without ever loosening them', () => {
  */
 
 describe('M19 authorized-context equality', () => {
+  it('counts authorized summary source ids as context material', async () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({
+      db,
+      frozen: frozen({
+        context_policy: {
+          version: 'phase0_1', include_public_history: true, include_own_private: true, max_messages: 1,
+          summarization: { enabled: true, version: 'rolling-v1', max_source_messages: 4, scopes: ['public'], fidelity_audit: true },
+        },
+      }),
+    });
+    await runner.execute();
+    expect(measure(db, runner.id, 'M19').status).toBe('PASS');
+  });
+
   it('holds on a real run, re-derived from the config rather than the router', async () => {
     const { db, runId } = await cleanRun();
     const metric = measure(db, runId, 'M19');

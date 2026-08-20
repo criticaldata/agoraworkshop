@@ -114,6 +114,7 @@ export function renderGates(acceptance: AcceptanceReport, runId?: string): strin
   return `${gateCard('Was the run carried out correctly?', acceptance.gates.infrastructure_validated, runId)}
     ${gateCard('Is the reason for each missing response recorded?', acceptance.gates.failure_attribution_validated, runId)}
     ${gateCard('Can the run be repeated under the same conditions?', acceptance.gates.baseline_reproducible, runId)}
+    ${renderPhase01(acceptance)}
     <p class="verdict ${acceptance.ready_for_controlled_behavioral_experiment ? 'ok' : 'bad'}">
       ${
         acceptance.ready_for_controlled_behavioral_experiment
@@ -121,6 +122,18 @@ export function renderGates(acceptance: AcceptanceReport, runId?: string): strin
           : 'This run does not yet satisfy every applicable Phase 0 apparatus check.'
       }
     </p>`;
+}
+
+function renderPhase01(acceptance: AcceptanceReport): string {
+  const robustness = acceptance.phase01;
+  if (!robustness) return '';
+  return `<article class="gate-card ${robustness.status === 'PASS' ? 'ok' : robustness.status === 'FAIL' ? 'bad' : 'unproven'}">
+    <h3>Phase 0.1 robustness <span class="pill">${esc(robustness.status)}</span></h3>
+    <details>
+      <summary>Show M23–M30 (${robustness.metrics.length} checks)</summary>
+      <ul>${robustness.metrics.map((metric) => `<li><code>${esc(metric.id)}</code> <b>${esc(metric.status)}</b>: ${esc(metric.evidence)}</li>`).join('')}</ul>
+    </details>
+  </article>`;
 }
 
 export function renderStats(analytics: RunAnalytics): string {

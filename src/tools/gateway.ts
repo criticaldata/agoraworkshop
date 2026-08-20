@@ -18,6 +18,14 @@ export class ToolGateway {
       };
     }
 
+    if ((request.callsUsed ?? 0) >= entry.max_calls_per_opportunity) {
+      return {
+        ok: false,
+        category: 'permission_denied',
+        message: `tool ${request.toolId} exceeded max_calls_per_opportunity for this opportunity`,
+      };
+    }
+
     if (request.toolId !== 'echo') {
       return {
         ok: false,
@@ -29,4 +37,3 @@ export class ToolGateway {
     return { ok: true, resultScope: entry.result_scope, result: { ...request.input } };
   }
 }
-

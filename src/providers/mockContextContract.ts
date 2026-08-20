@@ -24,6 +24,7 @@ export class MockContextContractProvider implements AgentProvider {
       rendered_messages_hash: hash(request.messages),
       context_message_ids: request.contextMessageIds ?? [],
       summary_ids: request.summaryIds ?? [],
+      summary_hashes: request.summaryHashes ?? [],
       capability_manifest_hash: hash(request.capabilityManifest ?? []),
     };
 
@@ -43,4 +44,3 @@ export class MockContextContractProvider implements AgentProvider {
     };
   }
 }
-

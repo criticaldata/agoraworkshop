@@ -1,5 +1,6 @@
 import { createHash, randomUUID } from 'node:crypto';
 import { readFileSync, statSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { nowIso } from '../core/ids.js';
 import { openDatabase, type Db } from './index.js';
 import { getRun } from './queries.js';
@@ -41,13 +42,14 @@ export interface BackupVerification {
 
 /** Records restore evidence only after reopening the snapshot and checking its run. */
 export function recordBackupVerification(db: Db, runId: string, backupPath: string): BackupVerification {
-  const restored = verifyRestore(backupPath, runId);
+  const durablePath = resolve(backupPath);
+  const restored = verifyRestore(durablePath, runId);
   const row: BackupVerification = {
     backup_verification_id: `backup_${randomUUID()}`,
     run_id: runId,
-    backup_path: backupPath,
-    backup_sha256: createHash('sha256').update(readFileSync(backupPath)).digest('hex'),
-    backup_bytes: statSync(backupPath).size,
+    backup_path: durablePath,
+    backup_sha256: createHash('sha256').update(readFileSync(durablePath)).digest('hex'),
+    backup_bytes: statSync(durablePath).size,
     config_hash: restored.config_hash,
     event_count: restored.event_count,
     verified_at: nowIso(),

@@ -23,7 +23,7 @@ import { renderReplayHtml } from './replayHtml.js';
 import { displayName } from '../config/schema.js';
 import { nowIso } from '../core/ids.js';
 import { runProvenance } from '../db/queries.js';
-import { REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
+import { REQUIRED_BUNDLE_FILES, REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
 import { evaluatePhase01 } from '../acceptance/phase01.js';
 
 
@@ -258,7 +258,11 @@ export function exportRun(options: ExportOptions): ExportResult {
   );
 
   write('analytics.json', 'analytics', json(analytics));
-  write('phase0_1_report.json', 'acceptance', json({ metrics: evaluatePhase01(db, runId) }));
+  write(
+    'phase0_1_report.json',
+    'acceptance',
+    json({ metrics: evaluatePhase01(db, runId, { pendingArtifactNames: REQUIRED_BUNDLE_FILES }) }),
+  );
 
   const acceptance = finalizeReport(
     evaluateGates({
@@ -338,7 +342,7 @@ function bundleReadme(
     `| \`trace_index.jsonl\` | End-to-end opportunity, invocation, message and tool-call trace links. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
-    `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates, with evidence. |`,
+    `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates and, when enabled, the Phase 0.1 robustness checks. |`,
     `| \`agents.json\` | Participant and moderator definitions, including moderator mode. |`,
     `| \`messages.jsonl\` | Every message with its visibility metadata (intended and actual recipients). |`,
     `| \`failures.jsonl\` | Every failed or retried attempt, with its classification. |`,

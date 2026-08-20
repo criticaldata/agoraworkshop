@@ -11,6 +11,7 @@ export const EVENT_TYPES = [
   'run_cancelled',
   'run_interrupted',
   'run_resumed',
+  'recovery_opportunity_reopened',
 
   'state_transition_started',
   'state_transition_completed',

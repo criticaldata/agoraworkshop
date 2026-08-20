@@ -31,6 +31,8 @@ export interface AssembleContextInput {
   channel: 'public' | 'private';
   breakoutGroupId?: string;
   breakoutMembers?: string[];
+  /** The durable opportunity namespace prevents summary primary-key collisions. */
+  opportunityId?: string;
 }
 
 /**
@@ -79,7 +81,17 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
     agentId,
     messages: ordered,
     render: (message) => renderMessage(config, message),
+    opportunityId: input.opportunityId,
   });
+
+  // A summary is part of the prompt, so its raw source ids are part of the exact
+  // context provenance too. The final transcript cap only limits raw rendering; it
+  // must not erase the ids of older messages represented by an allowed summary.
+  const sourcedIds = new Set(summaryRecords.flatMap((summary) => summary.source_message_ids));
+  const trimmedIds = new Set(trimmed.map((message) => message.message_id));
+  const included = ordered.filter(
+    (message) => sourcedIds.has(message.message_id) || trimmedIds.has(message.message_id),
+  );
 
   const transcript =
     trimmed.length === 0
@@ -111,9 +123,9 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
     systemPrompt: prompt.text,
     promptVersion: prompt.version,
     renderedMessages,
-    includedMessageIds: trimmed.map((m) => m.message_id),
-    publicMessageIds: trimmed.filter((m) => m.channel === 'public').map((m) => m.message_id),
-    privateMessageIds: trimmed.filter((m) => m.channel === 'private').map((m) => m.message_id),
+    includedMessageIds: included.map((m) => m.message_id),
+    publicMessageIds: included.filter((m) => m.channel === 'public').map((m) => m.message_id),
+    privateMessageIds: included.filter((m) => m.channel === 'private').map((m) => m.message_id),
     summaryRecords,
     turnInstruction: instruction,
   };

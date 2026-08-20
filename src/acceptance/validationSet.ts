@@ -6,6 +6,7 @@ import {
   evaluateGates,
   finalizeReport,
   GATE_STATUS_MEANING,
+  type AcceptanceReport,
   type GateResult,
   type GateStatus,
   type NextStep,
@@ -70,6 +71,8 @@ export interface ValidationSet {
   code_provenance: CodeProvenance;
   runs: EvidenceRun[];
   gates: ValidationSetGate[];
+  /** Phase 0.1 checks, present only for an opted-in robustness configuration. */
+  phase01?: AcceptanceReport['phase01'];
   /** True only when all three gates PASS on the evidence actually supplied. */
   phase0_validated: boolean;
   /** What was missing, when it was not validated. Empty when it was. */
@@ -211,6 +214,14 @@ export function buildValidationSet(options: ValidationSetOptions): ValidationSet
       outstanding.push(`${g.title}: ${g.not_exercised.join('; ')}`);
     }
   }
+  if (report.phase01) {
+    if (report.phase01.status === 'FAIL') {
+      outstanding.push(`Phase 0.1 robustness: ${report.phase01.failures.join('; ')}`);
+    }
+    if (report.phase01.status === 'NOT_EXERCISED') {
+      outstanding.push(`Phase 0.1 robustness: ${report.phase01.not_exercised.join('; ')}`);
+    }
+  }
 
   return {
     generated_at: report.generated_at,
@@ -220,7 +231,8 @@ export function buildValidationSet(options: ValidationSetOptions): ValidationSet
     code_provenance: runProvenance(run),
     runs,
     gates,
-    phase0_validated: gates.every((g) => g.status === 'PASS'),
+    phase01: report.phase01,
+    phase0_validated: report.ready_for_controlled_behavioral_experiment,
     outstanding,
   };
 }

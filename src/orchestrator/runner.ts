@@ -1,7 +1,7 @@
 import type { Db } from '../db/index.js';
 import type { FrozenConfig } from '../config/load.js';
 import type { ExperimentConfig, FaultKind, WorkshopState } from '../config/schema.js';
-import { EventRecorder } from '../events/recorder.js';
+import { EventRecorder, readEvents } from '../events/recorder.js';
 import {
   FAILURE_EVENT_TYPE,
   type AgoraEvent,
@@ -29,7 +29,7 @@ import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 import { ToolGateway } from '../tools/gateway.js';
-import { getMessages, getOpportunities, getRun } from '../db/queries.js';
+import { getMessages, getOpportunities, getRun, type OpportunityRow } from '../db/queries.js';
 
 export type TerminationReason =
   | 'completed'
@@ -103,7 +103,9 @@ export class WorkshopRunner {
   private toolCallSequence = 0;
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
-  private resumeSkipCount = 0;
+  private readonly resumeOpportunities: OpportunityRow[];
+  private resumeOpportunityIndex = 0;
+  private readonly resumeState: WorkshopState | null;
   private readonly resuming: boolean;
 
   constructor(options: ExecuteRunOptions) {
@@ -113,21 +115,57 @@ export class WorkshopRunner {
     this.runId = options.resumeRunId ?? options.runId ?? newRunId();
     this.resuming = options.resumeRunId !== undefined;
     this.onEvent = options.onEvent;
-    this.startedAtMs = Date.now();
-    this.deadlineMs = this.startedAtMs + this.config.workshop.max_duration_seconds * 1000;
     this.budgets = new BudgetLedger(this.config);
+    let existingStartMs = Date.now();
+    this.resumeOpportunities = [];
+    this.resumeState = null;
     if (this.resuming) {
       const existing = getRun(this.db, this.runId);
       if (!existing || existing.status !== 'INTERRUPTED' || !this.config.recovery?.enabled) {
         throw new Error('resume requires an INTERRUPTED run with recovery.enabled=true');
       }
+      if (existing.config_hash !== this.frozen.hash) {
+        throw new Error(
+          `resume config hash mismatch: stored=${existing.config_hash} supplied=${this.frozen.hash}`,
+        );
+      }
+      const terminalEvent = this.db.prepare(
+        `SELECT event_type FROM events WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { event_type: string } | undefined;
+      if (terminalEvent && ['run_completed', 'run_failed', 'run_cancelled'].includes(terminalEvent.event_type)) {
+        throw new Error('resume cannot reopen a run that already recorded a terminal event');
+      }
+      const parsedStart = existing.started_at ? Date.parse(existing.started_at) : Number.NaN;
+      if (Number.isFinite(parsedStart)) existingStartMs = parsedStart;
+      this.db.prepare(
+        `UPDATE opportunities SET resolved_at = NULL, resolution = NULL, failure_category = NULL,
+           behaviourally_available = 0, attempts = 0
+         WHERE run_id = ? AND resolution = 'infrastructure_failure' AND failure_category = 'interrupted'`,
+      ).run(this.runId);
       this.history = getMessages(this.db, this.runId);
       this.messageSequence = this.history.at(-1)?.sequence ?? 0;
       const opportunities = getOpportunities(this.db, this.runId);
-      this.opportunitySequence = opportunities.length;
-      this.resumeSkipCount = opportunities.filter((row) => row.resolution !== null).length;
+      this.resumeOpportunities.push(...opportunities);
+      this.opportunitySequence = Math.max(0, ...opportunities.map((row) => row.sequence));
       this.invocationSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM invocations WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
+      this.toolCallSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM tool_calls WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
+      const checkpoint = this.db.prepare(
+        `SELECT state_json FROM run_checkpoints WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { state_json: string } | undefined;
+      if (checkpoint) {
+        const state = JSON.parse(checkpoint.state_json) as { budgets?: Record<string, { calls: number; tokens: number }> };
+        if (state.budgets) this.budgets.restore(state.budgets);
+      }
+      const lastEvent = this.db.prepare(
+        `SELECT workshop_state FROM events WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { workshop_state: string } | undefined;
+      this.resumeState = lastEvent && isWorkshopState(lastEvent.workshop_state)
+        ? lastEvent.workshop_state
+        : 'CREATED';
+      this.state = this.resumeState;
     }
+    this.startedAtMs = existingStartMs;
+    this.deadlineMs = this.startedAtMs + this.config.workshop.max_duration_seconds * 1000;
 
     if (options.provider) {
       this.provider = options.provider;
@@ -204,26 +242,27 @@ export class WorkshopRunner {
   async execute(): Promise<RunResult> {
     if (this.resuming) {
       this.db.prepare(`UPDATE runs SET status = 'RUNNING', termination_reason = NULL, failure_reason = NULL, ended_at = NULL WHERE run_id = ?`).run(this.runId);
-      this.emit('run_resumed', { payload: { skipped_resolved_opportunities: this.resumeSkipCount } });
-    }
-    this.emit('run_created', {
-      payload: {
-        config_hash: this.frozen.hash,
-        provider: this.config.model.provider,
-        model: this.config.model.model,
-        participants: this.config.participants.map((p) => p.id),
-        moderator: this.config.moderator.id,
-        moderator_mode: this.config.moderator.mode ?? 'llm',
-        code_provenance: this.provenance,
-      },
-    });
+      this.emit('run_resumed', { payload: { existing_opportunities: this.resumeOpportunities.length } });
+    } else {
+      this.emit('run_created', {
+        payload: {
+          config_hash: this.frozen.hash,
+          provider: this.config.model.provider,
+          model: this.config.model.model,
+          participants: this.config.participants.map((p) => p.id),
+          moderator: this.config.moderator.id,
+          moderator_mode: this.config.moderator.mode ?? 'llm',
+          code_provenance: this.provenance,
+        },
+      });
 
-    this.db
-      .prepare(`UPDATE runs SET status = 'RUNNING', started_at = ? WHERE run_id = ?`)
-      .run(nowIso(), this.runId);
-    this.emit('run_started', {
-      payload: { max_duration_seconds: this.config.workshop.max_duration_seconds },
-    });
+      this.db
+        .prepare(`UPDATE runs SET status = 'RUNNING', started_at = ? WHERE run_id = ?`)
+        .run(nowIso(), this.runId);
+      this.emit('run_started', {
+        payload: { max_duration_seconds: this.config.workshop.max_duration_seconds },
+      });
+    }
 
     let termination: TerminationReason = 'completed';
 
@@ -232,7 +271,8 @@ export class WorkshopRunner {
       for (const phase of phases) {
         if (this.deadlineHit || this.cancelRequested) break;
         if (phase === 'CLOSING') break; // closing is always run below
-        this.transition(phase);
+        const resumingEarlierState = this.resuming && phaseRank(phase) < phaseRank(this.resumeState ?? 'CREATED');
+        if (!resumingEarlierState && !(this.resuming && phase === this.resumeState)) this.transition(phase);
         await this.runPhase(phase);
       }
 
@@ -244,8 +284,19 @@ export class WorkshopRunner {
       }
 
       // The workshop always closes explicitly, even when the deadline cut it short.
-      this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
+      if (this.state !== 'CLOSING') this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
       await this.runClosing();
+
+      const unresolved = getOpportunities(this.db, this.runId).filter(
+        (opportunity) => opportunity.resolution === null,
+      );
+      if (unresolved.length > 0) {
+        throw new Error(
+          `cannot complete run with unresolved opportunities: ${unresolved
+            .map((opportunity) => opportunity.opportunity_id)
+            .join(', ')}`,
+        );
+      }
 
       this.transition('COMPLETED');
       termination = this.deadlineHit ? 'deadline_reached' : 'completed';
@@ -388,41 +439,55 @@ export class WorkshopRunner {
   // ----------------------------------------------------------------- turns
 
   private async takeTurn(spec: TurnSpec): Promise<void> {
-    if (this.resumeSkipCount > 0) { this.resumeSkipCount -= 1; return; }
-    const traceId = newTraceId();
+    const existing = this.resuming ? this.resumeOpportunities[this.resumeOpportunityIndex++] : undefined;
+    if (existing && !opportunityMatches(existing, spec)) {
+      throw new Error(`resume schedule mismatch at opportunity ${existing.opportunity_id}: stored=${JSON.stringify({ agent: existing.agent_id, state: existing.workshop_state, channel: existing.channel, round: existing.round_index, group: existing.breakout_group_id })} expected=${JSON.stringify({ agent: spec.agentId, state: spec.state, channel: spec.channel, round: spec.roundIndex, group: spec.breakoutGroupId ?? null })}`);
+    }
+    const occurrenceKey = `${spec.agentId}::${spec.state}`;
+    const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
+    this.occurrences.set(occurrenceKey, occurrence);
+    if (existing?.resolution !== null && existing !== undefined) return;
+    const traceId = existing?.trace_id ?? newTraceId();
     this.activeTraceId = traceId;
     try {
-      await this.takeTurnWithTrace(spec, traceId);
+      await this.takeTurnWithTrace(spec, traceId, existing, occurrence);
     } finally {
       this.activeTraceId = null;
     }
   }
 
-  private async takeTurnWithTrace(spec: TurnSpec, traceId: string): Promise<void> {
-    const opportunityId = newOpportunityId();
-    this.opportunitySequence += 1;
+  private async takeTurnWithTrace(
+    spec: TurnSpec,
+    traceId: string,
+    existing: OpportunityRow | undefined,
+    occurrence: number,
+  ): Promise<void> {
+    const opportunityId = existing?.opportunity_id ?? newOpportunityId();
+    if (!existing) this.opportunitySequence += 1;
     const createdAt = nowIso();
 
-    this.db
-      .prepare(
-        `INSERT INTO opportunities (opportunity_id, run_id, trace_id, sequence, agent_id, workshop_state,
-           channel, breakout_group_id, round_index, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        opportunityId,
-        this.runId,
-        traceId,
-        this.opportunitySequence,
-        spec.agentId,
-        spec.state,
-        spec.channel,
-        spec.breakoutGroupId ?? null,
-        spec.roundIndex,
-        createdAt,
-      );
+    if (!existing) {
+      this.db
+        .prepare(
+          `INSERT INTO opportunities (opportunity_id, run_id, trace_id, sequence, agent_id, workshop_state,
+             channel, breakout_group_id, round_index, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          opportunityId,
+          this.runId,
+          traceId,
+          this.opportunitySequence,
+          spec.agentId,
+          spec.state,
+          spec.channel,
+          spec.breakoutGroupId ?? null,
+          spec.roundIndex,
+          createdAt,
+        );
+    }
 
-    const opportunityEvent = this.emit('response_opportunity_created', {
+    const opportunityEvent = this.emit(existing ? 'recovery_opportunity_reopened' : 'response_opportunity_created', {
       agent_id: spec.agentId,
       channel: spec.channel,
       payload: {
@@ -430,8 +495,26 @@ export class WorkshopRunner {
         trace_id: traceId,
         round_index: spec.roundIndex,
         breakout_group_id: spec.breakoutGroupId ?? null,
+        reused_opportunity: existing !== undefined,
       },
     });
+
+    // A process can stop after routing has persisted a message but before the
+    // opportunity update/checkpoint. Reuse that durable message and repair only
+    // missing deliveries; invoking the provider again would create a duplicate
+    // behavioural output under the same response opportunity.
+    if (existing) {
+      const persisted = this.findPersistedMessage(existing);
+      if (persisted) {
+        this.repairMessageDeliveries(persisted, opportunityEvent.event_id);
+        const attempt = (this.db.prepare(
+          `SELECT MAX(attempt) AS attempt FROM invocations WHERE run_id = ?
+           AND opportunity_id = ?`,
+        ).get(this.runId, opportunityId) as { attempt: number | null }).attempt ?? 1;
+        this.resolveOpportunity(opportunityId, 'success', null, 1, persisted.message_id, attempt);
+        return;
+      }
+    }
 
     const budget = this.budgets.check(spec.agentId);
     if (!budget.allowed) {
@@ -467,6 +550,7 @@ export class WorkshopRunner {
       channel: spec.channel,
       breakoutGroupId: spec.breakoutGroupId,
       breakoutMembers: spec.breakoutMembers,
+      opportunityId,
     });
 
     const contextEvent = this.emit('context_assembled', {
@@ -489,9 +573,6 @@ export class WorkshopRunner {
     });
     this.persistSummaries(context, opportunityId);
 
-    const occurrenceKey = `${spec.agentId}::${spec.state}`;
-    const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
-    this.occurrences.set(occurrenceKey, occurrence);
     this.faults?.setContext({ state: spec.state, occurrence });
     this.executeToolProbes(spec, opportunityId, occurrence, contextEvent.event_id);
 
@@ -524,6 +605,7 @@ export class WorkshopRunner {
         configHash: this.frozen.hash,
         contextMessageIds: context.includedMessageIds,
         summaryIds: context.summaryRecords.map((summary) => summary.summary_id),
+        summaryHashes: context.summaryRecords.map((summary) => summary.content_hash),
         capabilityManifest: this.config.capabilities.manifest,
         workshopState: spec.state,
       });
@@ -811,6 +893,7 @@ export class WorkshopRunner {
 
     const message: StoredMessage = {
       message_id: messageId,
+      trace_id: this.activeTraceId,
       sequence: this.messageSequence,
       channel: spec.channel,
       breakout_group_id: spec.breakoutGroupId ?? null,
@@ -879,6 +962,47 @@ export class WorkshopRunner {
     return messageId;
   }
 
+  private findPersistedMessage(opportunity: OpportunityRow): StoredMessage | null {
+    const candidate = this.db.prepare(
+      `SELECT message_id FROM messages WHERE run_id = ? AND trace_id = ?
+       ORDER BY sequence DESC LIMIT 1`,
+    ).get(this.runId, opportunity.trace_id) as { message_id: string } | undefined;
+    const messageId = opportunity.message_id ?? candidate?.message_id ?? null;
+    if (!messageId) return null;
+    const message = this.history.find((item) => item.message_id === messageId);
+    if (!message) {
+      throw new Error(`recovery message ${messageId} is missing from the durable message log`);
+    }
+    return message;
+  }
+
+  private repairMessageDeliveries(message: StoredMessage, parentEventId: string): void {
+    const deliveryType = message.channel === 'private'
+      ? 'private_message_delivered'
+      : 'message_delivered';
+    const delivered = new Set(
+      readEvents(this.db, this.runId)
+        .filter((event) => event.event_type === deliveryType && event.payload['message_id'] === message.message_id)
+        .map((event) => event.agent_id)
+        .filter((agentId): agentId is string => agentId !== null),
+    );
+    for (const recipient of message.actual_recipients) {
+      if (delivered.has(recipient)) continue;
+      this.emit(deliveryType, {
+        agent_id: recipient,
+        channel: message.channel,
+        parent_event_id: parentEventId,
+        causal_event_ids: message.source_event_id ? [message.source_event_id] : [],
+        payload: {
+          message_id: message.message_id,
+          sender_agent_id: message.sender_agent_id,
+          breakout_group_id: message.breakout_group_id,
+          recovered: true,
+        },
+      });
+    }
+  }
+
   // ------------------------------------------------------------ persistence
 
   private executeToolProbes(
@@ -892,6 +1016,7 @@ export class WorkshopRunner {
       (probe) =>
         probe.agent_id === spec.agentId && probe.state === spec.state && probe.occurrence === occurrence,
     );
+    const logicalCalls = new Map<string, number>();
     for (const probe of probes) {
       const configuredFault = this.config.fault_injection?.faults.find(
         (fault) =>
@@ -900,6 +1025,7 @@ export class WorkshopRunner {
           fault.occurrence === occurrence &&
           isToolFailureKind(fault.kind),
       );
+      const callsUsed = logicalCalls.get(probe.tool_id) ?? 0;
       const maxAttempts = this.config.runtime.max_retries + 1;
       for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
         const toolCallId = newToolCallId();
@@ -915,18 +1041,20 @@ export class WorkshopRunner {
           (configuredFault.recover_after_attempts === null || attempt <= configuredFault.recover_after_attempts)
             ? configuredFault.kind
             : null;
-        const result = forcedFault
+        const gatewayResult = this.toolGateway.execute({
+          agentId: spec.agentId,
+          toolId: probe.tool_id,
+          input: probe.input,
+          callsUsed,
+          manifest: this.config.capabilities.manifest,
+        });
+        const result = gatewayResult.ok && forcedFault
           ? {
               ok: false as const,
               category: forcedFault,
               message: `injected tool fault: ${forcedFault} (attempt ${attempt})`,
             }
-          : this.toolGateway.execute({
-              agentId: spec.agentId,
-              toolId: probe.tool_id,
-              input: probe.input,
-              manifest: this.config.capabilities.manifest,
-            });
+          : gatewayResult;
         if (result.ok) {
           this.writeToolCall({
             toolCallId, opportunityId, spec, toolId: probe.tool_id, input: probe.input, attempt,
@@ -954,6 +1082,7 @@ export class WorkshopRunner {
           },
         });
         if (attempt < maxAttempts) {
+          if (result.category === 'permission_denied') break;
           this.emit('tool_retry_scheduled', {
             agent_id: spec.agentId,
             channel: spec.channel,
@@ -962,6 +1091,7 @@ export class WorkshopRunner {
           });
         }
       }
+      logicalCalls.set(probe.tool_id, callsUsed + 1);
     }
   }
 
@@ -1250,6 +1380,19 @@ function isToolFailureKind(
   kind: FaultKind,
 ): kind is 'tool_timeout' | 'tool_unavailable' | 'tool_invalid_response' {
   return kind === 'tool_timeout' || kind === 'tool_unavailable' || kind === 'tool_invalid_response';
+}
+
+function isWorkshopState(value: string): value is WorkshopState {
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(value);
+}
+
+function phaseRank(state: WorkshopState): number {
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING'].indexOf(state);
+}
+
+function opportunityMatches(row: OpportunityRow, spec: TurnSpec): boolean {
+  return row.agent_id === spec.agentId && row.workshop_state === spec.state && row.channel === spec.channel &&
+    row.round_index === spec.roundIndex && row.breakout_group_id === (spec.breakoutGroupId ?? null);
 }
 
 /**

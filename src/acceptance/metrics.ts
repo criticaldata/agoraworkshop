@@ -24,6 +24,7 @@ import type { Db } from '../db/index.js';
 import {
   getArtifacts,
   getInvocations,
+  getToolCalls,
   getMessages,
   getOpportunities,
   getRun,
@@ -562,8 +563,14 @@ function m12(db: Db, runId: string, evidenceRunId: string | null): MetricResult 
   }
 
   const invocations = getInvocations(db, target);
+  const toolCalls = getToolCalls(db, target);
   const problems: string[] = [];
   const refs: string[] = [];
+
+  const isToolFault = (kind: string): boolean =>
+    kind === 'tool_timeout' || kind === 'tool_unavailable' || kind === 'tool_invalid_response';
+  const providerInjected = [...new Set(injected.map((fault) => fault.kind).filter((kind) => !isToolFault(kind)))];
+  const toolInjected = [...new Set(injected.map((fault) => fault.kind).filter(isToolFault))];
 
   // Accuracy and coverage are different findings and are kept apart. Getting an injected
   // fault wrong is a defect: the instrument gave a confident wrong answer. Never injecting
@@ -572,9 +579,17 @@ function m12(db: Db, runId: string, evidenceRunId: string | null): MetricResult 
   const observedCategories = new Set(
     invocations.filter((i) => i.outcome === 'infra_failure').map((i) => i.failure_category ?? 'unknown'),
   );
-  for (const kind of new Set(injected.map((f) => f.kind))) {
+  const observedToolCategories = new Set(
+    toolCalls.filter((call) => call.outcome === 'infra_failure').map((call) => call.failure_category ?? 'unknown'),
+  );
+  for (const kind of providerInjected) {
     if (!observedCategories.has(kind)) {
       problems.push(`${kind} was injected but never recorded as a ${kind} failure`);
+    }
+  }
+  for (const kind of toolInjected) {
+    if (!observedToolCategories.has(kind)) {
+      problems.push(`${kind} was injected but never recorded as a ${kind} tool failure`);
     }
   }
   const uncovered = REQUIRED_INJECTED_FAULTS.filter((kind) => !observedCategories.has(kind));
@@ -588,13 +603,15 @@ function m12(db: Db, runId: string, evidenceRunId: string | null): MetricResult 
     refs.push(...conflated.slice(0, 5).map((o) => o.opportunity_id));
   }
 
-  const retriesRecorded = readEvents(db, target).filter((e) => e.event_type === 'retry_scheduled').length;
+  const retriesRecorded = readEvents(db, target).filter(
+    (e) => e.event_type === 'retry_scheduled' || e.event_type === 'tool_retry_scheduled',
+  ).length;
   if (retriesRecorded === 0 && config.runtime.max_retries > 0) {
     problems.push('faults were injected under a retrying policy but no retry was recorded');
   }
 
   const accurate = `run ${target}: ${injected.length} injected faults, each detected and classified ` +
-    `as the condition injected (${[...observedCategories].sort().join(', ')}); ${retriesRecorded} retries recorded`;
+    `as the condition injected (${[...new Set([...observedCategories, ...observedToolCategories])].sort().join(', ')}); ${retriesRecorded} retries recorded`;
 
   const status: GateStatus =
     problems.length > 0 ? 'FAIL' : uncovered.length > 0 ? 'NOT_EXERCISED' : 'PASS';
@@ -904,6 +921,24 @@ function m19(db: Db, runId: string, config: ExperimentConfig): MetricResult {
     const ordered = [...eligible].sort((a, b) => a.sequence - b.sequence);
     const expected = policy.max_messages === null ? ordered : ordered.slice(-policy.max_messages);
     const expectedIds = new Set(expected.map((m) => m.message_id));
+    if (policy.summarization?.enabled) {
+      const grouped = new Map<string, StoredMessage[]>();
+      for (const message of ordered) {
+        const scope = message.channel === 'public'
+          ? 'public'
+          : message.breakout_group_id
+            ? 'breakout'
+            : 'private';
+        if (!policy.summarization.scopes.includes(scope)) continue;
+        const list = grouped.get(scope) ?? [];
+        list.push(message);
+        grouped.set(scope, list);
+      }
+      for (const messagesForScope of grouped.values()) {
+        const sources = messagesForScope.slice(-policy.summarization.max_source_messages);
+        for (const message of sources) expectedIds.add(message.message_id);
+      }
+    }
     const actualIds = new Set(JSON.parse(invocation.context_message_ids) as string[]);
 
     // Both directions. The first is a leak, which M4 also catches. The second is an

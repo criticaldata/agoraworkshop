@@ -28,9 +28,10 @@ export interface ReconcileResult {
 
 /**
  * Marks every non-terminal run as interrupted. Partial data is left exactly as it was
- * written: no event is deleted, no message is removed, no opportunity that already had
- * a resolution is touched. The only writes are the terminal status and the record of
- * the interruption itself.
+ * written: no event is deleted, no message is removed, and no opportunity that already
+ * had a resolution is touched. A dangling opportunity is explicitly classified as an
+ * infrastructure interruption so recovery can reopen it without treating silence as
+ * agent behaviour; the status and interruption event are then recorded.
  */
 export function reconcileInterruptedRuns(db: Db, at = nowIso()): ReconcileResult {
   const stale = listRuns(db).filter(
@@ -43,8 +44,7 @@ export function reconcileInterruptedRuns(db: Db, at = nowIso()): ReconcileResult
     for (const run of stale) {
       const dangling = getOpportunities(db, run.run_id).filter((o) => o.resolution === null);
 
-      const recoveryEnabled = (() => { try { return JSON.parse(run.config_json).recovery?.enabled === true; } catch { return false; } })();
-      for (const opportunity of recoveryEnabled ? [] : dangling) {
+      for (const opportunity of dangling) {
         // An interrupted turn is an infrastructure failure, never an abstention. The
         // agent was never given the chance to stay silent, so silence here says
         // nothing about its behaviour.

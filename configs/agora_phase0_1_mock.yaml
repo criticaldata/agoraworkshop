@@ -65,4 +65,10 @@ tool_probe:
 recovery: { enabled: true, checkpoint_every: opportunity }
 validation: { profile: standard }
 scheduling: { order: rotate_by_round }
-fault_injection: { enabled: false, faults: [] }
+fault_injection:
+  enabled: true
+  faults:
+    # The tool-fault run is part of this deterministic robustness package. The first
+    # probe attempt fails, the retry succeeds, and M26 can audit both classification
+    # and scope without using a provider credential.
+    - { agent_id: agent_1, state: INTRODUCTION, occurrence: 1, kind: tool_timeout, recover_after_attempts: 1 }

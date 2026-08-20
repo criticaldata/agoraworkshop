@@ -41,6 +41,12 @@ export class BudgetLedger {
     this.usage.set(agentId, { calls: used.calls + 1, tokens: used.tokens + tokens });
   }
 
+  restore(snapshots: Record<string, BudgetSnapshot>): void {
+    for (const [agentId, snapshot] of Object.entries(snapshots)) {
+      this.usage.set(agentId, { calls: snapshot.calls, tokens: snapshot.tokens });
+    }
+  }
+
   all(): Record<string, BudgetSnapshot> {
     return Object.fromEntries(this.usage);
   }

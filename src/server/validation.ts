@@ -172,22 +172,30 @@ export function validationPage(input: ValidationPageInput): string {
     <div>
       <h2>${
         set.phase0_validated
-          ? 'All three Phase 0 gates passed on the evidence below.'
+          ? set.phase01
+            ? 'All three Phase 0 gates and the opted-in Phase 0.1 checks passed on the evidence below.'
+            : 'All three Phase 0 gates passed on the evidence below.'
           : 'At least one gate is unproven or failing.'
       }</h2>
       ${
         set.outstanding.length === 0
           ? '<p>This package validates the apparatus. It says nothing about agent behaviour.</p>'
-          : `<ul class="vp-outstanding">${set.gates
-              .filter((g) => g.status !== 'PASS')
-              .map(
-                (g) =>
-                  `<li><b>${esc(g.title)}</b>: ${esc(
-                    // The action to take, when there is one. Otherwise the defect itself.
-                    g.next_steps[0]?.text ?? g.failures[0] ?? g.not_exercised[0] ?? '',
-                  )}</li>`,
-              )
-              .join('')}</ul>`
+          : `<ul class="vp-outstanding">${[
+              ...set.gates
+                .filter((g) => g.status !== 'PASS')
+                .map(
+                  (g) =>
+                    `<li><b>${esc(g.title)}</b>: ${esc(
+                      // The action to take, when there is one. Otherwise the defect itself.
+                      g.next_steps[0]?.text ?? g.failures[0] ?? g.not_exercised[0] ?? '',
+                    )}</li>`,
+                ),
+              ...(set.phase01 && set.phase01.status !== 'PASS'
+                ? set.phase01.metrics
+                    .filter((metric) => metric.status !== 'PASS')
+                    .map((metric) => `<li><b>${esc(metric.id)}</b>: ${esc(metric.evidence)}</li>`)
+                : []),
+            ].join('')}</ul>`
       }
     </div>
   </div>
@@ -257,6 +265,7 @@ export function validationPage(input: ValidationPageInput): string {
     <p class="note">Each verdict is followed by the evidence it was computed from and the
     run that evidence came from.</p>
     ${set.gates.map((g) => gateCard(g, run.run_id, input.mode)).join('\n')}
+    ${set.phase01 ? phase01Card(set.phase01) : ''}
   </section>
 
   ${
@@ -399,7 +408,7 @@ function fourChecks(checks: Phase0Check[]): string {
  *
  * Kept folded away and out of the simple view: a reader deciding whether to trust the
  * instrument needs the verdict and the evidence, and only an auditor needs to see which
- * of eighteen agreed thresholds each sentence corresponds to. It is here so that the
+ * of twenty-two agreed thresholds each sentence corresponds to. It is here so that the
  * verdict can be checked rather than taken on trust.
  */
 function metricTable(metrics: MetricResult[]): string {
@@ -445,5 +454,17 @@ function gateCard(gate: ValidationSetGate, runId: string, mode: ViewMode): strin
         : ''
     }
     ${mode === 'full' ? metricTable(gate.metrics ?? []) : ''}
+  </article>`;
+}
+
+function phase01Card(phase01: NonNullable<ValidationSet['phase01']>): string {
+  const statusTone = tone(phase01.status);
+  return `<article class="vp-gate ${statusTone}">
+    <h3>Phase 0.1 robustness <span class="pill ${statusTone}">${esc(label(phase01.status))}</span></h3>
+    <p class="q">Are context, tools, traces, recovery, backups, moderator boundaries and live-canary evidence auditable?</p>
+    <details>
+      <summary>Show M23–M30 (${phase01.metrics.length} checks)</summary>
+      <ul>${phase01.metrics.map((metric) => `<li><code>${esc(metric.id)}</code> <b>${esc(metric.status)}</b>: ${esc(metric.evidence)}</li>`).join('')}</ul>
+    </details>
   </article>`;
 }

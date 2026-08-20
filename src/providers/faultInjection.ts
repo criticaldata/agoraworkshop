@@ -7,7 +7,9 @@ import {
   type AgentProvider,
 } from './types.js';
 
-const FAULT_TO_CATEGORY: Partial<Record<FaultKind, InfrastructureFailure>> = {
+type ProviderFaultKind = Exclude<FaultKind, 'tool_timeout' | 'tool_unavailable' | 'tool_invalid_response'>;
+
+const FAULT_TO_CATEGORY: Record<ProviderFaultKind, InfrastructureFailure> = {
   timeout: 'timeout',
   rate_limit: 'rate_limit',
   provider_error: 'provider_error',
@@ -58,7 +60,7 @@ export class FaultInjectingProvider implements AgentProvider {
         fault !== undefined &&
         request.attempt > fault.recover_after_attempts;
 
-      const category = fault ? FAULT_TO_CATEGORY[fault.kind] : undefined;
+      const category = fault && isProviderFaultKind(fault.kind) ? FAULT_TO_CATEGORY[fault.kind] : undefined;
       if (fault && category && !clears) {
         const requestTs = new Date().toISOString();
         const startedAt = Date.now();
@@ -75,4 +77,8 @@ export class FaultInjectingProvider implements AgentProvider {
     }
     return this.inner.invoke(request);
   }
+}
+
+function isProviderFaultKind(kind: FaultKind): kind is ProviderFaultKind {
+  return kind !== 'tool_timeout' && kind !== 'tool_unavailable' && kind !== 'tool_invalid_response';
 }

@@ -14,6 +14,7 @@ export interface AgentInvocationRequest {
   configHash?: string;
   contextMessageIds?: string[];
   summaryIds?: string[];
+  summaryHashes?: string[];
   capabilityManifest?: unknown[];
   /** Present so a scripted agent can pick its line. Model adapters ignore it. */
   workshopState?: WorkshopState;

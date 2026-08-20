@@ -86,6 +86,7 @@ export interface InvocationRow {
 interface MessageRow {
   message_id: string;
   run_id: string;
+  trace_id: string | null;
   sequence: number;
   channel: string;
   breakout_group_id: string | null;
@@ -162,6 +163,7 @@ export function getMessages(db: Db, runId: string): StoredMessage[] {
     .all(runId) as MessageRow[];
   return rows.map((row) => ({
     message_id: row.message_id,
+    trace_id: row.trace_id,
     sequence: row.sequence,
     channel: row.channel as 'public' | 'private',
     breakout_group_id: row.breakout_group_id,

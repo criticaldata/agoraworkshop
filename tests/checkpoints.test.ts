@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { evaluatePhase01 } from '../src/acceptance/phase01.js';
+import { evaluateGates } from '../src/acceptance/gates.js';
 import { frozen, tempDb } from './helpers.js';
 
 describe('Phase 0.1 checkpoints', () => {
@@ -77,6 +78,57 @@ describe('Phase 0.1 checkpoints', () => {
     expect((db.prepare(`SELECT started_at FROM runs WHERE run_id = ?`).get(first.id) as { started_at: string }).started_at)
       .toBe(originalStartedAt);
     expect(evaluatePhase01(db, first.id).find((metric) => metric.id === 'M27')?.status).toBe('PASS');
+    const resumedGates = evaluateGates({ db, runId: first.id });
+    expect(resumedGates.gates.infrastructure_validated.metrics
+      .find((metric) => metric.id === 'M5')?.status)
+      .toBe('PASS');
+  });
+
+  it('restores interrupted classification when a resumed opportunity fails before resolution', async () => {
+    const db = tempDb();
+    const config = frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } });
+    const first = new WorkshopRunner({ db, frozen: config });
+    await first.execute();
+
+    const target = db.prepare(
+      `SELECT opportunity_id FROM opportunities WHERE run_id = ? ORDER BY sequence LIMIT 1`,
+    ).get(first.id) as { opportunity_id: string };
+    const targetEvent = db.prepare(
+      `SELECT sequence FROM events WHERE run_id = ? AND event_type = 'response_opportunity_created'
+       AND json_extract(payload, '$.opportunity_id') = ?`,
+    ).get(first.id, target.opportunity_id) as { sequence: number };
+
+    db.prepare(`DELETE FROM events WHERE run_id = ? AND sequence > ?`).run(first.id, targetEvent.sequence);
+    db.prepare(`DELETE FROM state_transitions WHERE run_id = ? AND sequence > ?`).run(first.id, targetEvent.sequence);
+    db.prepare(`DELETE FROM messages WHERE run_id = ? AND source_event_id NOT IN
+      (SELECT event_id FROM events WHERE run_id = ?)`).run(first.id, first.id);
+    db.prepare(`UPDATE opportunities SET resolution = 'infrastructure_failure',
+      failure_category = 'interrupted', resolved_at = ?, behaviourally_available = 0,
+      message_id = NULL, attempts = 0 WHERE opportunity_id = ?`)
+      .run(new Date().toISOString(), target.opportunity_id);
+    db.prepare(`UPDATE runs SET status = 'INTERRUPTED', termination_reason = 'interrupted',
+      ended_at = NULL, failure_reason = 'test interruption', started_at = ? WHERE run_id = ?`)
+      .run(new Date(Date.now() - 1000).toISOString(), first.id);
+
+    const failingProvider = {
+      name: 'throwing-test-provider',
+      invoke: async () => {
+        throw new Error('simulated resume failure');
+      },
+    };
+    const resumed = new WorkshopRunner({
+      db,
+      frozen: config,
+      resumeRunId: first.id,
+      provider: failingProvider,
+    });
+    const result = await resumed.execute();
+
+    expect(result.status).toBe('FAILED');
+    expect((db.prepare(
+      `SELECT resolution, failure_category FROM opportunities WHERE opportunity_id = ?`,
+    ).get(target.opportunity_id) as { resolution: string | null; failure_category: string | null }))
+      .toEqual({ resolution: 'infrastructure_failure', failure_category: 'interrupted' });
   });
 
   it('repairs missing deliveries without invoking again when a message was already persisted', async () => {
@@ -139,7 +191,7 @@ describe('Phase 0.1 checkpoints', () => {
     ).get(closing.message_id) as { source_event_id: string }).source_event_id).toBe(message.source_event_id);
   });
 
-  it('refuses to mark a resumed run complete while any opportunity remains unresolved', async () => {
+  it('refuses to mark a resumed run complete and classifies an unreachable opportunity', async () => {
     const db = tempDb();
     const config = frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } });
     const first = new WorkshopRunner({ db, frozen: config });
@@ -170,8 +222,9 @@ describe('Phase 0.1 checkpoints', () => {
     const result = await resumed.execute();
 
     expect(result.status).toBe('FAILED');
-    expect((db.prepare(
-      `SELECT resolution FROM opportunities WHERE opportunity_id = 'opp_unresolved_after_schedule'`,
-    ).get() as { resolution: string | null }).resolution).toBeNull();
+    const extra = db.prepare(
+      `SELECT resolution, failure_category FROM opportunities WHERE opportunity_id = 'opp_unresolved_after_schedule'`,
+    ).get() as { resolution: string | null; failure_category: string | null };
+    expect(extra).toEqual({ resolution: 'infrastructure_failure', failure_category: 'interrupted' });
   });
 });

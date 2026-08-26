@@ -29,7 +29,7 @@ import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 import { ToolGateway } from '../tools/gateway.js';
-import { getMessages, getOpportunities, getRun, type OpportunityRow } from '../db/queries.js';
+import { getMessages, getOpportunities, getRun, getTransitions, type OpportunityRow } from '../db/queries.js';
 
 export type TerminationReason =
   | 'completed'
@@ -104,6 +104,8 @@ export class WorkshopRunner {
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
   private readonly resumeOpportunities: OpportunityRow[];
+  /** Completed state transitions are durable across a resume and must not be appended twice. */
+  private readonly resumeTransitionKeys: Set<string>;
   private resumeOpportunityIndex = 0;
   private readonly resumeState: WorkshopState | null;
   private readonly resuming: boolean;
@@ -118,6 +120,7 @@ export class WorkshopRunner {
     this.budgets = new BudgetLedger(this.config);
     let existingStartMs = Date.now();
     this.resumeOpportunities = [];
+    this.resumeTransitionKeys = new Set<string>();
     this.resumeState = null;
     if (this.resuming) {
       const existing = getRun(this.db, this.runId);
@@ -137,15 +140,15 @@ export class WorkshopRunner {
       }
       const parsedStart = existing.started_at ? Date.parse(existing.started_at) : Number.NaN;
       if (Number.isFinite(parsedStart)) existingStartMs = parsedStart;
-      this.db.prepare(
-        `UPDATE opportunities SET resolved_at = NULL, resolution = NULL, failure_category = NULL,
-           behaviourally_available = 0, attempts = 0
-         WHERE run_id = ? AND resolution = 'infrastructure_failure' AND failure_category = 'interrupted'`,
-      ).run(this.runId);
       this.history = getMessages(this.db, this.runId);
       this.messageSequence = this.history.at(-1)?.sequence ?? 0;
       const opportunities = getOpportunities(this.db, this.runId);
       this.resumeOpportunities.push(...opportunities);
+      for (const transition of getTransitions(this.db, this.runId)) {
+        if (transition.status === 'completed') {
+          this.resumeTransitionKeys.add(`${transition.from_state}->${transition.to_state}`);
+        }
+      }
       this.opportunitySequence = Math.max(0, ...opportunities.map((row) => row.sequence));
       this.invocationSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM invocations WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
       this.toolCallSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM tool_calls WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
@@ -311,6 +314,7 @@ export class WorkshopRunner {
       return this.result('COMPLETED', termination);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (this.resuming) this.classifyUnresolvedResumeOpportunities();
       if (!TERMINAL_STATES.includes(this.state)) {
         this.transition('FAILED', message);
       }
@@ -446,7 +450,9 @@ export class WorkshopRunner {
     const occurrenceKey = `${spec.agentId}::${spec.state}`;
     const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
     this.occurrences.set(occurrenceKey, occurrence);
-    if (existing?.resolution !== null && existing !== undefined) return;
+    const interrupted = existing?.resolution === 'infrastructure_failure' && existing.failure_category === 'interrupted';
+    if (interrupted) this.reopenInterruptedOpportunity(existing.opportunity_id);
+    if (existing?.resolution !== null && !interrupted && existing !== undefined) return;
     const traceId = existing?.trace_id ?? newTraceId();
     this.activeTraceId = traceId;
     try {
@@ -1254,6 +1260,35 @@ export class WorkshopRunner {
     this.writeCheckpoint(opportunityId);
   }
 
+  /** Reopen only the opportunity whose scheduled turn is actually being resumed. */
+  private reopenInterruptedOpportunity(opportunityId: string): void {
+    this.db
+      .prepare(
+        `UPDATE opportunities SET resolved_at = NULL, resolution = NULL, failure_category = NULL,
+           behaviourally_available = 0, attempts = 0
+         WHERE opportunity_id = ? AND resolution = 'infrastructure_failure'
+           AND failure_category = 'interrupted'`,
+      )
+      .run(opportunityId);
+  }
+
+  /**
+   * A resume can fail before it reaches every pending turn. Those turns must remain
+   * explicitly classified so a later reconcile/resume can distinguish interruption
+   * from agent behaviour; constructor-time reopening would leave them orphaned.
+   */
+  private classifyUnresolvedResumeOpportunities(): void {
+    const resolvedAt = nowIso();
+    this.db
+      .prepare(
+        `UPDATE opportunities SET resolution = 'infrastructure_failure',
+           failure_category = 'interrupted', behaviourally_available = 0,
+           resolved_at = ?
+         WHERE run_id = ? AND resolution IS NULL`,
+      )
+      .run(resolvedAt, this.runId);
+  }
+
   private writeCheckpoint(opportunityId: string): void {
     if (!this.config.recovery?.enabled) return;
     this.db
@@ -1283,6 +1318,14 @@ export class WorkshopRunner {
   private transition(to: WorkshopState, reason?: string): void {
     const from = this.state;
     const startedAt = nowIso();
+
+    // A recovered run may have durable transition rows beyond the last event that
+    // survived an interruption. Reusing the existing row keeps the state-machine
+    // history a single chain instead of appending a second copy of the same pass.
+    if (this.resuming && this.resumeTransitionKeys.has(`${from}->${to}`)) {
+      this.state = to;
+      return;
+    }
 
     if (!canTransition(from, to)) {
       this.emit('state_transition_rejected', {

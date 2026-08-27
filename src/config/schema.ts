@@ -96,7 +96,7 @@ export const ExperimentConfigSchema = z
     config_version: z.number().int().positive(),
 
     model: z.object({
-      provider: z.enum(['openai', 'anthropic', 'mock', 'mock_context_contract']),
+      provider: z.enum(['openai', 'anthropic', 'mock', 'mock_context_contract', 'nvidia_vllm']),
       /** Exact provider model identifier. Never substituted at runtime. */
       model: z.string().min(1),
       max_output_tokens: z.number().int().positive(),

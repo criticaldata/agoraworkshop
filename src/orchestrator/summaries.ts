@@ -27,7 +27,8 @@ export function buildContextSummaries(input: {
   agentId: string;
   messages: StoredMessage[];
   render: (message: StoredMessage) => string;
-  opportunityId?: string;
+  /** Required: two turns with an unchanged source set would otherwise share a summary id. */
+  opportunityId: string;
 }): ContextSummaryRecord[] {
   const policy = input.config.context_policy.summarization;
   if (!policy?.enabled) return [];
@@ -59,7 +60,7 @@ export function buildContextSummaries(input: {
     const contentHash = sha256(content);
     return {
       summary_id: `summary_${createHash('sha256')
-        .update(`${input.opportunityId ?? 'unbound'}\u0000${scope}\u0000${input.agentId}\u0000${policy.version}\u0000${sourceHash}`, 'utf8')
+        .update(`${input.opportunityId}\u0000${scope}\u0000${input.agentId}\u0000${policy.version}\u0000${sourceHash}`, 'utf8')
         .digest('hex')}`,
       scope,
       agent_id: input.agentId,

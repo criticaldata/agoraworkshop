@@ -32,7 +32,7 @@ export interface AssembleContextInput {
   breakoutGroupId?: string;
   breakoutMembers?: string[];
   /** The durable opportunity namespace prevents summary primary-key collisions. */
-  opportunityId?: string;
+  opportunityId: string;
 }
 
 /**

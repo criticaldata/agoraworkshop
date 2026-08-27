@@ -2,6 +2,7 @@ import type { ExperimentConfig } from '../config/schema.js';
 import { AnthropicProvider } from './anthropic.js';
 import { OpenAIProvider } from './openai.js';
 import { MockProvider } from './mock.js';
+import { MockContextContractProvider } from './mockContextContract.js';
 import { FaultInjectingProvider } from './faultInjection.js';
 import type { AgentProvider } from './types.js';
 
@@ -13,6 +14,8 @@ function baseProvider(config: ExperimentConfig): AgentProvider {
       return new AnthropicProvider();
     case 'mock':
       return new MockProvider();
+    case 'mock_context_contract':
+      return new MockContextContractProvider();
   }
 }
 

@@ -30,6 +30,7 @@ export interface RunRow {
 export interface OpportunityRow {
   opportunity_id: string;
   run_id: string;
+  trace_id: string | null;
   sequence: number;
   agent_id: string;
   workshop_state: string;
@@ -49,6 +50,7 @@ export interface InvocationRow {
   invocation_id: string;
   run_id: string;
   opportunity_id: string;
+  trace_id: string | null;
   sequence: number;
   agent_id: string;
   workshop_state: string;
@@ -84,6 +86,7 @@ export interface InvocationRow {
 interface MessageRow {
   message_id: string;
   run_id: string;
+  trace_id: string | null;
   sequence: number;
   channel: string;
   breakout_group_id: string | null;
@@ -107,6 +110,26 @@ export interface TransitionRow {
   reason: string | null;
   started_at: string;
   completed_at: string | null;
+}
+
+export interface ContextSummaryRow {
+  summary_id: string; run_id: string; trace_id: string; opportunity_id: string; agent_id: string;
+  scope: string; summarizer_version: string; source_message_ids: string; source_hash: string;
+  content: string; content_hash: string; fidelity_hash: string; created_at: string;
+}
+export interface ToolCallRow {
+  tool_call_id: string; run_id: string; trace_id: string; opportunity_id: string; sequence: number;
+  attempt: number; agent_id: string; tool_id: string; workshop_state: string; channel: string;
+  result_scope: string | null; input_json: string; result_json: string | null; outcome: string;
+  failure_category: string | null; error_message: string | null; created_at: string;
+}
+export interface CheckpointRow {
+  checkpoint_id: string; run_id: string; sequence: number; opportunity_id: string;
+  event_sequence: number; state_json: string; created_at: string;
+}
+export interface BackupVerificationRow {
+  backup_verification_id: string; run_id: string; backup_path: string; backup_sha256: string;
+  backup_bytes: number; config_hash: string; event_count: number; verified_at: string;
 }
 
 /** Rebuilds the provenance record stored on a run. */
@@ -140,6 +163,7 @@ export function getMessages(db: Db, runId: string): StoredMessage[] {
     .all(runId) as MessageRow[];
   return rows.map((row) => ({
     message_id: row.message_id,
+    trace_id: row.trace_id,
     sequence: row.sequence,
     channel: row.channel as 'public' | 'private',
     breakout_group_id: row.breakout_group_id,
@@ -178,6 +202,19 @@ export function getTransitions(db: Db, runId: string): TransitionRow[] {
   return db
     .prepare(`SELECT * FROM state_transitions WHERE run_id = ? ORDER BY id ASC`)
     .all(runId) as TransitionRow[];
+}
+
+export function getContextSummaries(db: Db, runId: string): ContextSummaryRow[] {
+  return db.prepare(`SELECT * FROM context_summaries WHERE run_id = ? ORDER BY created_at, summary_id`).all(runId) as ContextSummaryRow[];
+}
+export function getToolCalls(db: Db, runId: string): ToolCallRow[] {
+  return db.prepare(`SELECT * FROM tool_calls WHERE run_id = ? ORDER BY sequence`).all(runId) as ToolCallRow[];
+}
+export function getCheckpoints(db: Db, runId: string): CheckpointRow[] {
+  return db.prepare(`SELECT * FROM run_checkpoints WHERE run_id = ? ORDER BY sequence`).all(runId) as CheckpointRow[];
+}
+export function getBackupVerifications(db: Db, runId: string): BackupVerificationRow[] {
+  return db.prepare(`SELECT * FROM backup_verifications WHERE run_id = ? ORDER BY verified_at`).all(runId) as BackupVerificationRow[];
 }
 
 export function runsWithConfigHash(db: Db, configHash: string): RunRow[] {

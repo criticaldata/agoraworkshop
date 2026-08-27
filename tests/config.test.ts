@@ -5,6 +5,7 @@ import { ExperimentConfigSchema } from '../src/config/schema.js';
 import { baseConfigObject, frozen, tempDb } from './helpers.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { getRun } from '../src/db/queries.js';
+import { buildProvider } from '../src/providers/registry.js';
 
 describe('canonical serialization', () => {
   it('is stable regardless of key insertion order', () => {
@@ -97,6 +98,113 @@ describe('config immutability', () => {
 });
 
 describe('config validation', () => {
+  it('preserves opt-in Phase 0.1 context, tool, recovery, and canary contracts in the frozen hash', () => {
+    const phase01 = freezeConfig(
+      baseConfigObject({
+        model: { ...(baseConfigObject().model as object), provider: 'openai' },
+        capabilities: {
+          tools_enabled: true,
+          manifest: [
+            {
+              id: 'echo',
+              allowed_agents: ['agent_1'],
+              result_scope: 'private',
+              max_calls_per_opportunity: 1,
+            },
+          ],
+        },
+        context_policy: {
+          version: 'phase0_1',
+          include_public_history: true,
+          include_own_private: true,
+          max_messages: 5,
+          summarization: {
+            enabled: true,
+            version: 'rolling-v1',
+            max_source_messages: 3,
+            scopes: ['public', 'breakout', 'private'],
+            fidelity_audit: true,
+          },
+        },
+        tool_probe: {
+          enabled: true,
+          probes: [
+            {
+              agent_id: 'agent_1',
+              state: 'INTRODUCTION',
+              occurrence: 1,
+              tool_id: 'echo',
+              input: { value: 'deterministic' },
+            },
+          ],
+        },
+        recovery: { enabled: true, checkpoint_every: 'opportunity' },
+        validation: { profile: 'live_canary' },
+      }),
+    );
+
+    const config = phase01.config as unknown as {
+      model: { provider: string };
+      context_policy: { summarization?: { version: string } };
+      capabilities: { manifest: Array<{ id: string }> };
+      tool_probe?: { enabled: boolean };
+      recovery?: { enabled: boolean };
+      validation?: { profile: string };
+    };
+    expect(config.model.provider).toBe('openai');
+    expect(config.context_policy.summarization?.version).toBe('rolling-v1');
+    expect(config.capabilities.manifest[0]?.id).toBe('echo');
+    expect(config.tool_probe?.enabled).toBe(true);
+    expect(config.recovery?.enabled).toBe(true);
+    expect(config.validation?.profile).toBe('live_canary');
+    expect(phase01.hash).not.toBe(frozen().hash);
+  });
+
+  it('rejects an unauthorized tool probe and a mock live canary', () => {
+    expect(() =>
+      freezeConfig(
+        baseConfigObject({
+          capabilities: {
+            tools_enabled: true,
+            manifest: [
+              {
+                id: 'echo',
+                allowed_agents: ['agent_1'],
+                result_scope: 'private',
+                max_calls_per_opportunity: 1,
+              },
+            ],
+          },
+          tool_probe: {
+            enabled: true,
+            probes: [
+              {
+                agent_id: 'agent_2',
+                state: 'INTRODUCTION',
+                occurrence: 1,
+                tool_id: 'echo',
+                input: {},
+              },
+            ],
+          },
+        }),
+      ),
+    ).toThrow(/not authorized/);
+
+    expect(() =>
+      freezeConfig(baseConfigObject({ validation: { profile: 'live_canary' } })),
+    ).toThrow(/live canary.*mock/i);
+  });
+
+  it('selects the explicit context-contract mock instead of substituting another provider', () => {
+    const config = freezeConfig(
+      baseConfigObject({
+        model: { ...(baseConfigObject().model as object), provider: 'mock_context_contract' },
+      }),
+    ).config;
+    expect(buildProvider(config).provider.name).toBe('mock_context_contract');
+  });
+
   it('rejects a moderator id that collides with a participant', () => {
     expect(() =>
       freezeConfig(baseConfigObject({ moderator: { id: 'agent_1', display_name: 'M' } })),

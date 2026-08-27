@@ -20,22 +20,22 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
   simultaneity, interruption, and self-selected turn-taking are not modelled.
 - **Breakout groups are static.** Group membership comes from the config and does not
   change during a run.
-- **Raw context only.** Context is assembled from raw messages with no summarisation.
-  A long enough run will eventually exceed the context window; there is no compaction
-  strategy yet, and `context_policy.max_messages` is a blunt fallback.
+- **Summarisation is opt-in and extractive.** The default keeps raw messages
+  authoritative. Phase 0.1 can add channel-scoped rolling summaries with source ids,
+  hashes and fidelity audits, but this is not a behavioural or semantic summariser.
 - **Failed attempts consume call budget.** A repeatedly timing-out agent burns its call
   budget on attempts that produced nothing. This is deliberate (it bounds spend) but it
   means budget exhaustion and provider instability are correlated.
 - **No mid-run configuration changes.** The config is frozen at run start, by design.
 - **Single-process runtime.** Runs are executed in the web process. There is no queue,
   so a process restart mid-run stops the run in place. Startup reconciliation marks such
-  a run `INTERRUPTED`, records its unresolved turns as the infrastructure category
-  `interrupted`, appends a `run_interrupted` event, and preserves every event, message
-  and invocation already written. It cannot resume the run: it has to be started again
-  from the beginning.
-- **The scripted moderator is untested in practice.** It is implemented and covered by
-  tests, but every run recorded so far used the model-backed moderator, so its effect on
-  a workshop has not been observed.
+  a run `INTERRUPTED`, records unresolved turns provisionally as the infrastructure
+  category `interrupted`, appends a `run_interrupted` event, and preserves every event,
+  message and invocation already written. Runs with `recovery.enabled=true` can resume
+  the stored schedule; historical runs without recovery remain interrupted.
+- **The scripted moderator is only validated in the deterministic mock package.** Its
+  privacy and state-boundary checks are exercised there, but no live-provider comparison
+  against an LLM moderator has been run.
 - **Failure-evidence runs are found by searching.** When no run is named explicitly, the
   validation set picks the most recent run that recorded infrastructure failures, which
   may be under a different configuration than the run being validated. The package

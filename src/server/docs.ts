@@ -2,6 +2,8 @@ import { esc } from '../export/replayHtml.js';
 import type { ViewMode } from './viewMode.js';
 import { BASE_STYLES } from './theme.js';
 import { REQUIRED_BUNDLE_ITEMS } from '../export/bundleContract.js';
+import { EVENT_TYPES, INFRASTRUCTURE_FAILURES } from '../events/types.js';
+import { SCHEMA_SQL } from '../db/schema.js';
 
 /**
  * Technical documentation.
@@ -16,9 +18,9 @@ import { REQUIRED_BUNDLE_ITEMS } from '../export/bundleContract.js';
 
 /** Figures quoted in the prose. `tests/docsPage.test.ts` asserts these against source. */
 export const FACTS = {
-  eventTypes: 39,
-  failureCategories: 12,
-  tables: 11,
+  eventTypes: EVENT_TYPES.length,
+  failureCategories: INFRASTRUCTURE_FAILURES.length,
+  tables: (SCHEMA_SQL.match(/CREATE TABLE IF NOT EXISTS/g) ?? []).length,
   runtimeNode: 22,
 } as const;
 
@@ -245,6 +247,10 @@ function sectionData(): string {
     ['opportunities', 'Each turn an agent was offered, how it resolved, and whether the agent was in fact able to act. This table alone determines participation figures.'],
     ['invocations', 'Each provider attempt, including failed ones: the resolved system prompt, the rendered context, the message identifiers included, the generation parameters, the budget position at the time, latency, usage and outcome.'],
     ['messages', 'Each message, with its channel, intended and actual recipients, and the invocation and event that produced it.'],
+    ['context_summaries', 'Channel-scoped extractive summaries with source message identifiers and content/fidelity hashes. Raw messages remain authoritative.'],
+    ['tool_calls', 'Every deterministic tool probe and retry, including its trace, scope, structured input/output, and classified failure if any.'],
+    ['run_checkpoints', 'Immutable recovery snapshot after each resolved opportunity, including scheduler counters, budget state and event sequence.'],
+    ['backup_verifications', 'Run-linked SQLite snapshot checksum and the config/event continuity observed after reopening it.'],
     ['artifacts', 'Each exported file with its size and SHA-256.'],
     ['semantic_extractions', 'One row per post-hoc reading of a finished run: the pipeline, model, prompt and code that produced it. Re-running writes a new row, so a graph never changes meaning quietly.'],
     ['semantic_nodes', 'Topics, concepts and claims read out of the transcript, each with the message it was first observed in. Derived, not authoritative.'],
@@ -255,7 +261,7 @@ function sectionData(): string {
   return `<section id="data">
   <p class="eyebrow">Persistence</p>
   <h2>Data model</h2>
-  <p class="body">The first seven tables are the experimental record. The four
+  <p class="body">The first eleven tables are the experimental record. The four
   <code>semantic_</code> tables are post-hoc analysis of it: they are produced after a run
   has finished, they are never shown to a participating agent, and deleting all of them
   would lose no experimental data.</p>
@@ -736,7 +742,7 @@ function sectionLimits(): string {
   const limits: Array<[string, string, string]> = [
     [
       'Runs execute in the web process',
-      'There is no queue and no worker. A deployment or restart during a run stops it in place. Startup reconciliation marks such a run INTERRUPTED and preserves its partial log, but the run cannot be resumed: it has to be started again from the beginning.',
+      'There is no queue and no worker. A deployment or restart during a run stops it in place. Startup reconciliation marks such a run INTERRUPTED and preserves its partial log. Recovery-enabled runs can resume from the durable opportunity/checkpoint record; non-recovery runs remain interrupted.',
       'Operational',
     ],
     [
@@ -750,8 +756,8 @@ function sectionLimits(): string {
       'Design',
     ],
     [
-      'Context is assembled raw and grows with the run',
-      'Each turn resends the full visible transcript, so token use grows roughly with the square of the number of turns. A long run will eventually exceed the context window; the only control is a blunt cap on message count.',
+      'Context summaries are opt-in and extractive',
+      'The default keeps raw messages authoritative. A recovery/summary configuration may add channel-scoped rolling summaries with source ids and fidelity hashes; the message cap still controls the raw transcript.',
       'Design',
     ],
     [
@@ -765,8 +771,8 @@ function sectionLimits(): string {
       'Design',
     ],
     [
-      'The scripted moderator has not been used in a recorded experiment',
-      'It is implemented, tested, and available as a configuration option, but every run recorded so far used the model-backed moderator. Its effect on a workshop is therefore untested in practice.',
+      'The scripted moderator has no live-provider comparison',
+      'It is implemented and exercised in the deterministic mock validation package, including privacy and state-boundary checks. A live-provider comparison against an LLM moderator has not yet been run.',
       'Gap',
     ],
     [

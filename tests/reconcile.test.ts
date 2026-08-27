@@ -68,6 +68,28 @@ describe('startup reconciliation', () => {
     expect(opportunity.behaviourally_available).toBe(0);
   });
 
+  it('also classifies dangling recovery turns so an interrupted run is not orphaned', () => {
+    const db = tempDb();
+    const runner = new WorkshopRunner({
+      db,
+      frozen: frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } }),
+    });
+    db.prepare(`UPDATE runs SET status = 'RUNNING' WHERE run_id = ?`).run(runner.id);
+    db.prepare(
+      `INSERT INTO opportunities (opportunity_id, run_id, sequence, agent_id, workshop_state,
+         channel, round_index, created_at, behaviourally_available, attempts)
+       VALUES ('opp_recovery_dangling', ?, 1, 'agent_1', 'PUBLIC_DISCUSSION', 'public', 0, ?, 1, 1)`,
+    ).run(runner.id, new Date().toISOString());
+
+    reconcileInterruptedRuns(db);
+
+    const opportunity = getOpportunities(db, runner.id).find(
+      (o) => o.opportunity_id === 'opp_recovery_dangling',
+    )!;
+    expect(opportunity.resolution).toBe('infrastructure_failure');
+    expect(opportunity.failure_category).toBe('interrupted');
+  });
+
   it('preserves partial data and leaves already-resolved turns alone', async () => {
     const db = tempDb();
     const runner = new WorkshopRunner({ db, frozen: frozen() });

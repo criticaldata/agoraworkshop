@@ -5,6 +5,10 @@ import { stringify as toYaml } from 'yaml';
 import type { Db } from '../db/index.js';
 import {
   getInvocations,
+  getContextSummaries,
+  getToolCalls,
+  getCheckpoints,
+  getBackupVerifications,
   getMessages,
   getOpportunities,
   getRun,
@@ -19,7 +23,8 @@ import { renderReplayHtml } from './replayHtml.js';
 import { displayName } from '../config/schema.js';
 import { nowIso } from '../core/ids.js';
 import { runProvenance } from '../db/queries.js';
-import { REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
+import { REQUIRED_BUNDLE_FILES, REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
+import { evaluatePhase01 } from '../acceptance/phase01.js';
 
 
 export interface ExportOptions {
@@ -60,6 +65,10 @@ export function exportRun(options: ExportOptions): ExportResult {
   const invocations = getInvocations(db, runId);
   const opportunities = getOpportunities(db, runId);
   const transitions = getTransitions(db, runId);
+  const summaries = getContextSummaries(db, runId);
+  const toolCalls = getToolCalls(db, runId);
+  const checkpoints = getCheckpoints(db, runId);
+  const backupVerifications = getBackupVerifications(db, runId);
   const analytics = computeAnalytics(db, runId);
   const leaks = auditPrivacyLeaks(db, runId);
 
@@ -162,6 +171,18 @@ export function exportRun(options: ExportOptions): ExportResult {
       )
       .join('\n')}\n`,
   );
+  write('summaries.jsonl', 'provenance', `${summaries.map((row) => JSON.stringify({ ...row, source_message_ids: JSON.parse(row.source_message_ids) })).join('\n')}\n`);
+  write('tool_calls.jsonl', 'provenance', `${toolCalls.map((row) => JSON.stringify({ ...row, input: JSON.parse(row.input_json), result: row.result_json ? JSON.parse(row.result_json) : null })).join('\n')}\n`);
+  write('checkpoints.jsonl', 'provenance', `${checkpoints.map((row) => JSON.stringify({ ...row, state: JSON.parse(row.state_json) })).join('\n')}\n`);
+  write('backup_verifications.jsonl', 'provenance', `${backupVerifications.map((row) => JSON.stringify(row)).join('\n')}\n`);
+  const traceIndex = opportunities.map((opportunity) => ({
+    trace_id: opportunity.trace_id,
+    opportunity_id: opportunity.opportunity_id,
+    invocation_ids: invocations.filter((row) => row.opportunity_id === opportunity.opportunity_id).map((row) => row.invocation_id),
+    message_id: opportunity.message_id,
+    tool_call_ids: toolCalls.filter((row) => row.opportunity_id === opportunity.opportunity_id).map((row) => row.tool_call_id),
+  }));
+  write('trace_index.jsonl', 'provenance', `${traceIndex.map((row) => JSON.stringify(row)).join('\n')}\n`);
 
   write(
     'opportunities.jsonl',
@@ -237,6 +258,11 @@ export function exportRun(options: ExportOptions): ExportResult {
   );
 
   write('analytics.json', 'analytics', json(analytics));
+  write(
+    'phase0_1_report.json',
+    'acceptance',
+    json({ metrics: evaluatePhase01(db, runId, { pendingArtifactNames: REQUIRED_BUNDLE_FILES }) }),
+  );
 
   const acceptance = finalizeReport(
     evaluateGates({
@@ -309,9 +335,14 @@ function bundleReadme(
     `| \`transcript_public.txt\` | Public channel transcript. |`,
     `| \`messages_private.jsonl\` | Breakout messages, kept separate from the public transcript. |`,
     `| \`invocations.jsonl\` | Per-invocation context provenance: exact system prompt, rendered context, included message ids. |`,
+    `| \`summaries.jsonl\` | Channel-scoped summaries with source identifiers and fidelity hashes. |`,
+    `| \`tool_calls.jsonl\` | Tool requests, results, scopes, retries and classified failures. |`,
+    `| \`checkpoints.jsonl\` | Recovery checkpoints recorded after resolved opportunities. |`,
+    `| \`backup_verifications.jsonl\` | Run-linked backup hashes and successful restore verification records. |`,
+    `| \`trace_index.jsonl\` | End-to-end opportunity, invocation, message and tool-call trace links. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
-    `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates, with evidence. |`,
+    `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates and, when enabled, the Phase 0.1 robustness checks. |`,
     `| \`agents.json\` | Participant and moderator definitions, including moderator mode. |`,
     `| \`messages.jsonl\` | Every message with its visibility metadata (intended and actual recipients). |`,
     `| \`failures.jsonl\` | Every failed or retried attempt, with its classification. |`,

@@ -7,7 +7,9 @@ import {
   type AgentProvider,
 } from './types.js';
 
-const FAULT_TO_CATEGORY: Record<FaultKind, InfrastructureFailure> = {
+type ProviderFaultKind = Exclude<FaultKind, 'tool_timeout' | 'tool_unavailable' | 'tool_invalid_response'>;
+
+const FAULT_TO_CATEGORY: Record<ProviderFaultKind, InfrastructureFailure> = {
   timeout: 'timeout',
   rate_limit: 'rate_limit',
   provider_error: 'provider_error',
@@ -58,7 +60,8 @@ export class FaultInjectingProvider implements AgentProvider {
         fault !== undefined &&
         request.attempt > fault.recover_after_attempts;
 
-      if (fault && !clears) {
+      const category = fault && isProviderFaultKind(fault.kind) ? FAULT_TO_CATEGORY[fault.kind] : undefined;
+      if (fault && category && !clears) {
         const requestTs = new Date().toISOString();
         const startedAt = Date.now();
         return failureResult(
@@ -66,7 +69,7 @@ export class FaultInjectingProvider implements AgentProvider {
           request,
           requestTs,
           startedAt,
-          FAULT_TO_CATEGORY[fault.kind],
+          category,
           `injected fault: ${fault.kind} (attempt ${request.attempt})`,
           { injected: true, fault_kind: fault.kind, occurrence: fault.occurrence },
         );
@@ -74,4 +77,8 @@ export class FaultInjectingProvider implements AgentProvider {
     }
     return this.inner.invoke(request);
   }
+}
+
+function isProviderFaultKind(kind: FaultKind): kind is ProviderFaultKind {
+  return kind !== 'tool_timeout' && kind !== 'tool_unavailable' && kind !== 'tool_invalid_response';
 }

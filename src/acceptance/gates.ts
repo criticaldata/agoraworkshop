@@ -20,6 +20,7 @@ import {
   type MetricGate,
   type MetricResult,
 } from './metrics.js';
+import { evaluatePhase01, type Phase01Metric } from './phase01.js';
 
 // The privacy audit moved to its own module so the metric layer can use it without an
 // import cycle. It is re-exported here because it has always been part of this API.
@@ -99,6 +100,13 @@ export interface AcceptanceReport {
     failure_attribution_validated: GateResult;
     baseline_reproducible: GateResult;
   };
+  /** Present only when the frozen config opts into the Phase 0.1 robustness contract. */
+  phase01?: {
+    status: GateStatus;
+    metrics: Phase01Metric[];
+    failures: string[];
+    not_exercised: string[];
+  };
   ready_for_controlled_behavioral_experiment: boolean;
 }
 
@@ -168,6 +176,10 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
     pendingArtifactNames: options.pendingArtifactNames ?? [],
   });
 
+  const phase01 = phase01Enabled(runConfig(run))
+    ? phase01Acceptance(db, runId, options.pendingArtifactNames ?? [])
+    : undefined;
+
   return {
     run_id: runId,
     phase: '0',
@@ -196,6 +208,7 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
         3,
       ),
     },
+    ...(phase01 ? { phase01 } : {}),
     ready_for_controlled_behavioral_experiment: false,
   };
 }
@@ -203,10 +216,38 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
 /** Sets the top-level readiness flag only when every gate actually passed. */
 export function finalizeReport(report: AcceptanceReport): AcceptanceReport {
   const statuses = Object.values(report.gates).map((g) => g.status);
+  if (report.phase01) statuses.push(report.phase01.status);
   return {
     ...report,
     ready_for_controlled_behavioral_experiment: statuses.every((s) => s === 'PASS'),
   };
+}
+
+function phase01Enabled(config: ReturnType<typeof runConfig>): boolean {
+  return Boolean(
+    config.context_policy.summarization?.enabled ||
+      config.tool_probe?.enabled ||
+      config.recovery?.enabled ||
+      config.validation ||
+      config.moderator.mode === 'scripted' ||
+      config.capabilities.manifest.some((entry) => typeof entry !== 'string'),
+  );
+}
+
+function phase01Acceptance(db: Db, runId: string, pendingArtifactNames: string[]) {
+  const metrics = evaluatePhase01(db, runId, { pendingArtifactNames });
+  const failures = metrics
+    .filter((metric) => metric.status === 'FAIL')
+    .map((metric) => `${metric.id}: ${metric.evidence}`);
+  const notExercised = metrics
+    .filter((metric) => metric.status === 'NOT_EXERCISED')
+    .map((metric) => `${metric.id}: ${metric.evidence}`);
+  const status: GateStatus = failures.length > 0
+    ? 'FAIL'
+    : notExercised.length > 0
+      ? 'NOT_EXERCISED'
+      : 'PASS';
+  return { status, metrics, failures, not_exercised: notExercised };
 }
 
 function gateInfrastructure(db: Db, runId: string, pendingArtifacts: string[]): GateDraft {

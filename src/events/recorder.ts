@@ -7,6 +7,7 @@ export interface RecordEventInput {
   workshop_state: string;
   agent_id?: string | null;
   channel?: string | null;
+  trace_id?: string | null;
   parent_event_id?: string | null;
   causal_event_ids?: string[];
   payload?: Record<string, unknown>;
@@ -26,7 +27,8 @@ export class EventRecorder {
     private readonly experimentId: string,
     private readonly configHash: string,
     private readonly startedAtMs: number,
-  ) {}
+    initialSequence = 0,
+  ) { this.sequence = initialSequence; }
 
   get lastSequence(): number {
     return this.sequence;
@@ -50,6 +52,7 @@ export class EventRecorder {
       workshop_state: input.workshop_state,
       agent_id: input.agent_id ?? null,
       channel: input.channel ?? null,
+      trace_id: input.trace_id ?? null,
       parent_event_id: input.parent_event_id ?? null,
       causal_event_ids: input.causal_event_ids ?? [],
       payload: input.payload ?? {},
@@ -58,10 +61,10 @@ export class EventRecorder {
     this.db
       .prepare(
         `INSERT INTO events (event_id, run_id, experiment_id, config_hash, sequence, timestamp,
-           elapsed_ms, event_type, workshop_state, agent_id, channel, parent_event_id,
+           elapsed_ms, event_type, workshop_state, agent_id, channel, trace_id, parent_event_id,
            causal_event_ids, payload)
          VALUES (@event_id, @run_id, @experiment_id, @config_hash, @sequence, @timestamp,
-           @elapsed_ms, @event_type, @workshop_state, @agent_id, @channel, @parent_event_id,
+           @elapsed_ms, @event_type, @workshop_state, @agent_id, @channel, @trace_id, @parent_event_id,
            @causal_event_ids, @payload)`,
       )
       .run({
@@ -86,6 +89,7 @@ interface EventRow {
   workshop_state: string;
   agent_id: string | null;
   channel: string | null;
+  trace_id: string | null;
   parent_event_id: string | null;
   causal_event_ids: string;
   payload: string;

@@ -1,14 +1,14 @@
 import type { Db } from '../db/index.js';
 import type { FrozenConfig } from '../config/load.js';
-import type { ExperimentConfig, WorkshopState } from '../config/schema.js';
-import { EventRecorder } from '../events/recorder.js';
+import type { ExperimentConfig, FaultKind, WorkshopState } from '../config/schema.js';
+import { EventRecorder, readEvents } from '../events/recorder.js';
 import {
   FAILURE_EVENT_TYPE,
   type AgoraEvent,
   type InfrastructureFailure,
   type OpportunityResolution,
 } from '../events/types.js';
-import { newInvocationId, newMessageId, newOpportunityId, newRunId, nowIso } from '../core/ids.js';
+import { newCheckpointId, newInvocationId, newMessageId, newOpportunityId, newRunId, newToolCallId, newTraceId, nowIso } from '../core/ids.js';
 import { codeProvenance, type CodeProvenance } from '../core/provenance.js';
 import { ABSTAIN_TOKEN, PASS_TOKEN } from '../prompts/registry.js';
 import { assembleContext } from './context.js';
@@ -28,6 +28,8 @@ import { buildProvider } from '../providers/registry.js';
 import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
+import { ToolGateway } from '../tools/gateway.js';
+import { getMessages, getOpportunities, getRun, getTransitions, type OpportunityRow } from '../db/queries.js';
 
 export type TerminationReason =
   | 'completed'
@@ -49,6 +51,7 @@ export interface ExecuteRunOptions {
   db: Db;
   frozen: FrozenConfig;
   runId?: string;
+  resumeRunId?: string;
   sourceRunId?: string | null;
   /** Which code produced this run. Defaults to reading the environment. */
   provenance?: CodeProvenance;
@@ -96,16 +99,81 @@ export class WorkshopRunner {
   private deadlineHit = false;
   private cancelRequested = false;
   private readonly occurrences = new Map<string, number>();
+  private readonly toolGateway = new ToolGateway();
+  private toolCallSequence = 0;
+  /** Scoped to one response opportunity and automatically attached to its events. */
+  private activeTraceId: string | null = null;
+  private readonly resumeOpportunities: OpportunityRow[];
+  /**
+   * Completed state transitions are durable across a resume and must not be appended
+   * twice. Counted rather than set-membership: a state machine that legitimately
+   * revisits a pair must still record the visits this resume actually performs.
+   */
+  private readonly resumeTransitionKeys: Map<string, number>;
+  private resumeOpportunityIndex = 0;
+  private readonly resumeState: WorkshopState | null;
+  private readonly resuming: boolean;
 
   constructor(options: ExecuteRunOptions) {
     this.db = options.db;
     this.frozen = options.frozen;
     this.config = options.frozen.config;
-    this.runId = options.runId ?? newRunId();
+    this.runId = options.resumeRunId ?? options.runId ?? newRunId();
+    this.resuming = options.resumeRunId !== undefined;
     this.onEvent = options.onEvent;
-    this.startedAtMs = Date.now();
-    this.deadlineMs = this.startedAtMs + this.config.workshop.max_duration_seconds * 1000;
     this.budgets = new BudgetLedger(this.config);
+    let existingStartMs = Date.now();
+    this.resumeOpportunities = [];
+    this.resumeTransitionKeys = new Map<string, number>();
+    this.resumeState = null;
+    if (this.resuming) {
+      const existing = getRun(this.db, this.runId);
+      if (!existing || existing.status !== 'INTERRUPTED' || !this.config.recovery?.enabled) {
+        throw new Error('resume requires an INTERRUPTED run with recovery.enabled=true');
+      }
+      if (existing.config_hash !== this.frozen.hash) {
+        throw new Error(
+          `resume config hash mismatch: stored=${existing.config_hash} supplied=${this.frozen.hash}`,
+        );
+      }
+      const terminalEvent = this.db.prepare(
+        `SELECT event_type FROM events WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { event_type: string } | undefined;
+      if (terminalEvent && ['run_completed', 'run_failed', 'run_cancelled'].includes(terminalEvent.event_type)) {
+        throw new Error('resume cannot reopen a run that already recorded a terminal event');
+      }
+      const parsedStart = existing.started_at ? Date.parse(existing.started_at) : Number.NaN;
+      if (Number.isFinite(parsedStart)) existingStartMs = parsedStart;
+      this.history = getMessages(this.db, this.runId);
+      this.messageSequence = this.history.at(-1)?.sequence ?? 0;
+      const opportunities = getOpportunities(this.db, this.runId);
+      this.resumeOpportunities.push(...opportunities);
+      for (const transition of getTransitions(this.db, this.runId)) {
+        if (transition.status === 'completed') {
+          const key = `${transition.from_state}->${transition.to_state}`;
+          this.resumeTransitionKeys.set(key, (this.resumeTransitionKeys.get(key) ?? 0) + 1);
+        }
+      }
+      this.opportunitySequence = Math.max(0, ...opportunities.map((row) => row.sequence));
+      this.invocationSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM invocations WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
+      this.toolCallSequence = (this.db.prepare('SELECT MAX(sequence) AS n FROM tool_calls WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0;
+      const checkpoint = this.db.prepare(
+        `SELECT state_json FROM run_checkpoints WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { state_json: string } | undefined;
+      if (checkpoint) {
+        const state = JSON.parse(checkpoint.state_json) as { budgets?: Record<string, { calls: number; tokens: number }> };
+        if (state.budgets) this.budgets.restore(state.budgets);
+      }
+      const lastEvent = this.db.prepare(
+        `SELECT workshop_state FROM events WHERE run_id = ? ORDER BY sequence DESC LIMIT 1`,
+      ).get(this.runId) as { workshop_state: string } | undefined;
+      this.resumeState = lastEvent && isWorkshopState(lastEvent.workshop_state)
+        ? lastEvent.workshop_state
+        : 'CREATED';
+      this.state = this.resumeState;
+    }
+    this.startedAtMs = existingStartMs;
+    this.deadlineMs = this.startedAtMs + this.config.workshop.max_duration_seconds * 1000;
 
     if (options.provider) {
       this.provider = options.provider;
@@ -122,7 +190,7 @@ export class WorkshopRunner {
     this.provenance = options.provenance ?? codeProvenance();
     const provenance = this.provenance;
 
-    this.db
+    if (!this.resuming) this.db
       .prepare(
         `INSERT INTO runs (run_id, experiment_id, config_hash, config_json, config_canonical,
            config_source_path, source_run_id, status, provider, model, code_commit_sha,
@@ -147,12 +215,16 @@ export class WorkshopRunner {
         nowIso(),
       );
 
+    const previousEventSequence = this.resuming
+      ? (this.db.prepare('SELECT MAX(sequence) AS n FROM events WHERE run_id = ?').get(this.runId) as { n: number | null }).n ?? 0
+      : 0;
     this.recorder = new EventRecorder(
       this.db,
       this.runId,
       this.config.experiment_id,
       this.frozen.hash,
       this.startedAtMs,
+      previousEventSequence,
     );
   }
 
@@ -176,24 +248,29 @@ export class WorkshopRunner {
   }
 
   async execute(): Promise<RunResult> {
-    this.emit('run_created', {
-      payload: {
-        config_hash: this.frozen.hash,
-        provider: this.config.model.provider,
-        model: this.config.model.model,
-        participants: this.config.participants.map((p) => p.id),
-        moderator: this.config.moderator.id,
-        moderator_mode: this.config.moderator.mode ?? 'llm',
-        code_provenance: this.provenance,
-      },
-    });
+    if (this.resuming) {
+      this.db.prepare(`UPDATE runs SET status = 'RUNNING', termination_reason = NULL, failure_reason = NULL, ended_at = NULL WHERE run_id = ?`).run(this.runId);
+      this.emit('run_resumed', { payload: { existing_opportunities: this.resumeOpportunities.length } });
+    } else {
+      this.emit('run_created', {
+        payload: {
+          config_hash: this.frozen.hash,
+          provider: this.config.model.provider,
+          model: this.config.model.model,
+          participants: this.config.participants.map((p) => p.id),
+          moderator: this.config.moderator.id,
+          moderator_mode: this.config.moderator.mode ?? 'llm',
+          code_provenance: this.provenance,
+        },
+      });
 
-    this.db
-      .prepare(`UPDATE runs SET status = 'RUNNING', started_at = ? WHERE run_id = ?`)
-      .run(nowIso(), this.runId);
-    this.emit('run_started', {
-      payload: { max_duration_seconds: this.config.workshop.max_duration_seconds },
-    });
+      this.db
+        .prepare(`UPDATE runs SET status = 'RUNNING', started_at = ? WHERE run_id = ?`)
+        .run(nowIso(), this.runId);
+      this.emit('run_started', {
+        payload: { max_duration_seconds: this.config.workshop.max_duration_seconds },
+      });
+    }
 
     let termination: TerminationReason = 'completed';
 
@@ -202,7 +279,8 @@ export class WorkshopRunner {
       for (const phase of phases) {
         if (this.deadlineHit || this.cancelRequested) break;
         if (phase === 'CLOSING') break; // closing is always run below
-        this.transition(phase);
+        const resumingEarlierState = this.resuming && phaseRank(phase) < phaseRank(this.resumeState ?? 'CREATED');
+        if (!resumingEarlierState && !(this.resuming && phase === this.resumeState)) this.transition(phase);
         await this.runPhase(phase);
       }
 
@@ -214,8 +292,19 @@ export class WorkshopRunner {
       }
 
       // The workshop always closes explicitly, even when the deadline cut it short.
-      this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
+      if (this.state !== 'CLOSING') this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
       await this.runClosing();
+
+      const unresolved = getOpportunities(this.db, this.runId).filter(
+        (opportunity) => opportunity.resolution === null,
+      );
+      if (unresolved.length > 0) {
+        throw new Error(
+          `cannot complete run with unresolved opportunities: ${unresolved
+            .map((opportunity) => opportunity.opportunity_id)
+            .join(', ')}`,
+        );
+      }
 
       this.transition('COMPLETED');
       termination = this.deadlineHit ? 'deadline_reached' : 'completed';
@@ -230,6 +319,7 @@ export class WorkshopRunner {
       return this.result('COMPLETED', termination);
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      if (this.resuming) this.classifyUnresolvedResumeOpportunities();
       if (!TERMINAL_STATES.includes(this.state)) {
         this.transition('FAILED', message);
       }
@@ -358,37 +448,84 @@ export class WorkshopRunner {
   // ----------------------------------------------------------------- turns
 
   private async takeTurn(spec: TurnSpec): Promise<void> {
-    const opportunityId = newOpportunityId();
-    this.opportunitySequence += 1;
+    const existing = this.resuming ? this.resumeOpportunities[this.resumeOpportunityIndex++] : undefined;
+    if (existing && !opportunityMatches(existing, spec)) {
+      throw new Error(`resume schedule mismatch at opportunity ${existing.opportunity_id}: stored=${JSON.stringify({ agent: existing.agent_id, state: existing.workshop_state, channel: existing.channel, round: existing.round_index, group: existing.breakout_group_id })} expected=${JSON.stringify({ agent: spec.agentId, state: spec.state, channel: spec.channel, round: spec.roundIndex, group: spec.breakoutGroupId ?? null })}`);
+    }
+    const occurrenceKey = `${spec.agentId}::${spec.state}`;
+    const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
+    this.occurrences.set(occurrenceKey, occurrence);
+    const interrupted = existing?.resolution === 'infrastructure_failure' && existing.failure_category === 'interrupted';
+    if (interrupted) this.reopenInterruptedOpportunity(existing.opportunity_id);
+    if (existing?.resolution !== null && !interrupted && existing !== undefined) return;
+    const traceId = existing?.trace_id ?? newTraceId();
+    this.activeTraceId = traceId;
+    try {
+      await this.takeTurnWithTrace(spec, traceId, existing, occurrence);
+    } finally {
+      this.activeTraceId = null;
+    }
+  }
+
+  private async takeTurnWithTrace(
+    spec: TurnSpec,
+    traceId: string,
+    existing: OpportunityRow | undefined,
+    occurrence: number,
+  ): Promise<void> {
+    const opportunityId = existing?.opportunity_id ?? newOpportunityId();
+    if (!existing) this.opportunitySequence += 1;
     const createdAt = nowIso();
 
-    this.db
-      .prepare(
-        `INSERT INTO opportunities (opportunity_id, run_id, sequence, agent_id, workshop_state,
-           channel, breakout_group_id, round_index, created_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-      )
-      .run(
-        opportunityId,
-        this.runId,
-        this.opportunitySequence,
-        spec.agentId,
-        spec.state,
-        spec.channel,
-        spec.breakoutGroupId ?? null,
-        spec.roundIndex,
-        createdAt,
-      );
+    if (!existing) {
+      this.db
+        .prepare(
+          `INSERT INTO opportunities (opportunity_id, run_id, trace_id, sequence, agent_id, workshop_state,
+             channel, breakout_group_id, round_index, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          opportunityId,
+          this.runId,
+          traceId,
+          this.opportunitySequence,
+          spec.agentId,
+          spec.state,
+          spec.channel,
+          spec.breakoutGroupId ?? null,
+          spec.roundIndex,
+          createdAt,
+        );
+    }
 
-    const opportunityEvent = this.emit('response_opportunity_created', {
+    const opportunityEvent = this.emit(existing ? 'recovery_opportunity_reopened' : 'response_opportunity_created', {
       agent_id: spec.agentId,
       channel: spec.channel,
       payload: {
         opportunity_id: opportunityId,
+        trace_id: traceId,
         round_index: spec.roundIndex,
         breakout_group_id: spec.breakoutGroupId ?? null,
+        reused_opportunity: existing !== undefined,
       },
     });
+
+    // A process can stop after routing has persisted a message but before the
+    // opportunity update/checkpoint. Reuse that durable message and repair only
+    // missing deliveries; invoking the provider again would create a duplicate
+    // behavioural output under the same response opportunity.
+    if (existing) {
+      const persisted = this.findPersistedMessage(existing);
+      if (persisted) {
+        this.repairMessageDeliveries(persisted, opportunityEvent.event_id);
+        const attempt = (this.db.prepare(
+          `SELECT MAX(attempt) AS attempt FROM invocations WHERE run_id = ?
+           AND opportunity_id = ?`,
+        ).get(this.runId, opportunityId) as { attempt: number | null }).attempt ?? 1;
+        this.resolveOpportunity(opportunityId, 'success', null, 1, persisted.message_id, attempt);
+        return;
+      }
+    }
 
     const budget = this.budgets.check(spec.agentId);
     if (!budget.allowed) {
@@ -424,6 +561,7 @@ export class WorkshopRunner {
       channel: spec.channel,
       breakoutGroupId: spec.breakoutGroupId,
       breakoutMembers: spec.breakoutMembers,
+      opportunityId,
     });
 
     const contextEvent = this.emit('context_assembled', {
@@ -437,14 +575,17 @@ export class WorkshopRunner {
         included_message_ids: context.includedMessageIds,
         public_message_ids: context.publicMessageIds,
         private_message_ids: context.privateMessageIds,
+        summary_ids: context.summaryRecords.map((summary) => summary.summary_id),
+        summary_source_message_ids: context.summaryRecords.flatMap(
+          (summary) => summary.source_message_ids,
+        ),
         included_count: context.includedMessageIds.length,
       },
     });
+    this.persistSummaries(context, opportunityId);
 
-    const occurrenceKey = `${spec.agentId}::${spec.state}`;
-    const occurrence = (this.occurrences.get(occurrenceKey) ?? 0) + 1;
-    this.occurrences.set(occurrenceKey, occurrence);
     this.faults?.setContext({ state: spec.state, occurrence });
+    this.executeToolProbes(spec, opportunityId, occurrence, contextEvent.event_id);
 
     const maxAttempts = this.config.runtime.max_retries + 1;
     let attempts = 0;
@@ -471,6 +612,12 @@ export class WorkshopRunner {
         messages: context.renderedMessages,
         model: this.config.model,
         timeoutMs: this.config.runtime.timeout_seconds * 1000,
+        traceId: this.activeTraceId ?? undefined,
+        configHash: this.frozen.hash,
+        contextMessageIds: context.includedMessageIds,
+        summaryIds: context.summaryRecords.map((summary) => summary.summary_id),
+        summaryHashes: context.summaryRecords.map((summary) => summary.content_hash),
+        capabilityManifest: this.config.capabilities.manifest,
         workshopState: spec.state,
       });
 
@@ -757,6 +904,7 @@ export class WorkshopRunner {
 
     const message: StoredMessage = {
       message_id: messageId,
+      trace_id: this.activeTraceId,
       sequence: this.messageSequence,
       channel: spec.channel,
       breakout_group_id: spec.breakoutGroupId ?? null,
@@ -772,14 +920,15 @@ export class WorkshopRunner {
 
     this.db
       .prepare(
-        `INSERT INTO messages (message_id, run_id, sequence, channel, breakout_group_id,
+        `INSERT INTO messages (message_id, run_id, trace_id, sequence, channel, breakout_group_id,
            sender_agent_id, intended_recipients, actual_recipients, workshop_state, created_at,
            content, source_invocation_id, source_event_id, artifact_refs)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]')`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, '[]')`,
       )
       .run(
         messageId,
         this.runId,
+        this.activeTraceId,
         message.sequence,
         message.channel,
         message.breakout_group_id,
@@ -824,7 +973,207 @@ export class WorkshopRunner {
     return messageId;
   }
 
+  private findPersistedMessage(opportunity: OpportunityRow): StoredMessage | null {
+    const candidate = this.db.prepare(
+      `SELECT message_id FROM messages WHERE run_id = ? AND trace_id = ?
+       ORDER BY sequence DESC LIMIT 1`,
+    ).get(this.runId, opportunity.trace_id) as { message_id: string } | undefined;
+    const messageId = opportunity.message_id ?? candidate?.message_id ?? null;
+    if (!messageId) return null;
+    const message = this.history.find((item) => item.message_id === messageId);
+    if (!message) {
+      throw new Error(`recovery message ${messageId} is missing from the durable message log`);
+    }
+    return message;
+  }
+
+  private repairMessageDeliveries(message: StoredMessage, parentEventId: string): void {
+    const deliveryType = message.channel === 'private'
+      ? 'private_message_delivered'
+      : 'message_delivered';
+    const delivered = new Set(
+      readEvents(this.db, this.runId)
+        .filter((event) => event.event_type === deliveryType && event.payload['message_id'] === message.message_id)
+        .map((event) => event.agent_id)
+        .filter((agentId): agentId is string => agentId !== null),
+    );
+    for (const recipient of message.actual_recipients) {
+      if (delivered.has(recipient)) continue;
+      this.emit(deliveryType, {
+        agent_id: recipient,
+        channel: message.channel,
+        parent_event_id: parentEventId,
+        causal_event_ids: message.source_event_id ? [message.source_event_id] : [],
+        payload: {
+          message_id: message.message_id,
+          sender_agent_id: message.sender_agent_id,
+          breakout_group_id: message.breakout_group_id,
+          recovered: true,
+        },
+      });
+    }
+  }
+
   // ------------------------------------------------------------ persistence
+
+  private executeToolProbes(
+    spec: TurnSpec,
+    opportunityId: string,
+    occurrence: number,
+    parentEventId: string,
+  ): void {
+    if (!this.config.tool_probe?.enabled) return;
+    const probes = this.config.tool_probe.probes.filter(
+      (probe) =>
+        probe.agent_id === spec.agentId && probe.state === spec.state && probe.occurrence === occurrence,
+    );
+    const logicalCalls = new Map<string, number>();
+    for (const probe of probes) {
+      const configuredFault = this.config.fault_injection?.faults.find(
+        (fault) =>
+          fault.agent_id === spec.agentId &&
+          fault.state === spec.state &&
+          fault.occurrence === occurrence &&
+          isToolFailureKind(fault.kind),
+      );
+      const callsUsed = logicalCalls.get(probe.tool_id) ?? 0;
+      const maxAttempts = this.config.runtime.max_retries + 1;
+      for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+        const toolCallId = newToolCallId();
+        this.toolCallSequence += 1;
+        const started = this.emit('tool_call_started', {
+          agent_id: spec.agentId,
+          channel: spec.channel,
+          parent_event_id: parentEventId,
+          payload: { opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt },
+        });
+        const forcedFault =
+          configuredFault &&
+          (configuredFault.recover_after_attempts === null || attempt <= configuredFault.recover_after_attempts)
+            ? configuredFault.kind
+            : null;
+        const gatewayResult = this.toolGateway.execute({
+          agentId: spec.agentId,
+          toolId: probe.tool_id,
+          input: probe.input,
+          callsUsed,
+          manifest: this.config.capabilities.manifest,
+        });
+        const result = gatewayResult.ok && forcedFault
+          ? {
+              ok: false as const,
+              category: forcedFault,
+              message: `injected tool fault: ${forcedFault} (attempt ${attempt})`,
+            }
+          : gatewayResult;
+        if (result.ok) {
+          this.writeToolCall({
+            toolCallId, opportunityId, spec, toolId: probe.tool_id, input: probe.input, attempt,
+            resultScope: result.resultScope, result: result.result, failure: null,
+          });
+          this.emit('tool_call_succeeded', {
+            agent_id: spec.agentId,
+            channel: spec.channel,
+            parent_event_id: started.event_id,
+            payload: { opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt },
+          });
+          break;
+        }
+        this.writeToolCall({
+          toolCallId, opportunityId, spec, toolId: probe.tool_id, input: probe.input, attempt,
+          resultScope: null, result: null, failure: result,
+        });
+        this.emit('tool_call_failed', {
+          agent_id: spec.agentId,
+          channel: spec.channel,
+          parent_event_id: started.event_id,
+          payload: {
+            opportunity_id: opportunityId, tool_call_id: toolCallId, tool_id: probe.tool_id, attempt,
+            failure_category: result.category, error: result.message,
+          },
+        });
+        if (attempt < maxAttempts) {
+          if (result.category === 'permission_denied') break;
+          this.emit('tool_retry_scheduled', {
+            agent_id: spec.agentId,
+            channel: spec.channel,
+            parent_event_id: started.event_id,
+            payload: { opportunity_id: opportunityId, tool_id: probe.tool_id, failed_attempt: attempt },
+          });
+        }
+      }
+      logicalCalls.set(probe.tool_id, callsUsed + 1);
+    }
+  }
+
+  private writeToolCall(input: {
+    toolCallId: string;
+    opportunityId: string;
+    spec: TurnSpec;
+    toolId: string;
+    input: Record<string, unknown>;
+    attempt: number;
+    resultScope: 'public' | 'private' | null;
+    result: Record<string, unknown> | null;
+    failure: { ok: false; category: InfrastructureFailure; message: string } | null;
+  }): void {
+    this.db
+      .prepare(
+        `INSERT INTO tool_calls (tool_call_id, run_id, trace_id, opportunity_id, sequence, attempt, agent_id,
+           tool_id, workshop_state, channel, result_scope, input_json, result_json, outcome,
+           failure_category, error_message, created_at)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        input.toolCallId,
+        this.runId,
+        this.activeTraceId,
+        input.opportunityId,
+        this.toolCallSequence,
+        input.attempt,
+        input.spec.agentId,
+        input.toolId,
+        input.spec.state,
+        input.spec.channel,
+        input.resultScope,
+        JSON.stringify(input.input),
+        input.result === null ? null : JSON.stringify(input.result),
+        input.failure ? 'infra_failure' : 'success',
+        input.failure?.category ?? null,
+        input.failure?.message ?? null,
+        nowIso(),
+      );
+  }
+
+  private persistSummaries(
+    context: ReturnType<typeof assembleContext>,
+    opportunityId: string,
+  ): void {
+    for (const summary of context.summaryRecords) {
+      this.db
+        .prepare(
+          `INSERT INTO context_summaries (summary_id, run_id, trace_id, opportunity_id, agent_id,
+             scope, summarizer_version, source_message_ids, source_hash, content, content_hash,
+             fidelity_hash, created_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+        )
+        .run(
+          summary.summary_id,
+          this.runId,
+          this.activeTraceId,
+          opportunityId,
+          summary.agent_id,
+          summary.scope,
+          summary.summarizer_version,
+          JSON.stringify(summary.source_message_ids),
+          summary.source_hash,
+          summary.content,
+          summary.content_hash,
+          summary.fidelity_hash,
+          nowIso(),
+        );
+    }
+  }
 
   private writeInvocation(input: {
     invocationId: string;
@@ -842,20 +1191,21 @@ export class WorkshopRunner {
     const { spec, result, context } = input;
     this.db
       .prepare(
-        `INSERT INTO invocations (invocation_id, run_id, opportunity_id, sequence, agent_id,
+        `INSERT INTO invocations (invocation_id, run_id, opportunity_id, trace_id, sequence, agent_id,
            workshop_state, channel, attempt, provider, requested_model, responded_model,
            generation_params, prompt_version, system_prompt, rendered_messages,
            context_message_ids, context_public_ids, context_private_ids, context_policy_version,
            capability_manifest, budget_calls_used_before, budget_tokens_used_before,
            request_ts, response_ts, latency_ms, outcome, failure_category, error_message,
            finish_reason, input_tokens, output_tokens, output_message_id, raw_metadata)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?,
                  ?, ?, ?, ?, ?)`,
       )
       .run(
         input.invocationId,
         this.runId,
         input.opportunityId,
+        this.activeTraceId,
         this.invocationSequence,
         spec.agentId,
         spec.state,
@@ -912,11 +1262,78 @@ export class WorkshopRunner {
         attempts,
         opportunityId,
       );
+    this.writeCheckpoint(opportunityId);
+  }
+
+  /** Reopen only the opportunity whose scheduled turn is actually being resumed. */
+  private reopenInterruptedOpportunity(opportunityId: string): void {
+    this.db
+      .prepare(
+        `UPDATE opportunities SET resolved_at = NULL, resolution = NULL, failure_category = NULL,
+           behaviourally_available = 0, attempts = 0
+         WHERE opportunity_id = ? AND resolution = 'infrastructure_failure'
+           AND failure_category = 'interrupted'`,
+      )
+      .run(opportunityId);
+  }
+
+  /**
+   * A resume can fail before it reaches every pending turn. Those turns must remain
+   * explicitly classified so a later reconcile/resume can distinguish interruption
+   * from agent behaviour; constructor-time reopening would leave them orphaned.
+   */
+  private classifyUnresolvedResumeOpportunities(): void {
+    const resolvedAt = nowIso();
+    this.db
+      .prepare(
+        `UPDATE opportunities SET resolution = 'infrastructure_failure',
+           failure_category = 'interrupted', behaviourally_available = 0,
+           resolved_at = ?
+         WHERE run_id = ? AND resolution IS NULL`,
+      )
+      .run(resolvedAt, this.runId);
+  }
+
+  private writeCheckpoint(opportunityId: string): void {
+    if (!this.config.recovery?.enabled) return;
+    this.db
+      .prepare(
+        `INSERT INTO run_checkpoints (checkpoint_id, run_id, sequence, opportunity_id, event_sequence,
+           state_json, created_at) VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      )
+      .run(
+        newCheckpointId(),
+        this.runId,
+        this.opportunitySequence,
+        opportunityId,
+        this.recorder.lastSequence,
+        JSON.stringify({
+          config_hash: this.frozen.hash,
+          workshop_state: this.state,
+          message_sequence: this.messageSequence,
+          opportunity_sequence: this.opportunitySequence,
+          invocation_sequence: this.invocationSequence,
+          global_round: this.globalRound,
+          budgets: this.budgets.all(),
+        }),
+        nowIso(),
+      );
   }
 
   private transition(to: WorkshopState, reason?: string): void {
     const from = this.state;
     const startedAt = nowIso();
+
+    // A recovered run may have durable transition rows beyond the last event that
+    // survived an interruption. Reusing the existing row keeps the state-machine
+    // history a single chain instead of appending a second copy of the same pass.
+    const recordedKey = `${from}->${to}`;
+    const alreadyRecorded = this.resuming ? (this.resumeTransitionKeys.get(recordedKey) ?? 0) : 0;
+    if (alreadyRecorded > 0) {
+      this.resumeTransitionKeys.set(recordedKey, alreadyRecorded - 1);
+      this.state = to;
+      return;
+    }
 
     if (!canTransition(from, to)) {
       this.emit('state_transition_rejected', {
@@ -989,10 +1406,15 @@ export class WorkshopRunner {
     type: Parameters<EventRecorder['record']>[0]['event_type'],
     input: Omit<Parameters<EventRecorder['record']>[0], 'event_type' | 'workshop_state'>,
   ): AgoraEvent {
+    const traceId = input.trace_id ?? this.activeTraceId;
     const event = this.recorder.record({
       ...input,
+      trace_id: traceId,
       event_type: type,
       workshop_state: this.state,
+      payload: traceId
+        ? { ...(input.payload ?? {}), trace_id: input.payload?.['trace_id'] ?? traceId }
+        : input.payload,
     });
     this.onEvent?.(event);
     return event;
@@ -1004,6 +1426,25 @@ type ContentClassification =
   | { kind: 'abstain' }
   | { kind: 'no_op' }
   | { kind: 'malformed' };
+
+function isToolFailureKind(
+  kind: FaultKind,
+): kind is 'tool_timeout' | 'tool_unavailable' | 'tool_invalid_response' {
+  return kind === 'tool_timeout' || kind === 'tool_unavailable' || kind === 'tool_invalid_response';
+}
+
+function isWorkshopState(value: string): value is WorkshopState {
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(value);
+}
+
+function phaseRank(state: WorkshopState): number {
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING'].indexOf(state);
+}
+
+function opportunityMatches(row: OpportunityRow, spec: TurnSpec): boolean {
+  return row.agent_id === spec.agentId && row.workshop_state === spec.state && row.channel === spec.channel &&
+    row.round_index === spec.roundIndex && row.breakout_group_id === (spec.breakoutGroupId ?? null);
+}
 
 /**
  * Behaviour-vs-infrastructure is decided here for output content.

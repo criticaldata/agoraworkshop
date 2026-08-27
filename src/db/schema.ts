@@ -40,6 +40,7 @@ CREATE TABLE IF NOT EXISTS events (
   workshop_state    TEXT NOT NULL,
   agent_id          TEXT,
   channel           TEXT,
+  trace_id          TEXT,
   parent_event_id   TEXT,
   causal_event_ids  TEXT NOT NULL,
   payload           TEXT NOT NULL,
@@ -48,6 +49,7 @@ CREATE TABLE IF NOT EXISTS events (
 
 CREATE INDEX IF NOT EXISTS idx_events_run_seq ON events(run_id, sequence);
 CREATE INDEX IF NOT EXISTS idx_events_type ON events(run_id, event_type);
+CREATE INDEX IF NOT EXISTS idx_events_trace ON events(run_id, trace_id);
 
 CREATE TABLE IF NOT EXISTS state_transitions (
   id                INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -66,6 +68,7 @@ CREATE INDEX IF NOT EXISTS idx_transitions_run ON state_transitions(run_id, sequ
 CREATE TABLE IF NOT EXISTS opportunities (
   opportunity_id        TEXT PRIMARY KEY,
   run_id                TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  trace_id              TEXT,
   sequence              INTEGER NOT NULL,
   agent_id              TEXT NOT NULL,
   workshop_state        TEXT NOT NULL,
@@ -82,11 +85,13 @@ CREATE TABLE IF NOT EXISTS opportunities (
 );
 
 CREATE INDEX IF NOT EXISTS idx_opportunities_run ON opportunities(run_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_opportunities_trace ON opportunities(run_id, trace_id);
 
 CREATE TABLE IF NOT EXISTS invocations (
   invocation_id            TEXT PRIMARY KEY,
   run_id                   TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
   opportunity_id           TEXT NOT NULL,
+  trace_id                 TEXT,
   sequence                 INTEGER NOT NULL,
   agent_id                 TEXT NOT NULL,
   workshop_state           TEXT NOT NULL,
@@ -121,10 +126,12 @@ CREATE TABLE IF NOT EXISTS invocations (
 
 CREATE INDEX IF NOT EXISTS idx_invocations_run ON invocations(run_id, sequence);
 CREATE INDEX IF NOT EXISTS idx_invocations_opportunity ON invocations(opportunity_id);
+CREATE INDEX IF NOT EXISTS idx_invocations_trace ON invocations(run_id, trace_id);
 
 CREATE TABLE IF NOT EXISTS messages (
   message_id          TEXT PRIMARY KEY,
   run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  trace_id            TEXT,
   sequence            INTEGER NOT NULL,
   channel             TEXT NOT NULL,
   breakout_group_id   TEXT,
@@ -140,6 +147,73 @@ CREATE TABLE IF NOT EXISTS messages (
 );
 
 CREATE INDEX IF NOT EXISTS idx_messages_run ON messages(run_id, sequence);
+CREATE INDEX IF NOT EXISTS idx_messages_trace ON messages(run_id, trace_id);
+
+CREATE TABLE IF NOT EXISTS context_summaries (
+  summary_id          TEXT PRIMARY KEY,
+  run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  trace_id            TEXT NOT NULL,
+  opportunity_id      TEXT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+  agent_id            TEXT NOT NULL,
+  scope               TEXT NOT NULL,
+  summarizer_version  TEXT NOT NULL,
+  source_message_ids  TEXT NOT NULL,
+  source_hash         TEXT NOT NULL,
+  content             TEXT NOT NULL,
+  content_hash        TEXT NOT NULL,
+  fidelity_hash       TEXT NOT NULL,
+  created_at          TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_summaries_run_trace ON context_summaries(run_id, trace_id);
+
+CREATE TABLE IF NOT EXISTS tool_calls (
+  tool_call_id        TEXT PRIMARY KEY,
+  run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  trace_id            TEXT NOT NULL,
+  opportunity_id      TEXT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+  sequence            INTEGER NOT NULL,
+  attempt             INTEGER NOT NULL,
+  agent_id            TEXT NOT NULL,
+  tool_id             TEXT NOT NULL,
+  workshop_state      TEXT NOT NULL,
+  channel             TEXT NOT NULL,
+  result_scope        TEXT,
+  input_json          TEXT NOT NULL,
+  result_json         TEXT,
+  outcome             TEXT NOT NULL,
+  failure_category    TEXT,
+  error_message       TEXT,
+  created_at          TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_tool_calls_run_trace ON tool_calls(run_id, trace_id, sequence);
+
+CREATE TABLE IF NOT EXISTS run_checkpoints (
+  checkpoint_id       TEXT PRIMARY KEY,
+  run_id              TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  sequence            INTEGER NOT NULL,
+  opportunity_id      TEXT NOT NULL REFERENCES opportunities(opportunity_id) ON DELETE CASCADE,
+  event_sequence      INTEGER NOT NULL,
+  state_json          TEXT NOT NULL,
+  created_at          TEXT NOT NULL,
+  UNIQUE(run_id, opportunity_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_checkpoints_run_seq ON run_checkpoints(run_id, sequence);
+
+CREATE TABLE IF NOT EXISTS backup_verifications (
+  backup_verification_id TEXT PRIMARY KEY,
+  run_id                 TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  backup_path            TEXT NOT NULL,
+  backup_sha256          TEXT NOT NULL,
+  backup_bytes           INTEGER NOT NULL,
+  config_hash            TEXT NOT NULL,
+  event_count            INTEGER NOT NULL,
+  verified_at            TEXT NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_backup_verifications_run ON backup_verifications(run_id, verified_at);
 
 CREATE TABLE IF NOT EXISTS artifacts (
   id           INTEGER PRIMARY KEY AUTOINCREMENT,

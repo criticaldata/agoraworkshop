@@ -10,6 +10,8 @@ export const EVENT_TYPES = [
   'run_failed',
   'run_cancelled',
   'run_interrupted',
+  'run_resumed',
+  'recovery_opportunity_reopened',
 
   'state_transition_started',
   'state_transition_completed',
@@ -20,6 +22,11 @@ export const EVENT_TYPES = [
   'agent_invocation_started',
   'agent_invocation_succeeded',
   'agent_invocation_failed',
+
+  'tool_call_started',
+  'tool_call_succeeded',
+  'tool_call_failed',
+  'tool_retry_scheduled',
 
   'message_generated',
   'message_routed',
@@ -82,6 +89,9 @@ export const INFRASTRUCTURE_FAILURES = [
   'retry_exhausted',
   /** The process stopped while the run was still in progress. */
   'interrupted',
+  'tool_timeout',
+  'tool_unavailable',
+  'tool_invalid_response',
   'unknown',
 ] as const;
 export type InfrastructureFailure = (typeof INFRASTRUCTURE_FAILURES)[number];
@@ -109,6 +119,9 @@ export const FAILURE_EVENT_TYPE: Record<InfrastructureFailure, EventType> = {
   budget_exhausted: 'budget_exhausted',
   retry_exhausted: 'retry_exhausted',
   interrupted: 'run_interrupted',
+  tool_timeout: 'tool_call_failed',
+  tool_unavailable: 'tool_call_failed',
+  tool_invalid_response: 'tool_call_failed',
   unknown: 'provider_error',
 };
 
@@ -124,6 +137,7 @@ export interface AgoraEvent {
   workshop_state: string;
   agent_id: string | null;
   channel: string | null;
+  trace_id: string | null;
   parent_event_id: string | null;
   causal_event_ids: string[];
   payload: Record<string, unknown>;

@@ -181,7 +181,7 @@ Each gate reports one of three statuses:
 | `NOT_EXERCISED` | The conditions the gate judges never occurred in the runs supplied. Missing evidence, not a pass. |
 
 `ready_for_controlled_behavioral_experiment` is set to `true` only when all three
-**PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
+gates — and any opted-in Phase 0.1 robustness checks — are **PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
 defect in the instrument and not a pass, which is why the fault-injection configs exist.
 
 ### The twenty-two acceptance metrics

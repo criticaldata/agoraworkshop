@@ -3,6 +3,10 @@ dist/
 data/
 exports/
 phase0_validation/
+phase0_1_validation/
+phase0_1_exercised/
+phase0_1_validation_fixed_*/
+phase0_1_validation_final_*/
 *.sqlite
 *.sqlite-wal
 *.sqlite-shm
@@ -10,3 +14,4 @@ phase0_validation/
 .env.local
 .DS_Store
 .playwright-mcp/
+.worktrees/

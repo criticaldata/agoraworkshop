@@ -9,6 +9,13 @@ export interface AgentInvocationRequest {
   messages: Array<{ role: 'user' | 'assistant'; content: string }>;
   model: ExperimentConfig['model'];
   timeoutMs: number;
+  /** Immutable provenance supplied by the runner; adapters do not interpret it. */
+  traceId?: string;
+  configHash?: string;
+  contextMessageIds?: string[];
+  summaryIds?: string[];
+  summaryHashes?: string[];
+  capabilityManifest?: unknown[];
   /** Present so a scripted agent can pick its line. Model adapters ignore it. */
   workshopState?: WorkshopState;
 }

@@ -58,6 +58,7 @@ describe('channel-aware context summaries', () => {
       roundIndex: 0,
       totalRounds: 1,
       channel: 'public',
+      opportunityId: 'opp_scope_isolation',
     }) as unknown as {
       summaryRecords: Array<{ source_message_ids: string[]; content: string; content_hash: string }>;
     };

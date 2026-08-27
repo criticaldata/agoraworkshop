@@ -118,4 +118,3 @@
 3. Inspect report, manifest, trace index, summaries, tool calls, checkpoint artifacts, and `git diff --check`.
 4. Document only measured status. Retain explicit limitations: this verifies apparatus, not roles, social behavior, CommonTrace value, or real-provider performance.
 5. Commit: `git commit -m "Document Phase 0.1 validation evidence"`.
-

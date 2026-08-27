@@ -104,8 +104,12 @@ export class WorkshopRunner {
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
   private readonly resumeOpportunities: OpportunityRow[];
-  /** Completed state transitions are durable across a resume and must not be appended twice. */
-  private readonly resumeTransitionKeys: Set<string>;
+  /**
+   * Completed state transitions are durable across a resume and must not be appended
+   * twice. Counted rather than set-membership: a state machine that legitimately
+   * revisits a pair must still record the visits this resume actually performs.
+   */
+  private readonly resumeTransitionKeys: Map<string, number>;
   private resumeOpportunityIndex = 0;
   private readonly resumeState: WorkshopState | null;
   private readonly resuming: boolean;
@@ -120,7 +124,7 @@ export class WorkshopRunner {
     this.budgets = new BudgetLedger(this.config);
     let existingStartMs = Date.now();
     this.resumeOpportunities = [];
-    this.resumeTransitionKeys = new Set<string>();
+    this.resumeTransitionKeys = new Map<string, number>();
     this.resumeState = null;
     if (this.resuming) {
       const existing = getRun(this.db, this.runId);
@@ -146,7 +150,8 @@ export class WorkshopRunner {
       this.resumeOpportunities.push(...opportunities);
       for (const transition of getTransitions(this.db, this.runId)) {
         if (transition.status === 'completed') {
-          this.resumeTransitionKeys.add(`${transition.from_state}->${transition.to_state}`);
+          const key = `${transition.from_state}->${transition.to_state}`;
+          this.resumeTransitionKeys.set(key, (this.resumeTransitionKeys.get(key) ?? 0) + 1);
         }
       }
       this.opportunitySequence = Math.max(0, ...opportunities.map((row) => row.sequence));
@@ -1322,7 +1327,10 @@ export class WorkshopRunner {
     // A recovered run may have durable transition rows beyond the last event that
     // survived an interruption. Reusing the existing row keeps the state-machine
     // history a single chain instead of appending a second copy of the same pass.
-    if (this.resuming && this.resumeTransitionKeys.has(`${from}->${to}`)) {
+    const recordedKey = `${from}->${to}`;
+    const alreadyRecorded = this.resuming ? (this.resumeTransitionKeys.get(recordedKey) ?? 0) : 0;
+    if (alreadyRecorded > 0) {
+      this.resumeTransitionKeys.set(recordedKey, alreadyRecorded - 1);
       this.state = to;
       return;
     }

@@ -14,7 +14,11 @@ import {
 } from '../db/queries.js';
 import { readEvents } from '../events/recorder.js';
 import { auditSummaryFidelity } from '../orchestrator/summaries.js';
-import { isVisibleTo, type StoredMessage } from '../orchestrator/visibility.js';
+import type { StoredMessage } from '../orchestrator/visibility.js';
+// Deliberately not `isVisibleTo`: that helper is what context assembly uses, so asking
+// it whether a summary source was authorised would be asking the same code to mark its
+// own work. `authorisedToSee` re-derives the answer from frozen group membership alone.
+import { authorisedToSee } from './metrics.js';
 import { SCRIPTED_MODERATOR_VERSION } from '../providers/scriptedModerator.js';
 
 export type Phase01Status = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
@@ -130,7 +134,7 @@ function evaluateSummaryProvenance(
       continue;
     }
     const resolved = sourceMessages as StoredMessage[];
-    if (resolved.some((message) => !isVisibleTo(config, message, summary.agent_id))) problems.push(`${summary.summary_id}: source is outside recipient visibility`);
+    if (resolved.some((message) => !authorisedToSee(config, message, summary.agent_id))) problems.push(`${summary.summary_id}: source is outside recipient visibility`);
     if (summary.scope.split(':', 1)[0] === 'public' && resolved.some((message) => message.channel !== 'public')) problems.push(`${summary.summary_id}: private material entered a public summary`);
     if (sourceIds.some((id, index) => index > 0 && (messageById.get(id)?.sequence ?? 0) < (messageById.get(sourceIds[index - 1]!)?.sequence ?? 0))) problems.push(`${summary.summary_id}: source order is not chronological`);
   }

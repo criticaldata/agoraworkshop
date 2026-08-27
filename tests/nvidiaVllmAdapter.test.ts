@@ -129,6 +129,25 @@ describe('nvidia_vllm invoke', () => {
     expect(result.failure?.message).toMatch(/slow down/i);
   });
 
+  it('classifies a non-JSON HTTP 429 as rate_limit instead of malformed_response', async () => {
+    const fetchImpl = vi.fn(async () =>
+      new Response('too many requests', {
+        status: 429,
+        headers: { 'content-type': 'text/plain' },
+      }),
+    ) as typeof fetch;
+    const provider = new NvidiaVllmProvider({
+      baseURL: 'http://127.0.0.1:18002/v1',
+      fetchImpl,
+    });
+
+    const result = await provider.invoke(requestWith());
+
+    expect(result.ok).toBe(false);
+    expect(result.failure?.category).toBe('rate_limit');
+    expect(result.failure?.message).toMatch(/http 429/i);
+  });
+
   it('classifies aborts as timeout', async () => {
     const fetchImpl = vi.fn(async () => {
       const error = new Error('aborted by signal');

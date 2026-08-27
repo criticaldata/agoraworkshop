@@ -75,8 +75,8 @@ export class NvidiaVllmProvider implements AgentProvider {
         signal: timeout.controller.signal,
       });
 
-      const payload = await parseJson(response);
       if (!response.ok) {
+        const payload = await parseErrorPayload(response);
         const category: InfrastructureFailure = response.status === 429 ? 'rate_limit' : 'provider_error';
         return failureResult(
           this.name,
@@ -93,6 +93,7 @@ export class NvidiaVllmProvider implements AgentProvider {
         );
       }
 
+      const payload = await parseJson(response);
       const choice = payload.choices?.[0];
       if (!choice) {
         return failureResult(
@@ -199,6 +200,19 @@ async function parseJson(response: Response): Promise<NvidiaVllmChatResponse> {
     return (await response.json()) as NvidiaVllmChatResponse;
   } catch (error) {
     throw new MalformedResponseError(error instanceof Error ? error.message : String(error));
+  }
+}
+
+async function parseErrorPayload(response: Response): Promise<NvidiaVllmChatResponse> {
+  const rawBody = await response.text();
+  if (!rawBody.trim()) {
+    return {};
+  }
+
+  try {
+    return JSON.parse(rawBody) as NvidiaVllmChatResponse;
+  } catch {
+    return {};
   }
 }
 

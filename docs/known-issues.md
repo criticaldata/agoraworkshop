@@ -42,11 +42,21 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
   always names the run it used, so the choice is visible, but it is a search result
   rather than a stated pairing.
 
+- **NVIDIA/VLLM canary endpoint is external to AGORA.** The `nvidia_vllm` adapter
+  records the endpoint and model identity but does not own the VLLM service lifecycle.
+  A preflight can prove that the endpoint answered the required contract; it cannot
+  prove who else may be using the service or that its weights will remain unchanged.
+  The live package therefore records the observed server version, model id and node
+  provenance and keeps the mock control as a separate condition.
+
 ## Provider-specific notes
 
 - The canonical configs pin an OpenAI model. `model.provider` also accepts `anthropic`
-  and `mock`; provider and model id are part of the hashed config, so switching either
+  `nvidia_vllm` and `mock`; provider and model id are part of the hashed config, so switching either
   is a visible change of experimental conditions.
+- NVIDIA/VLLM requests use the native `/v1/chat/completions` contract with a `system`
+  message, `max_tokens`, and `chat_template_kwargs.enable_thinking=false`. The adapter
+  is explicitly named `nvidia_vllm` even though the wire protocol is OpenAI-compatible.
 - Sampling parameters (`temperature`, `top_p`, `top_k`) are recorded but default to
   `null`, meaning "not set". The OpenAI adapter omits null fields from the request
   rather than sending a provider default; `top_k` is never sent, because the Chat

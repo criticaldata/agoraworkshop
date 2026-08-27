@@ -40,7 +40,9 @@ npm run dev            # then open http://localhost:3000
 | `/runs/:id/invocations/:id` | The exact material one agent was given before it responded. |
 | `/runs/:id/validation` | The Phase 0 validation package: configuration, execution summary, the three gates with their evidence, provenance, and links to every artifact. |
 
-Five configurations ship. Three run on the deterministic mock provider and cost nothing:
+The repository ships deterministic mock controls plus dedicated NVIDIA/VLLM canary
+configurations. Mock runs cost nothing; the NVIDIA configs call the already-running
+endpoint supplied through `NVIDIA_VLLM_BASE_URL`.
 
 | Config | Provider | Purpose |
 | --- | --- | --- |
@@ -49,6 +51,9 @@ Five configurations ship. Three run on the deterministic mock provider and cost 
 | `agora_phase0_smoke.yaml` | mock | Pre-flight check. Injects a few faults, so it exercises both paths at once. |
 | `agora_phase0_v1.yaml` | openai | The canonical baseline. Spends money. |
 | `agora_phase0_faultdemo.yaml` | openai | The canonical baseline plus injected faults. Spends money. |
+| `agora_phase0_1_nvidia_vllm_live_canary.yaml` | nvidia_vllm | Three-agent live baseline with auditable summaries, tools and recovery. |
+| `agora_phase0_1_nvidia_vllm_live_fault.yaml` | nvidia_vllm | Live provider/tool fault condition; use only after preflight. |
+| `agora_phase0_1_nvidia_vllm_moderator_scripted.yaml` | nvidia_vllm | Live participant run with a fixed scripted moderator boundary. |
 
 Faults are declared in the config, so a fault run carries its own config hash and can
 never be mistaken for a baseline run.
@@ -67,6 +72,29 @@ npm run agora -- validate \
   --fault-config configs/agora_phase0_faultdemo.yaml
 ```
 
+### NVIDIA/VLLM preflight and canary
+
+The provider probe qualifies an existing endpoint; it never starts, stops or
+reconfigures a VLLM service. For the authorized Brev tunnel used by AGORA:
+
+```bash
+ssh -T -N -o ControlMaster=no -o ControlPath=none \
+  -L 18002:127.0.0.1:8002 mit-critical-data-1
+
+$env:NVIDIA_VLLM_BASE_URL = 'http://127.0.0.1:18002/v1'
+npm run agora -- provider-probe --provider nvidia_vllm \
+  --model leoclaw-qwen3-32b --out ./phase0_1_provider_preflight
+
+npm run agora -- validate \
+  --config configs/agora_phase0_1_nvidia_vllm_live_canary.yaml \
+  --fault-config configs/agora_phase0_1_nvidia_vllm_live_fault.yaml \
+  --moderator-config configs/agora_phase0_1_nvidia_vllm_moderator_scripted.yaml \
+  --out ./phase0_1_nvidia_vllm_validation
+```
+
+The preflight receipt is secretless. The live baseline, rerun, fault condition and
+scripted-moderator condition are separate runs and are linked before M30 can pass.
+
 ---
 
 ## What exists
@@ -78,7 +106,7 @@ npm run agora -- validate \
 | Turn scheduling, retries, budgets, routing | `src/orchestrator/runner.ts` |
 | Context assembly + provenance | `src/orchestrator/context.ts` |
 | Single visibility rule (public/private separation) | `src/orchestrator/visibility.ts` |
-| Provider adapters (OpenAI, Anthropic, mock, fault injection) | `src/providers/` |
+| Provider adapters (OpenAI, Anthropic, mock, NVIDIA/VLLM, fault injection) | `src/providers/` |
 | Structured event log + SQLite persistence | `src/events/`, `src/db/` |
 | Analytics, including infrastructure-adjusted participation | `src/analytics/summary.ts` |
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
@@ -105,7 +133,9 @@ agora accept <run_id>              Evaluate the three Phase 0 gates
 agora analytics <run_id>           Print the analytics summary
 agora hash --config <path>         Print the config hash without running anything
 agora list                         List recorded runs
-agora validate                     Produce the whole validation package
+  agora validate                     Produce the whole validation package
+  agora provider-probe --provider nvidia_vllm --model <id>
+                                     Qualify an existing VLLM endpoint
 ```
 
 `validate` defaults to the mock configs, so it spends nothing unless you point it at a
@@ -340,6 +370,8 @@ Deployed on Railway from this repository.
 | `AGORA_AUTH_SCOPE` | `write` (default) protects run-starting and export; `all` protects every route except the health check. |
 | `AGORA_APP_VERSION` | Optional. Overrides the version read from `package.json` in the provenance record. |
 | `AGORA_COMMIT_SHA` | Optional. Used when the platform does not supply a commit sha and there is no git checkout. |
+| `NVIDIA_VLLM_BASE_URL` | Required for NVIDIA/VLLM runs; points to the already-running `/v1` endpoint. |
+| `NVIDIA_VLLM_API_KEY` | Optional provider credential; never written to configs, logs or bundles. |
 
 Railway supplies `RAILWAY_GIT_COMMIT_SHA`, `RAILWAY_DEPLOYMENT_ID` and
 `RAILWAY_ENVIRONMENT_NAME` automatically, and every run records them. Nothing is ever

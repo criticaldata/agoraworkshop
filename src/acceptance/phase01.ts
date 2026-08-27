@@ -16,13 +16,32 @@ import { readEvents } from '../events/recorder.js';
 import { auditSummaryFidelity } from '../orchestrator/summaries.js';
 import { isVisibleTo, type StoredMessage } from '../orchestrator/visibility.js';
 import { SCRIPTED_MODERATOR_VERSION } from '../providers/scriptedModerator.js';
+import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
 
 export type Phase01Status = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
 export interface Phase01Metric { id: string; status: Phase01Status; evidence: string; }
 
+export interface LiveCanaryLink {
+  baselineRunId: string;
+  rerunRunId: string;
+  faultRunId: string;
+  /** A separate run exercising the fixed moderator boundary, when supplied. */
+  scriptedModeratorRunId?: string | null;
+}
+
+export interface CoreGateStatuses {
+  infrastructure_validated: Phase01Status;
+  failure_attribution_validated: Phase01Status;
+  baseline_reproducible: Phase01Status;
+}
+
 export interface Phase01EvaluationOptions {
   /** Files promised by an in-progress export, used for the live-canary contract. */
   pendingArtifactNames?: string[];
+  /** Linked runs that make a live canary a package rather than a single-run claim. */
+  liveCanaryLink?: LiveCanaryLink | null;
+  /** Supplied by the gate layer to prevent M30 from recursively evaluating itself. */
+  coreGateStatuses?: CoreGateStatuses | null;
 }
 
 const TOOL_FAULTS = new Set(['tool_timeout', 'tool_unavailable', 'tool_invalid_response']);
@@ -51,7 +70,14 @@ export function evaluatePhase01(
     evaluateRecoveryIdempotency(runId, checkpoints, opportunities, events),
     evaluateBackupRestore(run, backups),
     evaluateModeratorBoundary(config, run, invocations, messages, events),
-    evaluateLiveCanary(db, run, config, options.pendingArtifactNames ?? []),
+    evaluateLiveCanary(
+      db,
+      run,
+      config,
+      options.pendingArtifactNames ?? [],
+      options.liveCanaryLink ?? null,
+      options.coreGateStatuses ?? null,
+    ),
   ];
 }
 
@@ -288,14 +314,69 @@ function evaluateLiveCanary(
   run: ReturnType<typeof getRun>,
   config: ReturnType<typeof safeRunConfig>,
   pendingArtifactNames: string[],
+  link: LiveCanaryLink | null,
+  coreGateStatuses: CoreGateStatuses | null,
 ): Phase01Metric {
   if (!run || !config || config.validation?.profile !== 'live_canary' || ['mock', 'mock_context_contract'].includes(run.provider)) return { id: 'M30', status: 'NOT_EXERCISED', evidence: 'live canary requires a declared non-mock provider profile' };
-  const artifacts = new Set([
-    ...getArtifacts(db, run.run_id).map((artifact) => artifact.name),
-    ...pendingArtifactNames,
-  ]);
-  if (run.status !== 'COMPLETED' || !artifacts.has('manifest.json') || !artifacts.has('acceptance_report.json')) return { id: 'M30', status: 'FAIL', evidence: 'live canary did not complete with a full exported acceptance package' };
-  return { id: 'M30', status: 'PASS', evidence: `completed live canary under provider ${run.provider}` };
+  if (!link) {
+    return {
+      id: 'M30',
+      status: 'FAIL',
+      evidence: 'live canary is declared but no linked baseline/rerun/fault evidence package was supplied',
+    };
+  }
+  const linkedIds = [link.baselineRunId, link.rerunRunId, link.faultRunId];
+  const baseline = getRun(db, link.baselineRunId);
+  const rerun = getRun(db, link.rerunRunId);
+  const fault = getRun(db, link.faultRunId);
+  const linkedRuns = [baseline, rerun, fault];
+  const problems: string[] = [];
+  if (link.baselineRunId !== run.run_id) problems.push('live-canary link baseline does not match the evaluated run');
+  if (new Set(linkedIds).size !== linkedIds.length) problems.push('baseline, rerun and fault run ids must be distinct');
+  if (linkedRuns.some((candidate) => !candidate)) problems.push('one or more linked live-canary runs do not exist');
+
+  const availableRuns = linkedRuns.filter((candidate): candidate is NonNullable<typeof run> => candidate !== null);
+  for (const candidate of availableRuns) {
+    if (candidate.status !== 'COMPLETED') problems.push(`${candidate.run_id}: linked run is ${candidate.status}, expected COMPLETED`);
+    if (candidate.provider !== run.provider) problems.push(`${candidate.run_id}: provider ${candidate.provider} differs from ${run.provider}`);
+    if (candidate.model !== run.model) problems.push(`${candidate.run_id}: model ${candidate.model} differs from ${run.model}`);
+    const artifacts = new Set(getArtifacts(db, candidate.run_id).map((artifact) => artifact.name));
+    if (candidate.run_id === run.run_id) pendingArtifactNames.forEach((name) => artifacts.add(name));
+    const missing = REQUIRED_BUNDLE_FILES.filter((name) => !artifacts.has(name));
+    if (missing.length > 0) problems.push(`${candidate.run_id}: linked export is missing ${missing.join(', ')}`);
+  }
+
+  if (baseline && rerun && baseline.config_hash !== rerun.config_hash) {
+    problems.push(`baseline/rerun config hash mismatch (${baseline.config_hash} != ${rerun.config_hash})`);
+  }
+  if (baseline && fault && baseline.config_hash === fault.config_hash) {
+    problems.push('fault run must have a distinct fault-enabled config hash');
+  }
+  if (fault) {
+    const faultConfig = safeRunConfig(fault);
+    const faultEvents = readEvents(db, fault.run_id);
+    const hasFailure = faultEvents.some((event) =>
+      ['timeout', 'rate_limit', 'provider_error', 'provider_refusal', 'network_error', 'malformed_response', 'permission_denied', 'tool_call_failed'].includes(event.event_type),
+    );
+    if (!faultConfig?.fault_injection?.enabled || faultConfig.fault_injection.faults.length === 0) {
+      problems.push('fault run does not declare enabled fault injection');
+    }
+    if (!hasFailure) problems.push('fault run contains no recorded infrastructure failure event');
+  }
+  if (!coreGateStatuses) {
+    problems.push('core gate statuses were not supplied by the package evaluator');
+  } else {
+    for (const [name, status] of Object.entries(coreGateStatuses)) {
+      if (status !== 'PASS') problems.push(`core gate ${name} is ${status}, expected PASS`);
+    }
+  }
+  return {
+    id: 'M30',
+    status: problems.length ? 'FAIL' : 'PASS',
+    evidence: problems.length
+      ? problems.slice(0, 5).join('; ')
+      : `linked live canary complete: baseline=${link.baselineRunId}, rerun=${link.rerunRunId}, fault=${link.faultRunId}, provider=${run.provider}, model=${run.model}`,
+  };
 }
 
 function safeRunConfig(run: NonNullable<ReturnType<typeof getRun>>) {

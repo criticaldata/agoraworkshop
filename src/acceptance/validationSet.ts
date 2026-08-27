@@ -11,6 +11,7 @@ import {
   type GateStatus,
   type NextStep,
 } from './gates.js';
+import type { LiveCanaryLink } from './phase01.js';
 import { runProvenance } from '../db/queries.js';
 import type { MetricResult } from './metrics.js';
 import type { CodeProvenance } from '../core/provenance.js';
@@ -85,6 +86,7 @@ export interface ValidationSetOptions {
   /** Override auto-discovery. Null means "do not use any run for this gate". */
   failureEvidenceRunId?: string | null;
   reproducibilityRunId?: string | null;
+  liveCanaryLink?: LiveCanaryLink | null;
 }
 
 /** A run that actually recorded at least one infrastructure failure event. */
@@ -145,6 +147,7 @@ export function buildValidationSet(options: ValidationSetOptions): ValidationSet
       runId,
       failureEvidenceRunId: faultRun?.run_id ?? null,
       reproducibilityRunId: reproRun?.run_id ?? null,
+      liveCanaryLink: options.liveCanaryLink ?? null,
     }),
   );
 

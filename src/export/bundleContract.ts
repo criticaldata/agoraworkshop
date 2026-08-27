@@ -26,7 +26,7 @@ export const REQUIRED_BUNDLE_ITEMS: Array<{ item: string; files: string[] }> = [
   { item: 'infrastructure failures and retries', files: ['failures.jsonl', 'opportunities.jsonl'] },
   { item: 'basic metrics', files: ['analytics.json'] },
   { item: 'Phase 0.1 robustness metrics', files: ['phase0_1_report.json'] },
-  { item: 'acceptance report', files: ['acceptance_report.json'] },
+  { item: 'acceptance report and live-canary linkage', files: ['acceptance_report.json', 'live_canary_link.json'] },
   { item: 'README/manifest explaining the files', files: ['README.md', 'manifest.json'] },
 ];
 

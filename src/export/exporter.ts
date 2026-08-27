@@ -24,7 +24,7 @@ import { displayName } from '../config/schema.js';
 import { nowIso } from '../core/ids.js';
 import { runProvenance } from '../db/queries.js';
 import { REQUIRED_BUNDLE_FILES, REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
-import { evaluatePhase01 } from '../acceptance/phase01.js';
+import { evaluatePhase01, type LiveCanaryLink } from '../acceptance/phase01.js';
 
 
 export interface ExportOptions {
@@ -33,6 +33,7 @@ export interface ExportOptions {
   outDir?: string;
   failureEvidenceRunId?: string | null;
   reproducibilityRunId?: string | null;
+  liveCanaryLink?: LiveCanaryLink | null;
 }
 
 export interface ExportResult {
@@ -259,19 +260,34 @@ export function exportRun(options: ExportOptions): ExportResult {
 
   write('analytics.json', 'analytics', json(analytics));
   write(
-    'phase0_1_report.json',
+    'live_canary_link.json',
     'acceptance',
-    json({ metrics: evaluatePhase01(db, runId, { pendingArtifactNames: REQUIRED_BUNDLE_FILES }) }),
+    json({
+      status: options.liveCanaryLink ? 'linked' : 'not_applicable',
+      baseline_run_id: options.liveCanaryLink?.baselineRunId ?? null,
+      rerun_run_id: options.liveCanaryLink?.rerunRunId ?? null,
+      fault_run_id: options.liveCanaryLink?.faultRunId ?? null,
+      scripted_moderator_run_id: options.liveCanaryLink?.scriptedModeratorRunId ?? null,
+      generated_at: nowIso(),
+    }),
   );
-
   const acceptance = finalizeReport(
     evaluateGates({
       db,
       runId,
       failureEvidenceRunId: options.failureEvidenceRunId ?? null,
       reproducibilityRunId: options.reproducibilityRunId ?? null,
+      liveCanaryLink: options.liveCanaryLink ?? null,
       // Written after this report: they exist by the time the bundle is returned.
       pendingArtifactNames: ['acceptance_report.json', 'replay.html', 'README.md', 'manifest.json'],
+    }),
+  );
+  write(
+    'phase0_1_report.json',
+    'acceptance',
+    json({
+      metrics: acceptance.phase01?.metrics ?? evaluatePhase01(db, runId, { pendingArtifactNames: REQUIRED_BUNDLE_FILES }),
+      live_canary_link: options.liveCanaryLink ?? null,
     }),
   );
   write('acceptance_report.json', 'acceptance', json(acceptance));
@@ -305,6 +321,7 @@ export function exportRun(options: ExportOptions): ExportResult {
         present: entry.files.every((name) => written.has(name) || name === 'manifest.json'),
       })),
       files: files.map((f) => ({ name: f.name, bytes: f.bytes, sha256: f.sha256 })),
+      trace_ids: [...new Set(opportunities.map((opportunity) => opportunity.trace_id).filter((trace): trace is string => Boolean(trace)))],
       note:
         'manifest.json is written after every other file, so its own hash does not appear ' +
         'in the file list above.',
@@ -342,6 +359,7 @@ function bundleReadme(
     `| \`trace_index.jsonl\` | End-to-end opportunity, invocation, message and tool-call trace links. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
+    `| \`live_canary_link.json\` | Secretless linkage record for baseline, rerun, fault and optional moderator evidence. |`,
     `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates and, when enabled, the Phase 0.1 robustness checks. |`,
     `| \`agents.json\` | Participant and moderator definitions, including moderator mode. |`,
     `| \`messages.jsonl\` | Every message with its visibility metadata (intended and actual recipients). |`,

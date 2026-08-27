@@ -42,4 +42,3 @@ describe('context-contract mock provider', () => {
     expect(receipt['rendered_messages_hash']).toMatch(/^sha256:[0-9a-f]{64}$/);
   });
 });
-

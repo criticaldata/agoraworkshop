@@ -155,4 +155,3 @@ hashes, model id, VLLM version, endpoint scope, run IDs, output paths, and
 warnings. The Git repository stores code, configurations, schemas, tests, and
 the final audit summary; it does not store raw provider secrets or unbounded
 runtime bundles.
-

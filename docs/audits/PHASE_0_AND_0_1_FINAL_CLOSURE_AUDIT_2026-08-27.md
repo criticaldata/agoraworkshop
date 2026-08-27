@@ -1,10 +1,10 @@
 # AGORA Workshop — Auditoría final de cierre de Phase 0 y Phase 0.1
 
-**Fecha de auditoría:** 2026-08-27  
-**Instrumento auditado:** `agora-phase0@0.1.0`  
-**Commit de código bajo prueba:** `af327f399fb8ffdb0bd0565242006681f88c1f2f`  
-**Rama:** `agent/phase0-1-robustness`  
-**Proveedor live de cierre:** NVIDIA vLLM en GPU 0 del nodo autorizado  
+**Fecha de auditoría:** 2026-08-27
+**Instrumento auditado:** `agora-phase0@0.1.0`
+**Commit de código bajo prueba:** `af327f399fb8ffdb0bd0565242006681f88c1f2f`
+**Rama:** `agent/phase0-1-robustness`
+**Proveedor live de cierre:** NVIDIA vLLM en GPU 0 del nodo autorizado
 **Resultado:** **GO / READY para el siguiente experimento controlado**
 
 ## 1. Veredicto
@@ -271,4 +271,3 @@ Las tres comprobaciones fueron exitosas.
 **Decisión científica:** no se emite todavía una conclusión sobre el comportamiento de los agentes. La próxima fase debe comparar agentes diferenciados por role pack contra el control de prompts/capacidades idénticas y conservar la separación entre comportamiento observado y fallos de infraestructura.
 
 **Decisión institucional:** para declarar “cierre oficial” ante terceros, Simon/equipo debe revisar el commit final, aprobar `docs/phase0_acceptance_matrix.md` como tabla canónica y conservar el paquete live en almacenamiento inmutable. AWS Bedrock puede complementar después, pero no sustituye ni invalida la evidencia NVIDIA ya obtenida.
-

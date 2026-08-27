@@ -109,6 +109,7 @@ describe('context provenance', () => {
       roundIndex: 0,
       totalRounds: 1,
       channel: 'public',
+      opportunityId: invocation.opportunity_id,
     });
 
     expect(rebuilt.includedMessageIds).toEqual(JSON.parse(invocation.context_message_ids));

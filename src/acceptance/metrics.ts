@@ -865,7 +865,7 @@ function m18(db: Db, run: RunRow, rerunId: string | null): MetricResult {
  * recorded `actual_recipients`, which is the very field under suspicion. This reads the
  * frozen config and nothing else.
  */
-function authorisedToSee(config: ExperimentConfig, message: StoredMessage, agentId: string): boolean {
+export function authorisedToSee(config: ExperimentConfig, message: StoredMessage, agentId: string): boolean {
   if (message.sender_agent_id === agentId) return true;
   if (message.channel === 'public') return true;
 

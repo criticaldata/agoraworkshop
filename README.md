@@ -181,8 +181,9 @@ Each gate reports one of three statuses:
 | `NOT_EXERCISED` | The conditions the gate judges never occurred in the runs supplied. Missing evidence, not a pass. |
 
 `ready_for_controlled_behavioral_experiment` is set to `true` only when all three
-gates — and any opted-in Phase 0.1 robustness checks — are **PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
-defect in the instrument and not a pass, which is why the fault-injection configs exist.
+gates — and any opted-in Phase 0.1 robustness checks — are **PASS**. A run in which
+nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a defect in the instrument
+and not a pass, which is why the fault-injection configs exist.
 
 ### The twenty-two acceptance metrics
 
@@ -192,9 +193,13 @@ so a verdict can be checked rather than taken on trust.
 
 | Gate | Metrics | Thresholds |
 | --- | --- | --- |
-| 1 — Infrastructure | M1–M8 | opportunity coverage, sequence integrity, public routing, private isolation, state machine, bounded execution, persistence, export |
-| 2 — Failure attribution | M9–M12 | classification coverage, behaviour/infrastructure separation, retry traceability, controlled fault validation |
+| 1 — Infrastructure | M1–M8, M19, M21 | opportunity coverage, sequence integrity, public routing, private isolation, state machine, bounded execution, persistence, export, authorized-context equality, delivery uniqueness |
+| 2 — Failure attribution | M9–M12, M20, M22 | classification coverage, behaviour/infrastructure separation, retry traceability, controlled fault validation, retry action idempotency, budget accounting under retry |
 | 3 — Reproducibility | M13–M18 | config snapshot, deterministic fingerprint, code provenance, invocation traceability, context integrity, repeated-run evidence |
+
+M19–M22 were added later and are described under **Four strengthenings** below. They are
+listed here too because each one belongs to a gate and can fail it; keeping them out of
+this table made gates 1 and 2 look narrower than they are.
 
 Three properties hold throughout:
 
@@ -240,6 +245,30 @@ elsewhere.
 
 The full table appears on `/runs/:id/validation` under **Technical details**. The default
 view answers the four Phase 0 questions instead; the thresholds are for an auditor.
+
+### The Phase 0.1 robustness checks
+
+M23–M30 live in `src/acceptance/phase01.ts` and judge the machinery Phase 0.1 added:
+context summaries, end-to-end traces, the tool gateway, recovery and backup. They are
+**opt-in**. A frozen config brings them into the acceptance report by enabling
+summarization, tool probes or recovery, by declaring a validation profile or a scripted
+moderator, or by using a structured capability manifest. A plain Phase 0 config is not
+evaluated against them at all, so its meaning is unchanged.
+
+| Metric | Threshold |
+| --- | --- |
+| **M23** Context material | every invocation's rendered material resolves to authorized raw messages and summaries |
+| **M24** Summary provenance | sources exist, are in order, are within the recipient's visibility, and the fidelity hashes verify |
+| **M25** Trace completeness | one trace id joins opportunity, invocation, summary and tool records |
+| **M26** Tool attribution | every configured tool fault is recorded and classified as the fault injected |
+| **M27** Recovery idempotency | a completed resume left no unresolved opportunity, no duplicate delivery and no duplicate state transition |
+| **M28** Backup/restore | a reopened snapshot carries the same run identity and config hash |
+| **M29** Moderator boundary | a scripted moderator turn is recorded as scripted, not as a model call |
+| **M30** Live canary | a declared non-mock run completed with a full exported acceptance package |
+
+Like the Phase 0 metrics, these separate defect from missing evidence: a wrong answer is
+`FAIL`, a condition never exercised is `NOT_EXERCISED`. M30 stays `NOT_EXERCISED` until an
+operator supplies real provider credentials — a mock run can never stand in for it.
 
 ### The validation set
 
@@ -384,10 +413,16 @@ person's access means changing the credential for everyone.
 npm test
 ```
 
-122 tests covering config integrity and immutability, state-machine validity and
+383 tests covering config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
-reproducibility, the OpenAI request mapping, access control, and every page.
+reproducibility, the OpenAI request mapping, access control, and every page — and, for
+Phase 0.1, channel-scoped summary provenance, the deterministic tool gateway, checkpoint
+and resume behaviour, and backup/restore verification.
+
+Every acceptance metric is tested twice: once on a run that satisfies it, and once on the
+same run after one stored record has been damaged. A check that cannot be made to fail is
+not evidence.
 
 The documentation page quotes figures about the code — the number of event types, failure
 categories and tables. Those figures are asserted against the source, so the page cannot

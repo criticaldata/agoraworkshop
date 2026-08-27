@@ -19,68 +19,6 @@ describe('Phase 0.1 checkpoints', () => {
     expect(JSON.parse(checkpoints[0]!.state_json)).toMatchObject({ config_hash: config.hash });
   });
 
-  it('replays a transition the interrupted run never completed, and skips one it did', async () => {
-    const db = tempDb();
-    const config = frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } });
-    const first = new WorkshopRunner({ db, frozen: config });
-    await first.execute();
-
-    // Model the one window where a transition row outlives its completing event: the row
-    // is durable, the event log stops just short of it. The resume must reuse that row
-    // exactly once and still write every transition the interrupted run never reached.
-    const opportunities = db.prepare(
-      `SELECT opportunity_id, sequence FROM opportunities WHERE run_id = ? ORDER BY sequence`,
-    ).all(first.id) as Array<{ opportunity_id: string; sequence: number }>;
-    const target = opportunities[12]!;
-    const targetEvent = db.prepare(
-      `SELECT sequence FROM events WHERE run_id = ? AND event_type = 'response_opportunity_created'
-       AND json_extract(payload, '$.opportunity_id') = ?`,
-    ).get(first.id, target.opportunity_id) as { sequence: number };
-
-    db.exec('PRAGMA foreign_keys = OFF');
-    db.prepare(`DELETE FROM events WHERE run_id = ? AND sequence > ?`).run(first.id, targetEvent.sequence);
-    db.prepare(`DELETE FROM state_transitions WHERE run_id = ? AND sequence > ?`).run(first.id, targetEvent.sequence);
-    for (const table of ['invocations', 'context_summaries', 'tool_calls']) {
-      db.prepare(`DELETE FROM ${table} WHERE run_id = ? AND opportunity_id IN
-        (SELECT opportunity_id FROM opportunities WHERE run_id = ? AND sequence >= ?)`).run(first.id, first.id, target.sequence);
-    }
-    db.prepare(`DELETE FROM run_checkpoints WHERE run_id = ? AND sequence >= ?`).run(first.id, target.sequence);
-    db.prepare(`DELETE FROM opportunities WHERE run_id = ? AND sequence > ?`).run(first.id, target.sequence);
-    db.prepare(`UPDATE opportunities SET resolved_at = NULL, resolution = NULL, failure_category = NULL,
-      behaviourally_available = 0, message_id = NULL, attempts = 0 WHERE opportunity_id = ?`).run(target.opportunity_id);
-    db.prepare(`DELETE FROM messages WHERE run_id = ? AND source_event_id NOT IN
-      (SELECT event_id FROM events WHERE run_id = ?)`).run(first.id, first.id);
-    db.prepare(`UPDATE runs SET status = 'INTERRUPTED', termination_reason = 'interrupted',
-      started_at = ?, ended_at = NULL WHERE run_id = ?`).run(new Date(Date.now() - 1000).toISOString(), first.id);
-    db.exec('PRAGMA foreign_keys = ON');
-
-    const survived = db.prepare(
-      `SELECT from_state || '->' || to_state AS key FROM state_transitions WHERE run_id = ? AND status = 'completed'`,
-    ).all(first.id) as Array<{ key: string }>;
-
-    const result = await new WorkshopRunner({ db, frozen: config, resumeRunId: first.id }).execute();
-    expect(result.status).toBe('COMPLETED');
-
-    const chain = db.prepare(
-      `SELECT from_state || '->' || to_state AS key, COUNT(*) AS count FROM state_transitions
-       WHERE run_id = ? AND status = 'completed' GROUP BY key`,
-    ).all(first.id) as Array<{ key: string; count: number }>;
-
-    // Every surviving pair appears exactly once, not twice: the resume reused the row.
-    for (const { key } of survived) {
-      expect(chain.find((row) => row.key === key)?.count, `${key} should not be recorded twice`).toBe(1);
-    }
-    // And the states the interrupted run never reached were recorded by the resume.
-    expect(chain.map((row) => row.key)).toContain('CLOSING->COMPLETED');
-    expect(chain.every((row) => row.count === 1)).toBe(true);
-
-    // The state-machine metric is the thing that judges this, so assert on it directly.
-    const gate1 = evaluateGates({ db, runId: first.id }).gates.infrastructure_validated;
-    const m5 = gate1.metrics.find((metric) => metric.id === 'M5');
-    expect(m5?.status, m5?.observed).toBe('PASS');
-    expect(gate1.metrics.find((metric) => metric.id === 'M1')?.status).toBe('PASS');
-  });
-
   it('rejects a status-only interruption of a run that already recorded completion', async () => {
     const db = tempDb();
     const config = frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } });

@@ -104,11 +104,7 @@ export class WorkshopRunner {
   /** Scoped to one response opportunity and automatically attached to its events. */
   private activeTraceId: string | null = null;
   private readonly resumeOpportunities: OpportunityRow[];
-  /**
-   * Completed state transitions are durable across a resume and must not be appended
-   * twice. Counted rather than set-membership: a state machine that legitimately
-   * revisits a pair must still record the visits this resume actually performs.
-   */
+  /** Completed state transitions are durable across a resume and must not be appended twice. */
   private readonly resumeTransitionKeys: Map<string, number>;
   private resumeOpportunityIndex = 0;
   private readonly resumeState: WorkshopState | null;

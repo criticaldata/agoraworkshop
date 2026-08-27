@@ -19,6 +19,14 @@ const ADDED_COLUMNS: Record<string, Array<[string, string]>> = {
   invocations: [['trace_id', 'trace_id TEXT']],
   messages: [['trace_id', 'trace_id TEXT']],
   tool_calls: [['attempt', 'attempt INTEGER NOT NULL DEFAULT 1']],
+  semantic_extractions: [['source_trace_ids_json', "source_trace_ids_json TEXT NOT NULL DEFAULT '[]'"]],
+  backup_verifications: [
+    ['restore_export_path', 'restore_export_path TEXT'],
+    ['restore_artifact_hashes_json', "restore_artifact_hashes_json TEXT NOT NULL DEFAULT '{}'"],
+    ['restore_replay_available', 'restore_replay_available INTEGER NOT NULL DEFAULT 0'],
+    ['restore_event_sequence_contiguous', 'restore_event_sequence_contiguous INTEGER NOT NULL DEFAULT 0'],
+    ['restore_tables_json', "restore_tables_json TEXT NOT NULL DEFAULT '[]'"],
+  ],
 };
 
 /**

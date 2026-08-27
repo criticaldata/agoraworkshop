@@ -75,6 +75,9 @@ describe('semantic extraction', () => {
     expect(row.prompt_version).toBe(EXTRACTION_PROMPT_VERSION);
     expect(row.extraction_method).toBe('keyword_stub');
     expect(row.messages_considered).toBe(r.messages.length);
+    expect(JSON.parse(row.source_trace_ids_json)).toEqual(
+      [...new Set(r.messages.map((message) => message.trace_id).filter((trace): trace is string => Boolean(trace)))],
+    );
   });
 
   it('writes a new extraction rather than replacing the previous one', async () => {

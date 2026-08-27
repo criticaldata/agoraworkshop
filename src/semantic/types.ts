@@ -94,6 +94,7 @@ export interface ExtractionRow {
   prompt_version: string;
   code_commit_sha: string | null;
   messages_considered: number;
+  source_trace_ids_json: string;
   status: 'running' | 'completed' | 'failed';
   failure_reason: string | null;
   created_at: string;

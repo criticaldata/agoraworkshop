@@ -205,6 +205,29 @@ describe('config validation', () => {
     expect(buildProvider(config).provider.name).toBe('mock_context_contract');
   });
 
+  it('accepts the explicit nvidia_vllm provider and builds the matching adapter', () => {
+    const previousBaseUrl = process.env.NVIDIA_VLLM_BASE_URL;
+    process.env.NVIDIA_VLLM_BASE_URL = 'http://127.0.0.1:18002/v1';
+    try {
+      const config = freezeConfig(
+        baseConfigObject({
+          model: {
+            ...(baseConfigObject().model as object),
+            provider: 'nvidia_vllm',
+            model: 'leoclaw-qwen3-32b',
+          },
+        }),
+      ).config;
+      expect(buildProvider(config).provider.name).toBe('nvidia_vllm');
+    } finally {
+      if (previousBaseUrl === undefined) {
+        delete process.env.NVIDIA_VLLM_BASE_URL;
+      } else {
+        process.env.NVIDIA_VLLM_BASE_URL = previousBaseUrl;
+      }
+    }
+  });
+
   it('rejects a moderator id that collides with a participant', () => {
     expect(() =>
       freezeConfig(baseConfigObject({ moderator: { id: 'agent_1', display_name: 'M' } })),

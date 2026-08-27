@@ -9,6 +9,7 @@ import { codeProvenance } from '../core/provenance.js';
 import { buildValidationSet, type ValidationSet } from '../acceptance/validationSet.js';
 import { readEvents } from '../events/recorder.js';
 import { backupDatabase, recordBackupVerification } from '../db/backup.js';
+import type { LiveCanaryLink } from '../acceptance/phase01.js';
 
 export interface ValidationOptions {
   db: Db;
@@ -16,6 +17,10 @@ export interface ValidationOptions {
   /** Optional separate fault-injection config supplying gate 2 evidence. */
   faultConfigPath?: string | null;
   outDir?: string | null;
+  /** Optional separate live run exercising the fixed scripted moderator boundary. */
+  moderatorConfigPath?: string | null;
+  /** Secretless preflight receipt to reference in the package readme. */
+  preflightReceiptPath?: string | null;
 }
 
 export interface ValidationResult {
@@ -28,6 +33,8 @@ export interface ValidationResult {
   rerunConfigHash: string;
   gates: Record<string, string>;
   validationSet: ValidationSet;
+  liveCanaryLink: LiveCanaryLink | null;
+  scriptedModeratorRunId: string | null;
 }
 
 /**
@@ -61,12 +68,6 @@ export async function runValidationPackage(
     }
   }
 
-  if (frozen.config.recovery?.enabled) {
-    const backupPath = join(directory, 'baseline-recovery.sqlite');
-    await backupDatabase(db, backupPath);
-    recordBackupVerification(db, baseline.runId, backupPath);
-  }
-
   // The rerun is rehydrated from what the baseline actually stored, so an identical
   // hash proves the snapshot round-trips, not merely that the file is unchanged.
   const baselineRow = getRun(db, baseline.runId)!;
@@ -94,12 +95,54 @@ export async function runValidationPackage(
     });
   }
 
+  // Supporting runs are exported before the final baseline package so M30 can verify
+  // durable evidence for every linked condition rather than trusting run identifiers.
+  exportRun({
+    db,
+    runId: rerun.runId,
+    outDir: join(directory, 'rerun'),
+  });
+
+  let scriptedModeratorRunId: string | null = null;
+  if (options.moderatorConfigPath) {
+    const scriptedFrozen = loadConfigFile(options.moderatorConfigPath);
+    const scripted = await executeRun({ db, frozen: scriptedFrozen, provenance });
+    if (scripted.status !== 'COMPLETED') {
+      throw new Error(`scripted moderator run did not complete: ${scripted.status}`);
+    }
+    scriptedModeratorRunId = scripted.runId;
+    exportRun({
+      db,
+      runId: scripted.runId,
+      outDir: join(directory, 'scripted_moderator'),
+    });
+  }
+
+  // Snapshot after all supporting runs have been recorded, so the restored database
+  // can regenerate the complete linked evidence set rather than only the baseline's
+  // early state. The final baseline export remains the package's last write.
+  if (frozen.config.recovery?.enabled) {
+    const backupPath = join(directory, 'baseline-recovery.sqlite');
+    await backupDatabase(db, backupPath);
+    recordBackupVerification(db, baseline.runId, backupPath);
+  }
+
+  const liveCanaryLink: LiveCanaryLink | null = frozen.config.validation?.profile === 'live_canary'
+    ? {
+      baselineRunId: baseline.runId,
+      rerunRunId: rerun.runId,
+      faultRunId,
+      scriptedModeratorRunId,
+    }
+    : null;
+
   const bundle = exportRun({
     db,
     runId: baseline.runId,
     outDir: directory,
     failureEvidenceRunId: faultRunId,
     reproducibilityRunId: rerun.runId,
+    liveCanaryLink,
   });
 
   // The validation set is the package-level view: which run stands behind which gate.
@@ -110,6 +153,7 @@ export async function runValidationPackage(
     runId: baseline.runId,
     failureEvidenceRunId: faultRunId,
     reproducibilityRunId: rerun.runId,
+    liveCanaryLink,
   });
   writeFileSync(
     join(directory, 'validation_set.json'),
@@ -128,6 +172,9 @@ export async function runValidationPackage(
       rerunConfigHash: rerun.configHash,
       configPath: options.configPath,
       faultConfigPath: options.faultConfigPath ?? null,
+      moderatorConfigPath: options.moderatorConfigPath ?? null,
+      preflightReceiptPath: options.preflightReceiptPath ?? null,
+      scriptedModeratorRunId,
       ready: bundle.acceptance.ready_for_controlled_behavioral_experiment,
       gates: validationSet.gates.map((g) => `${g.title}: ${g.status}`),
     }),
@@ -149,6 +196,8 @@ export async function runValidationPackage(
     configHash: frozen.hash,
     rerunConfigHash: rerun.configHash,
     gates,
+    liveCanaryLink,
+    scriptedModeratorRunId,
   };
 }
 
@@ -197,6 +246,9 @@ function validationReadme(input: {
   rerunConfigHash: string;
   configPath: string;
   faultConfigPath: string | null;
+  moderatorConfigPath: string | null;
+  preflightReceiptPath: string | null;
+  scriptedModeratorRunId: string | null;
   ready: boolean;
   gates: string[];
 }): string {
@@ -209,6 +261,9 @@ function validationReadme(input: {
 | Failure-evidence run | \`${input.faultRunId}\` |
 | Baseline config | \`${input.configPath}\` |
 | Fault config | ${input.faultConfigPath ? `\`${input.faultConfigPath}\`` : 'same as baseline'} |
+| Scripted moderator config | ${input.moderatorConfigPath ? `\`${input.moderatorConfigPath}\`` : 'not supplied'} |
+| Provider preflight receipt | ${input.preflightReceiptPath ? `\`${input.preflightReceiptPath}\`` : 'not supplied'} |
+| Scripted moderator run | ${input.scriptedModeratorRunId ?? 'not supplied'} |
 | Baseline config hash | \`${input.configHash}\` |
 | Rerun config hash | \`${input.rerunConfigHash}\` |
 | Hashes identical | ${input.configHash === input.rerunConfigHash ? 'yes' : 'NO, investigate'} |
@@ -218,6 +273,9 @@ ${input.gates.map((g) => `| ${g.split(': ')[0]} | ${g.split(': ')[1]} |`).join('
 The artifacts in this directory describe the **baseline** run. \`acceptance_report.json\`
 draws gate 2 evidence from the failure-evidence run and gate 3 evidence from the rerun;
 both are named in its \`evaluated_runs\` block.
+
+Live canary packages also carry \`live_canary_link.json\`, which names the baseline,
+exact-config rerun, fault condition and optional scripted-moderator condition.
 
 Open \`replay.html\` in a browser for the chronological view. \`events.jsonl\` is the
 authoritative record; everything else in this bundle is derived from it and from the

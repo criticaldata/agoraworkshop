@@ -1,0 +1,54 @@
+experiment_id: agora_phase0_1_context_contract
+config_version: 1
+model:
+  provider: mock_context_contract
+  model: mock-context-contract-v1
+  max_output_tokens: 128
+  temperature: null
+  top_p: null
+  top_k: null
+  seed: null
+  thinking: disabled
+  thinking_display: omitted
+  effort: low
+participants:
+  - { id: agent_1, display_name: Agent 1 }
+  - { id: agent_2, display_name: Agent 2 }
+  - { id: agent_3, display_name: Agent 3 }
+  - { id: agent_4, display_name: Agent 4 }
+  - { id: agent_5, display_name: Agent 5 }
+moderator:
+  id: moderator
+  display_name: Moderator
+  mode: scripted
+workshop:
+  topic: "Phase 0.1 context contract and scoped rolling-memory validation"
+  max_duration_seconds: 120
+  rounds: { introduction: 1, public_discussion: 1, private_or_breakout: 1, final_discussion: 1 }
+channels:
+  public: { enabled: true }
+  private:
+    enabled: true
+    moderator_observes_private: false
+    breakout_groups:
+      - { id: breakout_a, members: [agent_1, agent_2] }
+      - { id: breakout_b, members: [agent_3, agent_4, agent_5] }
+capabilities: { tools_enabled: false, manifest: [] }
+budgets: { max_calls_per_agent: 20, max_tokens_per_agent: 100000, warning_threshold: 0.8 }
+runtime: { timeout_seconds: 10, max_retries: 2, retry_backoff_ms: 0 }
+prompts: { participant_prompt_version: v1, moderator_prompt_version: v1 }
+context_policy:
+  version: phase0_1_context_contract
+  include_public_history: true
+  include_own_private: true
+  max_messages: 4
+  summarization:
+    enabled: true
+    version: rolling-v1
+    max_source_messages: 4
+    scopes: [public, breakout, private]
+    fidelity_audit: true
+recovery: { enabled: false, checkpoint_every: opportunity }
+validation: { profile: standard }
+scheduling: { order: rotate_by_round }
+fault_injection: { enabled: false, faults: [] }

@@ -149,7 +149,7 @@ La topología de cinco participantes pertenece a Phase 1A según la sección 3.2
 
 | Comprobación | Resultado |
 | --- | --- |
-| Commit auditado | 01f7dd6b064ac1e59be8ef80b5774e25f784a159 |
+| HEAD local | 01f7dd6b064ac1e59be8ef80b5774e25f784a159 |
 | origin/agent/phase0-1-robustness | Mismo SHA; rama sincronizada |
 | origin/master al auditar | 85adbab2b0023db6e9e27b1b0d4d5a676e9eca7c |
 | Merge tree | Generado sin conflicto; rama técnicamente mergeable |
@@ -164,18 +164,10 @@ La topología de cinco participantes pertenece a Phase 1A según la sección 3.2
 
 La rama es integrable sin conflictos, pero “mergeable” no equivale a “aprobada”. El PR sigue en Draft, con CHANGES_REQUESTED y sin CI. Por eso no existe cierre administrativo.
 
-Las cifras de esta sección describen el árbol tal como estaba en el commit auditado
-`01f7dd6`. Este documento y las correcciones posteriores son commits añadidos encima, de
-modo que el recuento de archivos y líneas del diff contra master cambia con cada uno; para
-el estado vigente, `git diff --shortstat master...HEAD` es la fuente, no esta tabla.
-
-En el commit auditado, `git diff --check` detectó dos defectos de whitespace no funcionales:
+El diff contra master contiene 49 archivos, 3,110 inserciones y 135 eliminaciones. git diff --check detectó dos defectos de whitespace no funcionales:
 
 - docs/superpowers/plans/2026-08-18-phase0-1-robustness-implementation.md:121.
 - tests/contextContractProvider.test.ts:45.
-
-Ambos quedaron corregidos en el commit de cierre de detalles menores; `git diff --check`
-no reporta nada en el estado vigente.
 
 ## 7. Entorno de ejecución
 

@@ -20,7 +20,12 @@ import {
   type MetricGate,
   type MetricResult,
 } from './metrics.js';
-import { evaluatePhase01, type Phase01Metric } from './phase01.js';
+import {
+  evaluatePhase01,
+  type CoreGateStatuses,
+  type LiveCanaryLink,
+  type Phase01Metric,
+} from './phase01.js';
 
 // The privacy audit moved to its own module so the metric layer can use it without an
 // import cycle. It is re-exported here because it has always been part of this API.
@@ -126,6 +131,8 @@ export interface EvaluateGatesOptions {
    * to writing in the same call; a write failure throws and no bundle is produced.
    */
   pendingArtifactNames?: string[];
+  /** Linked baseline/rerun/fault evidence required by M30 for live canaries. */
+  liveCanaryLink?: LiveCanaryLink | null;
 }
 
 /**
@@ -176,8 +183,34 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
     pendingArtifactNames: options.pendingArtifactNames ?? [],
   });
 
+  const infrastructureValidated = withMetrics(
+    gateInfrastructure(db, runId, options.pendingArtifactNames ?? []),
+    metrics,
+    1,
+  );
+  const failureAttributionValidated = withMetrics(
+    gateFailureAttribution(db, runId, options.failureEvidenceRunId ?? null),
+    metrics,
+    2,
+  );
+  const baselineReproducible = withMetrics(
+    gateReproducible(db, runId, options.reproducibilityRunId ?? null),
+    metrics,
+    3,
+  );
+  const coreGateStatuses: CoreGateStatuses = {
+    infrastructure_validated: infrastructureValidated.status,
+    failure_attribution_validated: failureAttributionValidated.status,
+    baseline_reproducible: baselineReproducible.status,
+  };
   const phase01 = phase01Enabled(runConfig(run))
-    ? phase01Acceptance(db, runId, options.pendingArtifactNames ?? [])
+    ? phase01Acceptance(
+      db,
+      runId,
+      options.pendingArtifactNames ?? [],
+      options.liveCanaryLink ?? null,
+      coreGateStatuses,
+    )
     : undefined;
 
   return {
@@ -192,21 +225,9 @@ export function evaluateGates(options: EvaluateGatesOptions): AcceptanceReport {
       reproducibility_run_id: options.reproducibilityRunId ?? null,
     },
     gates: {
-      infrastructure_validated: withMetrics(
-        gateInfrastructure(db, runId, options.pendingArtifactNames ?? []),
-        metrics,
-        1,
-      ),
-      failure_attribution_validated: withMetrics(
-        gateFailureAttribution(db, runId, options.failureEvidenceRunId ?? null),
-        metrics,
-        2,
-      ),
-      baseline_reproducible: withMetrics(
-        gateReproducible(db, runId, options.reproducibilityRunId ?? null),
-        metrics,
-        3,
-      ),
+      infrastructure_validated: infrastructureValidated,
+      failure_attribution_validated: failureAttributionValidated,
+      baseline_reproducible: baselineReproducible,
     },
     ...(phase01 ? { phase01 } : {}),
     ready_for_controlled_behavioral_experiment: false,
@@ -234,8 +255,31 @@ function phase01Enabled(config: ReturnType<typeof runConfig>): boolean {
   );
 }
 
-function phase01Acceptance(db: Db, runId: string, pendingArtifactNames: string[]) {
-  const metrics = evaluatePhase01(db, runId, { pendingArtifactNames });
+function phase01Acceptance(
+  db: Db,
+  runId: string,
+  pendingArtifactNames: string[],
+  liveCanaryLink: LiveCanaryLink | null,
+  coreGateStatuses: CoreGateStatuses,
+) {
+  const primary = evaluatePhase01(db, runId, { pendingArtifactNames, liveCanaryLink, coreGateStatuses });
+  const byId = new Map(primary.map((metric) => [metric.id, metric]));
+
+  // A linked canary is a package of conditions. The baseline owns context/recovery/
+  // restore evidence; the fault run owns tool-fault attribution; and the optional
+  // scripted run owns the moderator-boundary comparison. Keeping these substitutions
+  // explicit prevents a supporting run from silently becoming the primary run.
+  if (liveCanaryLink && liveCanaryLink.faultRunId !== runId) {
+    const faultMetrics = evaluatePhase01(db, liveCanaryLink.faultRunId);
+    const faultM26 = faultMetrics.find((metric) => metric.id === 'M26');
+    if (faultM26) byId.set('M26', faultM26);
+  }
+  if (liveCanaryLink?.scriptedModeratorRunId) {
+    const scriptedMetrics = evaluatePhase01(db, liveCanaryLink.scriptedModeratorRunId);
+    const scriptedM29 = scriptedMetrics.find((metric) => metric.id === 'M29');
+    if (scriptedM29) byId.set('M29', scriptedM29);
+  }
+  const metrics = [...byId.values()];
   const failures = metrics
     .filter((metric) => metric.status === 'FAIL')
     .map((metric) => `${metric.id}: ${metric.evidence}`);

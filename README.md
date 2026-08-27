@@ -14,6 +14,8 @@ can answer:
 
 **Phase 0 validates the apparatus. It establishes nothing about AI social behaviour.**
 See [`docs/known-issues.md`](docs/known-issues.md) for the limits, stated explicitly.
+The canonical M1–M30 acceptance definitions are in
+[`docs/phase0_acceptance_matrix.md`](docs/phase0_acceptance_matrix.md).
 
 ---
 
@@ -40,7 +42,9 @@ npm run dev            # then open http://localhost:3000
 | `/runs/:id/invocations/:id` | The exact material one agent was given before it responded. |
 | `/runs/:id/validation` | The Phase 0 validation package: configuration, execution summary, the three gates with their evidence, provenance, and links to every artifact. |
 
-Five configurations ship. Three run on the deterministic mock provider and cost nothing:
+The repository ships deterministic mock controls plus dedicated NVIDIA/VLLM canary
+configurations. Mock runs cost nothing; the NVIDIA configs call the already-running
+endpoint supplied through `NVIDIA_VLLM_BASE_URL`.
 
 | Config | Provider | Purpose |
 | --- | --- | --- |
@@ -49,6 +53,12 @@ Five configurations ship. Three run on the deterministic mock provider and cost 
 | `agora_phase0_smoke.yaml` | mock | Pre-flight check. Injects a few faults, so it exercises both paths at once. |
 | `agora_phase0_v1.yaml` | openai | The canonical baseline. Spends money. |
 | `agora_phase0_faultdemo.yaml` | openai | The canonical baseline plus injected faults. Spends money. |
+| `agora_phase0_1_nvidia_vllm_live_canary.yaml` | nvidia_vllm | Three-agent live baseline with auditable summaries, tools and recovery. |
+| `agora_phase0_1_nvidia_vllm_live_fault.yaml` | nvidia_vllm | Live provider/tool fault condition; use only after preflight. |
+| `agora_phase0_1_nvidia_vllm_moderator_scripted.yaml` | nvidia_vllm | Live participant run with a fixed scripted moderator boundary. |
+| `agora_phase0_1_context_contract.yaml` | mock_context_contract | Dedicated context/summarization contract run for M23–M25. |
+| `agora_phase0_1_tool_fault_matrix.yaml` | mock_context_contract | End-to-end timeout, unavailable, invalid-response and permission-denied matrix for M26. |
+| `agora_phase0_1_restart_matrix.yaml` | mock_context_contract | Four-point interruption/resume matrix for M27. |
 
 Faults are declared in the config, so a fault run carries its own config hash and can
 never be mistaken for a baseline run.
@@ -67,6 +77,29 @@ npm run agora -- validate \
   --fault-config configs/agora_phase0_faultdemo.yaml
 ```
 
+### NVIDIA/VLLM preflight and canary
+
+The provider probe qualifies an existing endpoint; it never starts, stops or
+reconfigures a VLLM service. For the authorized Brev tunnel used by AGORA:
+
+```bash
+ssh -T -N -o ControlMaster=no -o ControlPath=none \
+  -L 18002:127.0.0.1:8002 mit-critical-data-1
+
+$env:NVIDIA_VLLM_BASE_URL = 'http://127.0.0.1:18002/v1'
+npm run agora -- provider-probe --provider nvidia_vllm \
+  --model leoclaw-qwen3-32b --out ./phase0_1_provider_preflight
+
+npm run agora -- validate \
+  --config configs/agora_phase0_1_nvidia_vllm_live_canary.yaml \
+  --fault-config configs/agora_phase0_1_nvidia_vllm_live_fault.yaml \
+  --moderator-config configs/agora_phase0_1_nvidia_vllm_moderator_scripted.yaml \
+  --out ./phase0_1_nvidia_vllm_validation
+```
+
+The preflight receipt is secretless. The live baseline, rerun, fault condition and
+scripted-moderator condition are separate runs and are linked before M30 can pass.
+
 ---
 
 ## What exists
@@ -78,7 +111,7 @@ npm run agora -- validate \
 | Turn scheduling, retries, budgets, routing | `src/orchestrator/runner.ts` |
 | Context assembly + provenance | `src/orchestrator/context.ts` |
 | Single visibility rule (public/private separation) | `src/orchestrator/visibility.ts` |
-| Provider adapters (OpenAI, Anthropic, mock, fault injection) | `src/providers/` |
+| Provider adapters (OpenAI, Anthropic, mock, NVIDIA/VLLM, fault injection) | `src/providers/` |
 | Structured event log + SQLite persistence | `src/events/`, `src/db/` |
 | Analytics, including infrastructure-adjusted participation | `src/analytics/summary.ts` |
 | The three Phase 0 acceptance gates | `src/acceptance/gates.ts` |
@@ -105,7 +138,9 @@ agora accept <run_id>              Evaluate the three Phase 0 gates
 agora analytics <run_id>           Print the analytics summary
 agora hash --config <path>         Print the config hash without running anything
 agora list                         List recorded runs
-agora validate                     Produce the whole validation package
+  agora validate                     Produce the whole validation package
+  agora provider-probe --provider nvidia_vllm --model <id>
+                                     Qualify an existing VLLM endpoint
 ```
 
 `validate` defaults to the mock configs, so it spends nothing unless you point it at a
@@ -181,9 +216,8 @@ Each gate reports one of three statuses:
 | `NOT_EXERCISED` | The conditions the gate judges never occurred in the runs supplied. Missing evidence, not a pass. |
 
 `ready_for_controlled_behavioral_experiment` is set to `true` only when all three
-gates — and any opted-in Phase 0.1 robustness checks — are **PASS**. A run in which
-nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a defect in the instrument
-and not a pass, which is why the fault-injection configs exist.
+gates — and any opted-in Phase 0.1 robustness checks — are **PASS**. A run in which nothing failed reports gate 2 as `NOT_EXERCISED`: that is not a
+defect in the instrument and not a pass, which is why the fault-injection configs exist.
 
 ### The twenty-two acceptance metrics
 
@@ -293,8 +327,9 @@ agent choosing to stay silent.
 
 ## Model configuration
 
-The canonical baseline pins `gpt-5.6-luna` through a provider-neutral adapter. Three
-adapters ship: `openai`, `anthropic`, and `mock`. Switching provider is a config edit —
+The canonical baseline pins `gpt-5.6-luna` through a provider-neutral adapter. Five
+provider identities ship: `openai`, `anthropic`, `mock`, `mock_context_contract`, and
+`nvidia_vllm`. Switching provider is a config edit —
 and because the provider and model id are part of the hashed config, a provider change
 is a visible change of experimental conditions, never a silent one.
 
@@ -331,7 +366,9 @@ The spec is explicit that the specific model is not scientifically important in 
 reproducibility and control are. Changing it is a config edit and a new config hash, so
 the switch is always recorded rather than assumed.
 
-Swap `model.provider` to `mock` for a deterministic, free run of the same machinery.
+Swap `model.provider` to `mock` for a deterministic, free infrastructure run, or use
+`mock_context_contract` to verify the exact authorized context, summaries and hashes
+without making a behavioural claim.
 
 ---
 
@@ -369,6 +406,8 @@ Deployed on Railway from this repository.
 | `AGORA_AUTH_SCOPE` | `write` (default) protects run-starting and export; `all` protects every route except the health check. |
 | `AGORA_APP_VERSION` | Optional. Overrides the version read from `package.json` in the provenance record. |
 | `AGORA_COMMIT_SHA` | Optional. Used when the platform does not supply a commit sha and there is no git checkout. |
+| `NVIDIA_VLLM_BASE_URL` | Required for NVIDIA/VLLM runs; points to the already-running `/v1` endpoint. |
+| `NVIDIA_VLLM_API_KEY` | Optional provider credential; never written to configs, logs or bundles. |
 
 Railway supplies `RAILWAY_GIT_COMMIT_SHA`, `RAILWAY_DEPLOYMENT_ID` and
 `RAILWAY_ENVIRONMENT_NAME` automatically, and every run records them. Nothing is ever
@@ -413,7 +452,7 @@ person's access means changing the credential for everyone.
 npm test
 ```
 
-383 tests covering config integrity and immutability, state-machine validity and
+The test suite covers config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
 reproducibility, the OpenAI request mapping, access control, and every page — and, for

@@ -129,7 +129,9 @@ export interface CheckpointRow {
 }
 export interface BackupVerificationRow {
   backup_verification_id: string; run_id: string; backup_path: string; backup_sha256: string;
-  backup_bytes: number; config_hash: string; event_count: number; verified_at: string;
+  backup_bytes: number; config_hash: string; event_count: number; restore_export_path: string | null;
+  restore_artifact_hashes_json: string; restore_replay_available: number;
+  restore_event_sequence_contiguous: number; restore_tables_json: string; verified_at: string;
 }
 
 /** Rebuilds the provenance record stored on a run. */

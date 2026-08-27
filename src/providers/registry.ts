@@ -3,6 +3,7 @@ import { AnthropicProvider } from './anthropic.js';
 import { OpenAIProvider } from './openai.js';
 import { MockProvider } from './mock.js';
 import { MockContextContractProvider } from './mockContextContract.js';
+import { NvidiaVllmProvider } from './nvidiaVllm.js';
 import { FaultInjectingProvider } from './faultInjection.js';
 import type { AgentProvider } from './types.js';
 
@@ -16,6 +17,8 @@ function baseProvider(config: ExperimentConfig): AgentProvider {
       return new MockProvider();
     case 'mock_context_contract':
       return new MockContextContractProvider();
+    case 'nvidia_vllm':
+      return new NvidiaVllmProvider();
   }
 }
 

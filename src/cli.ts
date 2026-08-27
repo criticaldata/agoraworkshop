@@ -14,6 +14,7 @@ import { runValidationPackage } from './scripts/validate.js';
 import { extractRunSemantics, listExtractions } from './semantic/pipeline.js';
 import { OpenAIExtractor, StubExtractor } from './semantic/extractors.js';
 import { backupDatabase, recordBackupVerification } from './db/backup.js';
+import { probeNvidiaVllm } from './providers/nvidiaVllmProbe.js';
 
 const USAGE = `agora — AGORA WORKSHOP Phase 0 research instrument
 
@@ -34,6 +35,10 @@ Usage:
   agora extractions <run_id>                     List extractions recorded for a run
   agora validate [--config <path>]               Run the full Phase 0 validation package
                  [--fault-config <path>]         (defaults to the mock configs: no spend)
+                 [--moderator-config <path>]     Optional scripted-moderator comparison run
+                 [--preflight <path>]            Secretless provider preflight receipt
+  agora provider-probe --provider nvidia_vllm    Qualify an already-running VLLM endpoint
+                         --model <id>            (no service lifecycle action)
   agora serve                                    Start the web UI (same as npm start)
 
 Options:
@@ -269,10 +274,32 @@ async function main(): Promise<number> {
         db,
         configPath: flags['config'] ?? 'configs/agora_phase0_mock_baseline.yaml',
         faultConfigPath: flags['fault-config'] ?? 'configs/agora_phase0_faultdemo_mock.yaml',
+        moderatorConfigPath: flags['moderator-config'] ?? null,
+        preflightReceiptPath: flags['preflight'] ?? null,
         outDir: flags['out'] ?? null,
       });
       console.log(JSON.stringify(result, null, 2));
       return result.ready ? 0 : 1;
+    }
+
+    case 'provider-probe': {
+      const provider = flags['provider'];
+      const model = flags['model'];
+      if (provider !== 'nvidia_vllm') {
+        console.error('provider-probe currently supports only --provider nvidia_vllm');
+        return 2;
+      }
+      if (!model) {
+        console.error('provider-probe requires --model <id>');
+        return 2;
+      }
+      const result = await probeNvidiaVllm({
+        model,
+        ...(flags['base-url'] ? { baseURL: flags['base-url'] } : {}),
+        ...(flags['out'] ? { outDir: flags['out'] } : {}),
+      });
+      console.log(JSON.stringify(result, null, 2));
+      return result.ok ? 0 : 1;
     }
 
     case 'extract': {

@@ -14,6 +14,8 @@ can answer:
 
 **Phase 0 validates the apparatus. It establishes nothing about AI social behaviour.**
 See [`docs/known-issues.md`](docs/known-issues.md) for the limits, stated explicitly.
+The canonical M1–M30 acceptance definitions are in
+[`docs/phase0_acceptance_matrix.md`](docs/phase0_acceptance_matrix.md).
 
 ---
 
@@ -54,6 +56,9 @@ endpoint supplied through `NVIDIA_VLLM_BASE_URL`.
 | `agora_phase0_1_nvidia_vllm_live_canary.yaml` | nvidia_vllm | Three-agent live baseline with auditable summaries, tools and recovery. |
 | `agora_phase0_1_nvidia_vllm_live_fault.yaml` | nvidia_vllm | Live provider/tool fault condition; use only after preflight. |
 | `agora_phase0_1_nvidia_vllm_moderator_scripted.yaml` | nvidia_vllm | Live participant run with a fixed scripted moderator boundary. |
+| `agora_phase0_1_context_contract.yaml` | mock_context_contract | Dedicated context/summarization contract run for M23–M25. |
+| `agora_phase0_1_tool_fault_matrix.yaml` | mock_context_contract | End-to-end timeout, unavailable, invalid-response and permission-denied matrix for M26. |
+| `agora_phase0_1_restart_matrix.yaml` | mock_context_contract | Four-point interruption/resume matrix for M27. |
 
 Faults are declared in the config, so a fault run carries its own config hash and can
 never be mistaken for a baseline run.
@@ -294,8 +299,9 @@ agent choosing to stay silent.
 
 ## Model configuration
 
-The canonical baseline pins `gpt-5.6-luna` through a provider-neutral adapter. Three
-adapters ship: `openai`, `anthropic`, and `mock`. Switching provider is a config edit —
+The canonical baseline pins `gpt-5.6-luna` through a provider-neutral adapter. Five
+provider identities ship: `openai`, `anthropic`, `mock`, `mock_context_contract`, and
+`nvidia_vllm`. Switching provider is a config edit —
 and because the provider and model id are part of the hashed config, a provider change
 is a visible change of experimental conditions, never a silent one.
 
@@ -332,7 +338,9 @@ The spec is explicit that the specific model is not scientifically important in 
 reproducibility and control are. Changing it is a config edit and a new config hash, so
 the switch is always recorded rather than assumed.
 
-Swap `model.provider` to `mock` for a deterministic, free run of the same machinery.
+Swap `model.provider` to `mock` for a deterministic, free infrastructure run, or use
+`mock_context_contract` to verify the exact authorized context, summaries and hashes
+without making a behavioural claim.
 
 ---
 
@@ -416,7 +424,7 @@ person's access means changing the credential for everyone.
 npm test
 ```
 
-122 tests covering config integrity and immutability, state-machine validity and
+The test suite covers config integrity and immutability, state-machine validity and
 termination, public/private routing and leak detection, failure attribution across every
 category, retry bounds, context provenance and reconstruction, export ordering,
 reproducibility, the OpenAI request mapping, access control, and every page.

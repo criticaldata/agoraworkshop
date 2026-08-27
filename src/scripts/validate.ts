@@ -68,12 +68,6 @@ export async function runValidationPackage(
     }
   }
 
-  if (frozen.config.recovery?.enabled) {
-    const backupPath = join(directory, 'baseline-recovery.sqlite');
-    await backupDatabase(db, backupPath);
-    recordBackupVerification(db, baseline.runId, backupPath);
-  }
-
   // The rerun is rehydrated from what the baseline actually stored, so an identical
   // hash proves the snapshot round-trips, not merely that the file is unchanged.
   const baselineRow = getRun(db, baseline.runId)!;
@@ -122,6 +116,15 @@ export async function runValidationPackage(
       runId: scripted.runId,
       outDir: join(directory, 'scripted_moderator'),
     });
+  }
+
+  // Snapshot after all supporting runs have been recorded, so the restored database
+  // can regenerate the complete linked evidence set rather than only the baseline's
+  // early state. The final baseline export remains the package's last write.
+  if (frozen.config.recovery?.enabled) {
+    const backupPath = join(directory, 'baseline-recovery.sqlite');
+    await backupDatabase(db, backupPath);
+    recordBackupVerification(db, baseline.runId, backupPath);
   }
 
   const liveCanaryLink: LiveCanaryLink | null = frozen.config.validation?.profile === 'live_canary'

@@ -50,6 +50,7 @@ describe('NVIDIA VLLM provider preflight', () => {
 
     expect(result.ok).toBe(true);
     expect(result.provider).toBe('nvidia_vllm');
+    expect(result.authorization_present).toBe(true);
     expect(result.model).toBe('leoclaw-qwen3-32b');
     expect(result.models).toEqual({ count: 1, ids: ['leoclaw-qwen3-32b'], max_context_tokens: 16_384 });
     expect(result.server).toEqual({ version: '0.25.1' });
@@ -90,5 +91,23 @@ describe('NVIDIA VLLM provider preflight', () => {
 
     expect(result.ok).toBe(false);
     expect(result.failure?.category).toBe('missing_base_url');
+  });
+
+  it('does not call the no-auth placeholder a real credential', async () => {
+    const fetchImpl = vi.fn(async (input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.endsWith('/v1/models')) return new Response(JSON.stringify({ data: [{ id: 'leoclaw-qwen3-32b' }] }), { status: 200 });
+      if (url.endsWith('/version')) return new Response(JSON.stringify({ version: '0.25.1' }), { status: 200 });
+      return new Response(JSON.stringify({ choices: [{ message: { content: 'ok' } }] }), { status: 200 });
+    }) as typeof fetch;
+
+    const result = await probeNvidiaVllm({
+      baseURL: 'http://127.0.0.1:18002/v1',
+      model: 'leoclaw-qwen3-32b',
+      apiKey: '',
+      fetchImpl,
+    });
+
+    expect(result.authorization_present).toBe(false);
   });
 });

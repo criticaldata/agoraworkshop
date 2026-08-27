@@ -63,12 +63,17 @@ export async function extractRunSemantics(
 
   const extractionId = `sx_${randomUUID()}`;
   const provenance = codeProvenance();
+  const sourceTraceIds = [...new Set(
+    messages
+      .map((message) => message.trace_id)
+      .filter((trace): trace is string => Boolean(trace)),
+  )];
 
   db.prepare(
     `INSERT INTO semantic_extractions (extraction_id, run_id, pipeline_version,
        extraction_method, provider, model, prompt_version, code_commit_sha,
-       messages_considered, status, created_at)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?)`,
+       messages_considered, source_trace_ids_json, status, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'running', ?)`,
   ).run(
     extractionId,
     runId,
@@ -79,6 +84,7 @@ export async function extractRunSemantics(
     EXTRACTION_PROMPT_VERSION,
     provenance.git_commit_sha,
     messages.length,
+    JSON.stringify(sourceTraceIds),
     nowIso(),
   );
 

@@ -259,6 +259,7 @@ export function exportRun(options: ExportOptions): ExportResult {
   );
 
   write('analytics.json', 'analytics', json(analytics));
+  write('semantic_review_rubric.md', 'acceptance', semanticReviewRubric(summaries));
   write(
     'live_canary_link.json',
     'acceptance',
@@ -279,7 +280,13 @@ export function exportRun(options: ExportOptions): ExportResult {
       reproducibilityRunId: options.reproducibilityRunId ?? null,
       liveCanaryLink: options.liveCanaryLink ?? null,
       // Written after this report: they exist by the time the bundle is returned.
-      pendingArtifactNames: ['acceptance_report.json', 'replay.html', 'README.md', 'manifest.json'],
+      pendingArtifactNames: [
+        'phase0_1_report.json',
+        'acceptance_report.json',
+        'replay.html',
+        'README.md',
+        'manifest.json',
+      ],
     }),
   );
   write(
@@ -331,6 +338,32 @@ export function exportRun(options: ExportOptions): ExportResult {
   return { runId, directory, files, acceptance };
 }
 
+function semanticReviewRubric(summaries: ReturnType<typeof getContextSummaries>): string {
+  const sample = summaries.slice(0, 5);
+  return [
+    '# Semantic summary review rubric',
+    '',
+    'This file is a review instrument, not an automatic semantic-fidelity claim.',
+    'The Phase 0.1 summarizer is extractive: its automated check verifies source IDs,',
+    'content hashes, scope and ordering. A human reviewer must use the sample below to',
+    'judge whether the rendered summary preserves meaning, disagreement, uncertainty and',
+    'speaker attribution. Leave the review status pending until that review is completed.',
+    '',
+    '## Review fields',
+    '',
+    '| Summary | Scope | Source IDs | Meaning preserved | Disagreement preserved | Attribution preserved | Reviewer note |',
+    '| --- | --- | --- | --- | --- | --- | --- |',
+    ...sample.map((summary) => `| \`${summary.summary_id}\` | \`${summary.scope}\` | \`${summary.source_message_ids}\` | pending | pending | pending |  |`),
+    ...(sample.length === 0 ? ['| no summary was generated | n/a | n/a | n/a | n/a | n/a | no sample available |'] : []),
+    '',
+    '## Automated checks already recorded',
+    '',
+    `- Sample size: ${sample.length} of ${summaries.length} stored summaries.`,
+    '- Automated status: source/content/fidelity hashes and visibility are evaluated by M24.',
+    '- Scientific limitation: a hash match proves byte-level extractive integrity, not semantic faithfulness.',
+  ].join('\n') + '\n';
+}
+
 const json = (value: unknown): string => `${JSON.stringify(value, null, 2)}\n`;
 
 function bundleReadme(
@@ -359,6 +392,7 @@ function bundleReadme(
     `| \`trace_index.jsonl\` | End-to-end opportunity, invocation, message and tool-call trace links. |`,
     `| \`opportunities.jsonl\` | Every response opportunity and how it resolved. |`,
     `| \`analytics.json\` | Operational metrics, including infrastructure-adjusted participation. |`,
+    `| \`semantic_review_rubric.md\` | Human-review template distinguishing extractive hash integrity from semantic fidelity. |`,
     `| \`live_canary_link.json\` | Secretless linkage record for baseline, rerun, fault and optional moderator evidence. |`,
     `| \`acceptance_report.json\` | PASS / FAIL / NOT_EXERCISED for the three Phase 0 gates and, when enabled, the Phase 0.1 robustness checks. |`,
     `| \`agents.json\` | Participant and moderator definitions, including moderator mode. |`,

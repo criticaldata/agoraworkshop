@@ -31,7 +31,7 @@ evidence.
 
 Phase 0.1 is accepted only when all existing M1-M22 checks remain green and the new
 robustness checks pass on their dedicated validation set. A missing live credential is
-reported as `NOT_EXECUTED`, never as a mock pass.
+reported as `NOT_EXERCISED`, never as a mock pass.
 
 ## Non-goals
 
@@ -181,17 +181,17 @@ not a behavioural simulator and must never support a claim about deliberation.
 | M30 Live-adapter canary | operator-run live package | baseline, rerun, fault run, export, and existing gates pass under a declared live provider |
 
 M23-M29 are required for mock Phase 0.1 closure. M30 is an operational requirement and
-remains `NOT_EXECUTED` until a key is deliberately supplied; it cannot be substituted
+remains `NOT_EXERCISED` until a key is deliberately supplied; it cannot be substituted
 with mock evidence.
 
 ## Configurations
 
-- `agora_phase0_context_contract.yaml`: deterministic summary and context contract.
-- `agora_phase0_tool_faultdemo.yaml`: authorized and unauthorized deterministic tool
+- `agora_phase0_1_context_contract.yaml`: deterministic summary and context contract.
+- `agora_phase0_1_tool_fault_matrix.yaml`: authorized and unauthorized deterministic tool
   probes with all tool fault classes.
-- `agora_phase0_restart_matrix.yaml`: fault points for checkpoint/resume tests.
-- `agora_phase0_moderator_scripted.yaml`: fixed protocol moderator.
-- `agora_phase0_live_canary.yaml`: 2-3 participants, one short round, provider key
+- `agora_phase0_1_restart_matrix.yaml`: fault points for checkpoint/resume tests.
+- `agora_phase0_1_nvidia_vllm_moderator_scripted.yaml`: fixed protocol moderator.
+- `agora_phase0_1_nvidia_vllm_live_canary.yaml`: 2-3 participants, one short round, provider key
   required; paired with a live fault configuration.
 
 The existing five-agent mock package remains a stress/compatibility validation. The

@@ -64,3 +64,6 @@ fault_injection:
   faults:
     - { agent_id: agent_1, state: INTRODUCTION, occurrence: 1, kind: tool_timeout, recover_after_attempts: 1 }
     - { agent_id: agent_2, state: PUBLIC_DISCUSSION, occurrence: 1, kind: timeout, recover_after_attempts: 1 }
+    - { agent_id: agent_3, state: INTRODUCTION, occurrence: 1, kind: rate_limit, recover_after_attempts: 1 }
+    - { agent_id: agent_1, state: PRIVATE_OR_BREAKOUT, occurrence: 1, kind: malformed_response, recover_after_attempts: 1 }
+    - { agent_id: agent_3, state: FINAL_DISCUSSION, occurrence: 1, kind: provider_error, recover_after_attempts: 1 }

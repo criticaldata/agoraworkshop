@@ -27,15 +27,17 @@ These are stated explicitly so that nobody reads more into a Phase 0 run than it
   budget on attempts that produced nothing. This is deliberate (it bounds spend) but it
   means budget exhaustion and provider instability are correlated.
 - **No mid-run configuration changes.** The config is frozen at run start, by design.
-- **Single-process runtime.** Runs are executed in the web process. There is no queue,
-  so a process restart mid-run stops the run in place. Startup reconciliation marks such
-  a run `INTERRUPTED`, records unresolved turns provisionally as the infrastructure
-  category `interrupted`, appends a `run_interrupted` event, and preserves every event,
-  message and invocation already written. Runs with `recovery.enabled=true` can resume
-  the stored schedule; historical runs without recovery remain interrupted.
-- **The scripted moderator is only validated in the deterministic mock package.** Its
-  privacy and state-boundary checks are exercised there, but no live-provider comparison
-  against an LLM moderator has been run.
+- **Single-process runtime.** Runs are executed in the web process. There is no queue or
+  external supervisor, so a process restart does not resume itself automatically. Startup
+  reconciliation marks such a run `INTERRUPTED`, records unresolved turns provisionally
+  as the infrastructure category `interrupted`, appends a `run_interrupted` event, and
+  preserves every event, message and invocation already written. Runs with
+  `recovery.enabled=true` can be resumed explicitly through the runner and the four-point
+  restart matrix; historical runs without recovery remain interrupted.
+- **Moderator comparison is evidence-dependent.** The scripted moderator has a fixed
+  provider/version and its privacy and state-boundary checks are executable. A live
+  scripted-versus-LLM comparison still requires the paired provider campaign; a scripted
+  mock result alone does not establish equivalence between moderator modes.
 - **Failure-evidence runs are found by searching.** When no run is named explicitly, the
   validation set picks the most recent run that recorded infrastructure failures, which
   may be under a different configuration than the run being validated. The package

@@ -46,4 +46,25 @@ describe('linked live-canary acceptance', () => {
     expect(metric.status).toBe('FAIL');
     expect(metric.evidence).toMatch(/config hash|core gate|export/i);
   });
+
+  it('requires the paired scripted-moderator boundary run', async () => {
+    const db = tempDb();
+    const baselineRunId = await liveRun(db);
+    const rerunRunId = await liveRun(db);
+    const faultRunId = await liveRun(db, true);
+    for (const runId of [baselineRunId, rerunRunId, faultRunId]) exportRun({ db, runId, outDir: tempDir() });
+
+    const link: LiveCanaryLink = { baselineRunId, rerunRunId, faultRunId };
+    const metric = evaluatePhase01(db, baselineRunId, {
+      liveCanaryLink: link,
+      coreGateStatuses: {
+        infrastructure_validated: 'PASS',
+        failure_attribution_validated: 'PASS',
+        baseline_reproducible: 'PASS',
+      },
+    }).find((item) => item.id === 'M30')!;
+
+    expect(metric.status).toBe('FAIL');
+    expect(metric.evidence).toMatch(/scripted moderator/i);
+  });
 });

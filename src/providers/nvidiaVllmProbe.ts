@@ -89,12 +89,13 @@ export async function probeNvidiaVllm(
 ): Promise<NvidiaVllmProbeResult> {
   const checkedAt = new Date().toISOString();
   const baseURL = options.baseURL ?? process.env.NVIDIA_VLLM_BASE_URL ?? '';
-  const apiKey = options.apiKey ?? process.env.NVIDIA_VLLM_API_KEY ?? 'local-no-auth';
+  const configuredApiKey = options.apiKey ?? process.env.NVIDIA_VLLM_API_KEY ?? '';
+  const apiKey = configuredApiKey || 'local-no-auth';
   const timeoutMs = options.timeoutMs ?? 10_000;
   const fetchImpl = options.fetchImpl ?? fetch;
   const result = emptyResult({
     endpoint: baseURL ? safeEndpoint(baseURL) : null,
-    authorization_present: Boolean(apiKey),
+    authorization_present: Boolean(configuredApiKey),
     model: options.model,
     checked_at: checkedAt,
   });

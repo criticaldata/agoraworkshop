@@ -210,6 +210,11 @@ CREATE TABLE IF NOT EXISTS backup_verifications (
   backup_bytes           INTEGER NOT NULL,
   config_hash            TEXT NOT NULL,
   event_count            INTEGER NOT NULL,
+  restore_export_path    TEXT,
+  restore_artifact_hashes_json TEXT NOT NULL DEFAULT '{}',
+  restore_replay_available INTEGER NOT NULL DEFAULT 0,
+  restore_event_sequence_contiguous INTEGER NOT NULL DEFAULT 0,
+  restore_tables_json    TEXT NOT NULL DEFAULT '[]',
   verified_at            TEXT NOT NULL
 );
 
@@ -248,6 +253,7 @@ CREATE TABLE IF NOT EXISTS semantic_extractions (
   prompt_version     TEXT NOT NULL,
   code_commit_sha    TEXT,
   messages_considered INTEGER NOT NULL,
+  source_trace_ids_json TEXT NOT NULL DEFAULT '[]',
   status             TEXT NOT NULL,
   failure_reason     TEXT,
   created_at         TEXT NOT NULL,

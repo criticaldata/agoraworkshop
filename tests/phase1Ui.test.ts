@@ -3,7 +3,9 @@ import express from 'express';
 import type { AddressInfo } from 'node:net';
 import { phase1Router } from '../src/server/phase1.js';
 import { createAuthMiddleware } from '../src/server/auth.js';
-import { campaign } from '../src/phase1/campaign.js';
+import { campaign, freezeCampaign, runCampaign, starterInput } from '../src/phase1/campaign.js';
+import { loadConfigFile } from '../src/config/load.js';
+import { getMessages } from '../src/db/queries.js';
 import { tempDb } from './helpers.js';
 
 it('supports the authenticated UI draft → preview → freeze → mock → review → export workflow', async () => {
@@ -54,6 +56,39 @@ it('supports the authenticated UI draft → preview → freeze → mock → revi
     expect(bundle.artifacts.runs[0].records.phase1_positions).toHaveLength(10);
     expect(bundle.artifacts.comparison.behavioral[0].initial_final_change.value).toBe(0);
     expect(bundle.artifacts.comparison.status.scientific_analysis_completed).toBe(false);
+  } finally {
+    server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); db.close();
+  }
+}, 15000);
+
+it('protects private Phase 1 review content under the default write-only scope', async () => {
+  const db = tempDb();
+  const input = starterInput(loadConfigFile('configs/agora_phase0_1_context_contract.yaml').config);
+  input.blocks = 1;
+  const id = freezeCampaign(db, input);
+  await runCampaign(db, id);
+  const runId = campaign(db, id).cases[0]!.run_id!;
+  const privateMessage = getMessages(db, runId).find(m => m.channel === 'private' && m.sender_agent_id !== 'moderator')!;
+  expect(privateMessage).toBeDefined();
+
+  const app = express();
+  app.use(createAuthMiddleware({ password: 'test-only', scope: 'write', realm: 'test' }));
+  app.use(express.urlencoded({ extended: false })); app.use(express.json());
+  app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  try {
+    const anonymous = await fetch(`${base}/phase1/campaigns/${id}/review`);
+    const anonymousBody = await anonymous.text();
+    expect(anonymous.status).toBe(401);
+    expect(anonymousBody).not.toContain(privateMessage.content);
+
+    const authorized = await fetch(`${base}/phase1/campaigns/${id}/review`, { headers: { authorization: `Basic ${Buffer.from('reviewer:test-only').toString('base64')}` } });
+    const authorizedBody = await authorized.text();
+    expect(authorized.status).toBe(200);
+    const escapedPrivateContent = JSON.stringify(privateMessage.content).slice(1, -1).replace(/[&<>"']/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[character]!);
+    expect(authorizedBody).toContain(escapedPrivateContent);
   } finally {
     server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); db.close();
   }

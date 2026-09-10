@@ -7,6 +7,8 @@ import { behavioralMeasures } from './behavioralAnalysis.js';
 import { positionRows } from './positions.js';
 import { isVisibleTo } from '../orchestrator/visibility.js';
 import type { AgentInvocationRequest } from '../providers/types.js';
+import { isBehaviouralOutcome } from '../events/types.js';
+import { positionProbeStatus, type PositionProbeStatus } from './positions.js';
 
 const VERSION = 'phase1a-descriptive-v1';
 function ratio(numerator: number, denominator: number, source_ids: string[], exclusions: string) {
@@ -44,7 +46,7 @@ export function campaignAnalysis(db: Db, id: string) {
   const measures = plan.cases.map(c => caseMeasures(db, c, cases.find(r => r.case_id === c.id)!.run_id));
   const behavioral = plan.cases.map(c => ({ case_id: c.id, ...behavioralMeasures(db, id, c, cases.find(r => r.case_id === c.id)!.run_id) }));
   const annotations = db.prepare('SELECT run_id, message_id FROM phase1_annotations WHERE campaign_id = ?').all(id) as { run_id: string; message_id: string }[];
-  const checks: { id: string; status: 'PASS' | 'FAIL' | 'NOT_EXERCISED'; note: string }[] = [
+  const checks: { id: string; status: 'PASS' | 'FAIL' | 'NOT_EXERCISED'; note: string; probe_status?: PositionProbeStatus }[] = [
     { id: 'P1A-FROZEN', status: 'PASS', note: `Manifest ${row.manifest_hash} verified against frozen inputs.` },
     { id: 'P1A-COMPARABLE', status: plan.comparisons.every(c => c.valid) ? 'PASS' : 'FAIL', note: 'Only condition and assigned role fields may differ.' },
     { id: 'P1A-COMPLETED', status: cases.every(c => c.state === 'completed') ? 'PASS' : 'NOT_EXERCISED', note: 'All predeclared cases must complete; failures and unstarted cases remain in the denominator.' },
@@ -54,10 +56,12 @@ export function campaignAnalysis(db: Db, id: string) {
     const calls = c.run_id ? getInvocations(db, c.run_id).filter(i => i.agent_id !== planned.config.moderator.id) : [];
     checks.push({ id: `P1A-PROMPTS:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.every(i => i.system_prompt === participantSystemPrompt(planned.config, i.agent_id).text) ? 'PASS' : 'FAIL', note: 'Recorded participant system prompts equal the frozen resolver.' });
     checks.push({ id: `P1A-VISIBILITY:${c.case_id}`, status: !c.run_id || !calls.length ? 'NOT_EXERCISED' : auditPrivacyLeaks(db, c.run_id).violations.length ? 'FAIL' : 'PASS', note: 'Reuse the existing context-visibility audit; not a claim about generated disclosure.' });
-    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.some(i => i.outcome !== 'success') ? 'FAIL' : 'PASS', note: 'Any provider failure is visible; a completed run does not imply every call succeeded.' });
+    const hasInfrastructureFailure = calls.some(i => !isBehaviouralOutcome(i.outcome) || i.failure_category !== null);
+    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : hasInfrastructureFailure ? 'FAIL' : 'PASS', note: 'Infrastructure failures fail this check; success, explicit_abstention and no_op are valid behavioural outcomes.' });
     if (planned.config.phase1?.evaluation) {
       const probes = c.run_id ? positionRows(db, c.run_id) : [];
-      checks.push({ id: `P1A-POSITIONS:${c.case_id}`, status: probes.length === 10 && probes.every(r => r.status === 'valid') ? 'PASS' : 'NOT_EXERCISED', note: 'Ten schema-valid assessment records required; no requirement for a nonzero position change.' });
+      const probe_status = positionProbeStatus(probes, planned.config.participants.length * 2);
+      checks.push({ id: `P1A-POSITIONS:${c.case_id}`, status: probe_status === 'VALID' ? 'PASS' : probe_status === 'NOT_EXERCISED' ? 'NOT_EXERCISED' : 'FAIL', probe_status, note: 'Ten schema-valid assessment records required; probe_status distinguishes unexercised, invalid, missing and valid evidence.' });
       const history = c.run_id ? getMessages(db, c.run_id) : [];
       const contextOkay = probes.every(r => {
         if (!r.request_json) return false;

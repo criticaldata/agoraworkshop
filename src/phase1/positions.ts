@@ -10,9 +10,30 @@ import { newInvocationId, newTraceId, nowIso } from '../core/ids.js';
 
 export interface PositionRow {
   record_id: string; run_id: string; agent_id: string; phase: 'initial' | 'final';
-  status: string; request_json: string | null; response_json: string | null;
+  status: PositionRecordStatus; request_json: string | null; response_json: string | null;
   value_json: string | null; error: string | null; created_at: string; completed_at: string | null;
 }
+export type PositionRecordStatus = 'pending' | 'valid' | 'invalid' | 'missing';
+export type PositionProbeStatus = 'NOT_EXERCISED' | 'EXECUTED_BUT_INVALID' | 'EXECUTED_BUT_MISSING' | 'VALID';
+
+/** Maps one persisted reservation/result to the externally reported evidence state. */
+export function positionRecordStatus(row: PositionRow | undefined): PositionProbeStatus {
+  if (!row) return 'NOT_EXERCISED';
+  if (row.status === 'valid') return 'VALID';
+  if (row.status === 'invalid') return 'EXECUTED_BUT_INVALID';
+  return 'EXECUTED_BUT_MISSING';
+}
+
+/** Summarises a phase's persisted probe rows without treating executed missingness as absent evidence. */
+export function positionProbeStatus(rows: PositionRow[], expectedRows = 0): PositionProbeStatus {
+  if (!rows.length) return 'NOT_EXERCISED';
+  if (rows.some(row => row.status === 'invalid')) return 'EXECUTED_BUT_INVALID';
+  if (rows.some(row => row.status === 'pending' || row.status === 'missing')) return 'EXECUTED_BUT_MISSING';
+  if (expectedRows > 0 && rows.length < expectedRows) return 'EXECUTED_BUT_MISSING';
+  if (expectedRows > 0 && rows.length > expectedRows) return 'EXECUTED_BUT_INVALID';
+  return 'VALID';
+}
+
 export const PositionAnswerSchema = z.object({ answers: z.array(z.object({
   question_id: z.string(), choice: z.string(), confidence: z.number().min(0).max(100),
   rationale: z.string().trim().min(1).max(12000),

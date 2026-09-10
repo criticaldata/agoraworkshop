@@ -15,10 +15,12 @@ import { extractRunSemantics, listExtractions } from './semantic/pipeline.js';
 import { OpenAIExtractor, StubExtractor } from './semantic/extractors.js';
 import { backupDatabase, recordBackupVerification } from './db/backup.js';
 import { probeNvidiaVllm } from './providers/nvidiaVllmProbe.js';
+import { phase1Command } from './phase1/cli.js';
 
 const USAGE = `agora — AGORA WORKSHOP Phase 0 research instrument
 
 Usage:
+  agora phase1 <command>                         Phase 1A template/plan/freeze/run/show/annotate/export
   agora run --config <path>                      Launch a workshop from a frozen config
   agora rerun <run_id>                           Re-launch the same frozen config as a new run
   agora resume <run_id>                          Continue a recovery-enabled interrupted run
@@ -80,6 +82,7 @@ async function main(): Promise<number> {
   const db = getDatabase();
 
   switch (command) {
+    case 'phase1': return phase1Command(db, positional, flags);
     case 'run': {
       const path = flags['config'];
       if (!path) {

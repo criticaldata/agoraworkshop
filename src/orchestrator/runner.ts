@@ -181,7 +181,7 @@ export class WorkshopRunner {
     }
 
     this.scriptedModerator =
-      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider() : null;
+      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider(this.config.phase1?.opening_message) : null;
 
     this.provenance = options.provenance ?? codeProvenance();
     const provenance = this.provenance;

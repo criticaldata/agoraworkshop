@@ -23,6 +23,13 @@ export function participantSystemPrompt(
   agentId: string,
 ): PromptResolution {
   const version = config.prompts.participant_prompt_version;
+  if (version === 'phase1a-v1' && config.phase1) {
+    const assigned = config.phase1.assignments[agentId];
+    if (!assigned) throw new Error(`missing Phase 1 role for ${agentId}`);
+    // Resolve v1 as a stable common scaffold. Only this identity's block is rendered.
+    const legacy = participantSystemPrompt({ ...config, prompts: { ...config.prompts, participant_prompt_version: 'v1' } }, agentId);
+    return { version, text: [legacy.text, config.phase1.common_instruction, assigned.instruction].join('\n\n') };
+  }
   if (version !== 'v1') {
     throw new Error(`unknown participant prompt version: ${version}`);
   }
@@ -108,6 +115,7 @@ export function turnInstruction(input: TurnInstructionInput): string {
   if (isModerator) {
     switch (state) {
       case 'INTRODUCTION':
+        if (config.phase1) return `Open the workshop using this frozen opening message: ${config.phase1.opening_message}`;
         return `Open the workshop on the public channel. State the topic in one sentence and invite each participant to introduce how they intend to approach it.`;
       case 'PUBLIC_DISCUSSION':
         return `Post a short public steering message for discussion round ${input.roundIndex + 1} of ${input.totalRounds}. Pick up on what has been said so far and sharpen the question the group should engage with next.`;
@@ -130,7 +138,7 @@ export function turnInstruction(input: TurnInstructionInput): string {
     return [
       `You are now in breakout group ${input.breakoutGroupId}, speaking privately to: ${members}.`,
       `This message is NOT visible on the public channel and NOT visible to participants outside your group.`,
-      `Say what you would not say in the open session about the topic, addressed to your group.`,
+      config.phase1?.evaluation?.private_instruction ?? `Say what you would not say in the open session about the topic, addressed to your group.`,
     ].join('\n');
   }
 

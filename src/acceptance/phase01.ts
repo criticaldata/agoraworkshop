@@ -16,7 +16,7 @@ import {
 import { readEvents } from '../events/recorder.js';
 import { auditSummaryFidelity } from '../orchestrator/summaries.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
-import { SCRIPTED_MODERATOR_VERSION } from '../providers/scriptedModerator.js';
+import { scriptedModeratorVersion } from '../providers/scriptedModerator.js';
 import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
 
 export type Phase01Status = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
@@ -387,14 +387,15 @@ function evaluateModeratorBoundary(
 ): Phase01Metric {
   if (!config || !run || config.moderator.mode !== 'scripted') return { id: 'M29', status: 'NOT_EXERCISED', evidence: 'scripted moderator condition was not configured' };
   const moderatorInvocations = invocations.filter((row) => row.agent_id === config.moderator.id);
+  const expectedScriptVersion = scriptedModeratorVersion(config.phase1?.opening_message);
   if (moderatorInvocations.length === 0) return { id: 'M29', status: 'NOT_EXERCISED', evidence: 'scripted moderator was configured but no moderator turn was recorded' };
   const problems: string[] = [];
   for (const invocation of moderatorInvocations) {
-    if (invocation.provider !== 'scripted' || invocation.responded_model !== SCRIPTED_MODERATOR_VERSION) {
+    if (invocation.provider !== 'scripted' || invocation.responded_model !== expectedScriptVersion) {
       problems.push(`${invocation.invocation_id}: scripted moderator turn was not produced by the fixed script provider`);
     }
     const raw = safeJson<Record<string, unknown>>(invocation.raw_metadata);
-    if (raw?.scripted !== true || raw.script_version !== SCRIPTED_MODERATOR_VERSION) {
+    if (raw?.scripted !== true || raw.script_version !== expectedScriptVersion) {
       problems.push(`${invocation.invocation_id}: scripted moderator receipt is missing or has the wrong version`);
     }
     const privateIds = parseArray(invocation.context_private_ids);

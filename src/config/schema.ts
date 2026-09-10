@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { Phase1ConfigSchema } from '../phase1/contracts.js';
 
 /**
  * The experiment configuration is scientific data, not just wiring. Everything a
@@ -95,6 +96,7 @@ const FaultSchema = z.object({
 export const ExperimentConfigSchema = z
   .object({
     experiment_id: z.string().min(1),
+    phase1: Phase1ConfigSchema.optional(),
     config_version: z.number().int().positive(),
 
     model: z.object({
@@ -225,6 +227,16 @@ export const ExperimentConfigSchema = z
       .nullable(),
   })
   .superRefine((cfg, ctx) => {
+    if (cfg.phase1) {
+      const expected = cfg.participants.map(p => p.id).sort();
+      if (cfg.participants.length !== 5 || JSON.stringify(Object.keys(cfg.phase1.assignments).sort()) !== JSON.stringify(expected)) {
+        ctx.addIssue({ code: 'custom', message: 'Phase 1A requires exactly five participants with one role block per identity' });
+      }
+      if (cfg.prompts.participant_prompt_version !== 'phase1a-v1') ctx.addIssue({ code: 'custom', message: 'Phase 1A requires phase1a-v1 participant prompts' });
+      if (cfg.capabilities.tools_enabled || cfg.capabilities.manifest.length || cfg.tool_probe?.enabled) ctx.addIssue({ code: 'custom', message: 'Phase 1A does not enable tool capability treatments' });
+    } else if (cfg.prompts.participant_prompt_version === 'phase1a-v1') {
+      ctx.addIssue({ code: 'custom', message: 'phase1a-v1 requires a frozen phase1 contract' });
+    }
     const ids = new Set<string>();
     for (const p of cfg.participants) {
       if (ids.has(p.id)) {

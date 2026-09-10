@@ -157,6 +157,7 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
     <a href="/">Overview</a>
     <a href="/docs">Documentation</a>
     <a href="/runs">Runs</a>
+    <a href="/phase1">Phase 1A</a>
     ${
       /* Comparison and the raw API answer questions that come after Phase 0. They are
          still served; they are just not offered until someone asks for them. */

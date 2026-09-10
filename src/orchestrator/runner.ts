@@ -1,4 +1,5 @@
 import type { Db } from '../db/index.js';
+import { collectPositions, positionRows } from '../phase1/positions.js';
 import type { FrozenConfig } from '../config/load.js';
 import type { ExperimentConfig, FaultKind, WorkshopState } from '../config/schema.js';
 import { EventRecorder, readEvents } from '../events/recorder.js';
@@ -181,7 +182,20 @@ export class WorkshopRunner {
     }
 
     this.scriptedModerator =
-      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider() : null;
+      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider(this.config.phase1?.opening_message) : null;
+
+    if (this.resuming && this.config.phase1?.evaluation) {
+      // Reconstruct both dialogue and assessment usage; never double-count a
+      // checkpoint that already included the initial assessments.
+      const totals = Object.fromEntries([...this.config.participants, this.config.moderator].map(p => [p.id, { calls: 0, tokens: 0 }]));
+      const calls = this.db.prepare('SELECT agent_id, input_tokens, output_tokens FROM invocations WHERE run_id = ?').all(this.runId) as { agent_id: string; input_tokens: number | null; output_tokens: number | null }[];
+      for (const call of calls) { const t = totals[call.agent_id]!; t.calls++; t.tokens += (call.input_tokens ?? 0) + (call.output_tokens ?? 0); }
+      for (const row of positionRows(this.db, this.runId)) if (row.response_json || row.status === 'pending') {
+        const result = row.response_json ? JSON.parse(row.response_json) as import('../providers/types.js').AgentInvocationResult : null;
+        const t = totals[row.agent_id]!; t.calls++; t.tokens += (result?.usage.inputTokens ?? 0) + (result?.usage.outputTokens ?? 0);
+      }
+      this.budgets.restore(totals);
+    }
 
     this.provenance = options.provenance ?? codeProvenance();
     const provenance = this.provenance;
@@ -271,6 +285,7 @@ export class WorkshopRunner {
     let termination: TerminationReason = 'completed';
 
     try {
+      await this.assessPositions('initial');
       const phases = plannedStates(this.config.workshop.rounds);
       for (const phase of phases) {
         if (this.deadlineHit || this.cancelRequested) break;
@@ -287,6 +302,7 @@ export class WorkshopRunner {
         return this.result('CANCELLED', 'cancelled');
       }
 
+      await this.assessPositions('final');
       // The workshop always closes explicitly, even when the deadline cut it short.
       if (this.state !== 'CLOSING') this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
       await this.runClosing();
@@ -326,6 +342,14 @@ export class WorkshopRunner {
   }
 
   // ---------------------------------------------------------------- phases
+
+  private async assessPositions(phase: 'initial' | 'final'): Promise<void> {
+    await collectPositions({ db: this.db, config: this.config, runId: this.runId, hash: this.frozen.hash,
+      phase, history: this.history, provider: this.provider, budgets: this.budgets, stopped: () => this.stopRequested(),
+      onRecord: row => this.emit('phase1_position_recorded', { agent_id: row.agent_id, trace_id: row.request_json ? JSON.parse(row.request_json).request.traceId : null,
+        payload: { record_id: row.record_id, phase: row.phase, status: row.status, error: row.error } }),
+    });
+  }
 
   private async runPhase(phase: WorkshopState): Promise<void> {
     const rounds = this.roundsFor(phase);

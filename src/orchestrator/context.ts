@@ -33,6 +33,8 @@ export interface AssembleContextInput {
   breakoutMembers?: string[];
   /** The durable opportunity namespace prevents summary primary-key collisions. */
   opportunityId: string;
+  /** Versioned assessment prompts can reuse visibility without becoming dialogue. */
+  instructionOverride?: string;
 }
 
 /**
@@ -75,7 +77,7 @@ export function assembleContext(input: AssembleContextInput): AssembledContext {
     breakoutGroupId: input.breakoutGroupId,
     breakoutMembers: input.breakoutMembers,
   };
-  const instruction = turnInstruction(instructionInput);
+  const instruction = input.instructionOverride ?? turnInstruction(instructionInput);
   const summaryRecords = buildContextSummaries({
     config,
     agentId,

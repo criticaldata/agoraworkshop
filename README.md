@@ -1,5 +1,9 @@
 # AGORA — Phase 0
 
+Phase 1A role-experiment extension: [specification](docs/phase1/IMPLEMENTATION_SPEC.md),
+[operator guide and review notes](docs/phase1/REVIEW.md). Open `/phase1` for the
+draft/preview/freeze/mock/compare/annotate/export workflow. Phase 1B remains out of scope.
+
 A small, controlled, replayable multi-agent workshop, plus enough instrumentation to
 trust it as a research instrument.
 

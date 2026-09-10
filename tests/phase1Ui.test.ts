@@ -1,0 +1,60 @@
+import { expect, it } from 'vitest';
+import express from 'express';
+import type { AddressInfo } from 'node:net';
+import { phase1Router } from '../src/server/phase1.js';
+import { createAuthMiddleware } from '../src/server/auth.js';
+import { campaign } from '../src/phase1/campaign.js';
+import { tempDb } from './helpers.js';
+
+it('supports the authenticated UI draft → preview → freeze → mock → review → export workflow', async () => {
+  const db = tempDb(), app = express();
+  app.use(createAuthMiddleware({ password: 'test-only', scope: 'all', realm: 'test' }));
+  app.use(express.urlencoded({ extended: false })); app.use(express.json());
+  app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const auth = { authorization: `Basic ${Buffer.from('reviewer:test-only').toString('base64')}` };
+  const request = (path: string, init: RequestInit = {}) => fetch(base + path, { ...init, headers: { ...auth, ...init.headers }, redirect: 'manual' });
+  const post = (path: string, data: URLSearchParams) => request(path, { method: 'POST', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: data });
+  try {
+    expect((await fetch(base + '/phase1')).status).toBe(401);
+    expect((await request('/api/phase1/drafts', { method: 'POST', headers: { origin: 'https://elsewhere.test' } })).status).toBe(403);
+    const setup = await (await request('/phase1')).text();
+    expect(setup).toContain('Save draft and preview');
+    const decode = (s: string) => s.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
+    const form = new URLSearchParams();
+    for (const m of setup.matchAll(/<textarea name="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g)) form.set(m[1]!, decode(m[2]!));
+    for (const m of setup.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)) form.set(m[1]!, decode(m[2]!));
+    form.set('title', '<script>bad()</script>'); form.set('purpose', 'engineering'); form.set('blocks', '1'); form.set('calls', '200'); form.set('tokens', '2000000');
+    const draft = await post('/phase1/drafts', form);
+    expect(draft.status).toBe(303);
+    const draftPath = draft.headers.get('location')!;
+    const preview = await (await request(draftPath)).text();
+    expect(preview).toContain('Every resolved prompt and turn instruction');
+    const frozen = await post('/phase1/freeze', new URLSearchParams({ draft_id: draftPath.split('/').at(-1)! }));
+    expect(frozen.status).toBe(303);
+    const path = frozen.headers.get('location')!, id = path.split('/').at(-1)!;
+    expect((await post(`${path}/start`, new URLSearchParams())).status).toBe(303);
+    for (let n = 0; n < 100 && campaign(db, id).row.state === 'running'; n++) await new Promise(r => setTimeout(r, 10));
+    expect(campaign(db, id).row.state).toBe('completed');
+    const detail = await (await request(path)).text();
+    expect(detail).toContain('&lt;script&gt;bad()&lt;/script&gt;');
+    expect(detail).not.toContain('<script>bad()</script>');
+    const review = await (await request(`${path}/review?author=alice`)).text();
+    const annotation = decode([...review.matchAll(/<textarea name="annotation"[^>]*>([\s\S]*?)<\/textarea>/g)][0]![1]!);
+    expect((await post(`${path}/annotations`, new URLSearchParams({ annotation }))).status).toBe(303);
+    const exported = await post(`${path}/export`, new URLSearchParams());
+    expect(exported.status).toBe(200);
+    expect(exported.headers.get('content-disposition')).toContain('attachment');
+    const bundle = await exported.json() as any;
+    expect(bundle.artifacts.annotations).toHaveLength(1);
+    expect(bundle.artifacts.manifest.cases).toHaveLength(2);
+    expect(bundle.artifacts.manifest.plan.input.evaluation.version).toBe('behavioral-v1');
+    expect(bundle.artifacts.runs[0].records.phase1_positions).toHaveLength(10);
+    expect(bundle.artifacts.comparison.behavioral[0].initial_final_change.value).toBe(0);
+    expect(bundle.artifacts.comparison.status.scientific_analysis_completed).toBe(false);
+  } finally {
+    server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); db.close();
+  }
+}, 15000);

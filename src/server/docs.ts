@@ -250,6 +250,7 @@ function sectionData(): string {
     ['context_summaries', 'Channel-scoped extractive summaries with source message identifiers and content/fidelity hashes. Raw messages remain authoritative.'],
     ['tool_calls', 'Every deterministic tool probe and retry, including its trace, scope, structured input/output, and classified failure if any.'],
     ['run_checkpoints', 'Immutable recovery snapshot after each resolved opportunity, including scheduler counters, budget state and event sequence.'],
+    ['phase1_positions', 'Opt-in Phase 1 behavioral assessments: independent initial and authorized-context final positions, exact requests/responses, validation status and missingness. Never routed as discussion messages.'],
     ['backup_verifications', 'Run-linked SQLite snapshot checksum and the config/event continuity observed after reopening it.'],
     ['artifacts', 'Each exported file with its size and SHA-256.'],
     ['semantic_extractions', 'One row per post-hoc reading of a finished run: the pipeline, model, prompt and code that produced it. Re-running writes a new row, so a graph never changes meaning quietly.'],

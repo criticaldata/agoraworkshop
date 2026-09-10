@@ -74,6 +74,7 @@ import {
   runMeasures,
 } from '../analytics/interaction.js';
 import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
+import { phase1Router } from './phase1.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
 
@@ -114,6 +115,7 @@ app.use(createAuthMiddleware(authConfig));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+app.use(phase1Router(db, join(CONFIG_DIR, 'agora_phase0_1_context_contract.yaml')));
 
 /** Runs launched from the UI execute in-process; this tracks the live ones. */
 const active = new Map<string, WorkshopRunner>();

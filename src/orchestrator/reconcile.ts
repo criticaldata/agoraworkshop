@@ -1,6 +1,6 @@
 import type { Db } from '../db/index.js';
 import { newEventId, nowIso } from '../core/ids.js';
-import { getOpportunities, listRuns } from '../db/queries.js';
+import { getOpportunities, getRun, listRuns } from '../db/queries.js';
 
 /**
  * A run left in CREATED or RUNNING was interrupted: the process that was executing it
@@ -33,8 +33,9 @@ export interface ReconcileResult {
  * infrastructure interruption so recovery can reopen it without treating silence as
  * agent behaviour; the status and interruption event are then recorded.
  */
-export function reconcileInterruptedRuns(db: Db, at = nowIso()): ReconcileResult {
-  const stale = listRuns(db).filter(
+export function reconcileInterruptedRuns(db: Db, at = nowIso(), runIds?: string[]): ReconcileResult {
+  const candidates = runIds ? runIds.flatMap(id => { const run = getRun(db, id); return run ? [run] : []; }) : listRuns(db);
+  const stale = candidates.filter(
     (run) => run.status === 'CREATED' || run.status === 'RUNNING',
   );
 

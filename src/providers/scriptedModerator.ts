@@ -1,5 +1,6 @@
 import type { WorkshopState } from '../config/schema.js';
 import type { AgentInvocationRequest, AgentInvocationResult, AgentProvider } from './types.js';
+import { configHash } from '../config/hash.js';
 
 /**
  * A moderator that reads from a fixed script instead of calling a model.
@@ -45,17 +46,19 @@ export function scriptedModeratorLine(state: WorkshopState): string {
 
 export class ScriptedModeratorProvider implements AgentProvider {
   readonly name = 'scripted';
+  constructor(private readonly opening?: string) {}
 
   async invoke(request: AgentInvocationRequest): Promise<AgentInvocationResult> {
     const ts = new Date().toISOString();
     // No network call, no model, no sampling: the same state always yields the same line.
-    const content = LINES[request.workshopState ?? 'PUBLIC_DISCUSSION'];
+    const content = request.workshopState === 'INTRODUCTION' && this.opening ? this.opening : LINES[request.workshopState ?? 'PUBLIC_DISCUSSION'];
+    const version = scriptedModeratorVersion(this.opening);
 
     return {
       ok: true,
       provider: this.name,
-      requestedModel: SCRIPTED_MODERATOR_VERSION,
-      respondedModel: SCRIPTED_MODERATOR_VERSION,
+      requestedModel: version,
+      respondedModel: version,
       requestTs: ts,
       responseTs: ts,
       latencyMs: 0,
@@ -66,9 +69,13 @@ export class ScriptedModeratorProvider implements AgentProvider {
       failure: null,
       raw: {
         scripted: true,
-        script_version: SCRIPTED_MODERATOR_VERSION,
+        script_version: version,
         workshop_state: request.workshopState ?? null,
       },
     };
   }
+}
+
+export function scriptedModeratorVersion(opening?: string): string {
+  return opening ? `${SCRIPTED_MODERATOR_VERSION}:${configHash(opening)}` : SCRIPTED_MODERATOR_VERSION;
 }

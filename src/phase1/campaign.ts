@@ -14,6 +14,8 @@ import { buildProvider } from '../providers/registry.js';
 import { failureResult } from '../providers/types.js';
 import { getRun } from '../db/queries.js';
 import { previewInstructions } from './preview.js';
+import { DRAFT_EVALUATION, EvaluationSchema, FUNCTIONAL_ROLES } from './evaluationContract.js';
+import { positionPromptPreview } from './positions.js';
 
 export const PlanInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -21,6 +23,7 @@ export const PlanInputSchema = z.object({
   purpose: z.enum(['engineering', 'pilot']),
   base_config: ExperimentConfigSchema,
   role_pack: RolePackSchema,
+  evaluation: EvaluationSchema.optional(),
   blocks: z.number().int().min(1).max(50),
   opening_message: z.string().trim().min(1).max(12000),
   limits: z.object({ max_provider_calls: z.number().int().positive().max(100000), max_reported_tokens: z.number().int().positive() }).strict(),
@@ -37,7 +40,7 @@ export interface Plan {
   version: 'phase1a-campaign-v1'; input: PlanInput;
   cases: PlannedCase[]; comparisons: ReturnType<typeof compareConditions>[];
   role_hashes: Record<string, string>;
-  workload: { planned_cases: number; maximum_attempts: number; token_limit_semantics: string };
+  workload: { planned_cases: number; maximum_attempts: number; position_probe_attempts?: number; token_limit_semantics: string };
 }
 export interface CampaignRow {
   id: string; title: string; state: string; manifest_json: string; manifest_hash: string;
@@ -97,6 +100,7 @@ export function compareConditions(control: ExperimentConfig, treatment: Experime
 export function planCampaign(raw: unknown): Plan {
   const input = PlanInputSchema.parse(raw);
   const base = input.base_config;
+  if (input.evaluation && JSON.stringify(Object.keys(input.evaluation.role_criteria).sort()) !== JSON.stringify(input.role_pack.roles.map(r => r.id).sort())) throw new Error('Evaluation criteria must cover exactly the five role IDs');
   if (base.participants.length !== 5) throw new Error('Phase 1A requires five participants');
   if (base.phase1) throw new Error('Select a base configuration without a phase1 block');
   if (base.fault_injection?.enabled) throw new Error('Fault conditions belong to explicitly linked engineering controls, not behavioural cases');
@@ -111,6 +115,7 @@ export function planCampaign(raw: unknown): Plan {
         prompts: { ...base.prompts, participant_prompt_version: 'phase1a-v1' },
         phase1: { phase: '1A', protocol_id: input.protocol_id, protocol_version: input.protocol_version,
           condition, common_instruction: input.role_pack.common_instruction, opening_message: input.opening_message,
+          ...(input.evaluation ? { evaluation: input.evaluation } : {}),
           assignments: Object.fromEntries(base.participants.map(p => {
             const role = input.role_pack.roles.find(r => r.id === targets[p.id])!;
             return [p.id, condition === 'control' ? { role_id: 'neutral', instruction: input.role_pack.neutral_instruction } : { role_id: role.id, instruction: role.instruction }];
@@ -131,6 +136,7 @@ export function planCampaign(raw: unknown): Plan {
     version: 'phase1a-campaign-v1', input, cases, comparisons,
     role_hashes: Object.fromEntries(input.role_pack.roles.map(r => [r.id, configHash(r.instruction)])),
     workload: { planned_cases: cases.length,
+      ...(input.evaluation ? { position_probe_attempts: cases.length * 10 } : {}),
       maximum_attempts: cases.length * base.budgets.max_calls_per_agent * 6 * (base.runtime.max_retries + 1),
       token_limit_semantics: 'Stop before the next provider call once reported tokens reach the threshold. One in-flight response can cross it. Missing usage stops further calls; this is not a guaranteed monetary ceiling.',
     },
@@ -141,7 +147,8 @@ export function starterInput(base: ExperimentConfig): PlanInput {
   base = structuredClone(base);
   return { title: 'Reimagining Humans: role pilot', protocol_id: 'reimagining-humans-1a', protocol_version: 'draft-1', purpose: 'engineering',
     base_config: { ...base, moderator: { ...base.moderator, mode: 'scripted' }, workshop: { ...base.workshop, topic: 'How might humans evolve to coexist better with agents and the living world?' } },
-    role_pack: structuredClone(STARTER_ROLES), blocks: 5,
+    role_pack: { ...structuredClone(STARTER_ROLES), id: 'reimagining-humans-functional', version: 'functional-draft-1', title: 'Functional roles (proposed)', roles: structuredClone(FUNCTIONAL_ROLES), rubric: { version: 'functional-draft-1', instructions: DRAFT_EVALUATION.interaction_rubric } },
+    evaluation: structuredClone(DRAFT_EVALUATION), blocks: 10,
     opening_message: 'Welcome to Reimagining Humans. Discuss how humans might evolve to coexist better with agents and the living world. Give reasons and distinguish evidence from uncertainty.',
     limits: { max_provider_calls: 2000, max_reported_tokens: 2000000 },
   };
@@ -152,6 +159,7 @@ export function previewPrompts(plan: Plan) {
     participants: c.config.participants.map(p => ({ agent_id: p.id, ...participantSystemPrompt(c.config, p.id) })),
     moderator: moderatorSystemPrompt(c.config), opening_message: c.config.phase1!.opening_message,
     turn_instructions: previewInstructions(c.config),
+    ...(c.config.phase1?.evaluation ? { position_probes: positionPromptPreview(c.config) } : {}),
   }));
 }
 

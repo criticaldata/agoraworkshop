@@ -138,7 +138,7 @@ export function turnInstruction(input: TurnInstructionInput): string {
     return [
       `You are now in breakout group ${input.breakoutGroupId}, speaking privately to: ${members}.`,
       `This message is NOT visible on the public channel and NOT visible to participants outside your group.`,
-      `Say what you would not say in the open session about the topic, addressed to your group.`,
+      config.phase1?.evaluation?.private_instruction ?? `Say what you would not say in the open session about the topic, addressed to your group.`,
     ].join('\n');
   }
 

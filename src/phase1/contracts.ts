@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { EvaluationSchema } from './evaluationContract.js';
 
 const text = z.string().trim().min(1).max(12000);
 export const RolePackSchema = z.object({
@@ -18,6 +19,7 @@ export const Phase1ConfigSchema = z.object({
   common_instruction: text,
   assignments: z.record(z.string(), z.object({ role_id: text, instruction: text }).strict()),
   opening_message: text,
+  evaluation: EvaluationSchema.optional(),
 }).strict();
 
 export const STARTER_ROLES: RolePack = {

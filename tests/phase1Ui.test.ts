@@ -50,6 +50,9 @@ it('supports the authenticated UI draft → preview → freeze → mock → revi
     const bundle = await exported.json() as any;
     expect(bundle.artifacts.annotations).toHaveLength(1);
     expect(bundle.artifacts.manifest.cases).toHaveLength(2);
+    expect(bundle.artifacts.manifest.plan.input.evaluation.version).toBe('behavioral-v1');
+    expect(bundle.artifacts.runs[0].records.phase1_positions).toHaveLength(10);
+    expect(bundle.artifacts.comparison.behavioral[0].initial_final_change.value).toBe(0);
     expect(bundle.artifacts.comparison.status.scientific_analysis_completed).toBe(false);
   } finally {
     server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); db.close();

@@ -5,6 +5,11 @@ described in the September PDFs. The controlling proposal is
 [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). The roles and rubric remain DRAFT.
 No live experiment or deployment was performed for this implementation.
 
+September 10 behavioral revision: [BEHAVIORAL_PROTOCOL.md](BEHAVIORAL_PROTOCOL.md)
+operationalizes Mateo's framework. New templates use five proposed functional roles,
+independent initial/final questionnaires, weighted human role criteria and substantive
+interaction coding. Older frozen campaigns retain their original contract.
+
 ## What is implemented
 
 - An optional `phase1` config contract and `phase1a-v1` participant prompt resolver.
@@ -23,9 +28,17 @@ No live experiment or deployment was performed for this implementation.
   stop threshold. Unknown token usage blocks further admission and is not zero cost.
   Scripted moderator calls use no external provider and are not charged to this ledger.
 - A researcher UI at `/phase1`, API under `/api/phase1`, and `agora phase1` CLI.
+- A versioned evaluation JSON editor freezes questions/options, criterion weights,
+  primary outcomes, private wording and scoring before execution. Ten extra probes
+  per run share the existing budgets. Their exact records and failures are exported
+  separately from workshop messages; assessment answers never enter deliberation.
 - Descriptive per-agent/phase/channel outcomes, participation and contribution shares,
   source IDs, missingness, measured usage and latency, and within-pair differences.
   Actual opportunity sequences expose speaking positions and group allocations.
+- Behavioral outputs add categorical initial/final switching, confidence shifts,
+  weighted role-fidelity scores by reviewer, direct-reply and interaction-contingency
+  rates, reviewer-inventoried argument uptake, response edges/centrality and message
+  Gini/entropy. All retain denominators and missingness; incomplete review is not zero.
 - Human annotations in the semantic evidence layer: exact source/target quotes,
   frozen rubric, reviewer identity, append-only revisions/adjudication and optional
   links to existing semantic nodes. Nothing derived is fed back to workshop agents.
@@ -47,7 +60,9 @@ or config JSON. No provider key is needed for mock execution.
 3. Choose blocks and ceilings. One block is an engineering check. Five blocks give
    each identity each role once but have a 3:2 AB/BA imbalance. Ten blocks balance
    both role allocation and AB/BA order. Neither count is a power calculation.
-4. Save and preview the exact prompt/instruction catalogue and structural comparison.
+4. Review the draft behavioral evaluation JSON (questionnaire, criteria, weights and
+   private instruction); use `null` only to retain transcript-only evaluation. Save
+   and preview the exact prompt/instruction catalogue and structural comparison.
    Preview does not fabricate the future conversation: actual rendered context is
    recorded on each invocation.
 5. Freeze the snapshot, then execute pending cases. Non-mock providers require the
@@ -57,7 +72,9 @@ or config JSON. No provider key is needed for mock execution.
 7. Open human review, enter a stable reviewer identity, then submit evidence-linked
    annotation JSON. Relational labels require target IDs and quotes. Role labels are
    `consistent`, `inconsistent`, `not_assessable`; other categories use `present`,
-   `absent`, `not_assessable`. Preserve rationales and use revision/adjudication IDs.
+   `absent`, `not_assessable`. New `role_criterion` readings use `scored` plus a 0–2
+   score, or `not_assessable` plus null. See the behavioral protocol for interaction
+   and idea-uptake fields. Preserve rationales and use revision/adjudication IDs.
 8. Download the review bundle. This is an intentionally **unblinded researcher
    export**, including private transcripts, target-role assignments and all labels.
 
@@ -113,7 +130,7 @@ All mutation endpoints retain the existing authentication/origin middleware.
 ## Limits and review priorities
 
 - The JSON annotation editor is functional but deliberately minimal. Independent
-  labels are hidden per source/category until submission. Reviewer names are
+  labels are hidden per source/category/criterion/idea until submission. Reviewer names are
   self-declared under a shared credential, not independently authenticated accounts.
   A reviewer can bypass workflow blinding via admin/export access; this is not an
   adversarial blinding system. Text can reveal its own condition as well.
@@ -125,9 +142,10 @@ All mutation endpoints retain the existing authentication/origin middleware.
   `engineering_verified` is not auto-set by a campaign. Release engineering evidence
   is the test/build record below. `live_executed` and `human_annotated` record separate
   facts; `scientific_analysis_completed` remains false pending an agreed analysis.
-- Human annotation outcomes are exported with their raw revisions; they are not
-  automatically pooled into an adherence or persuasion score. Selecting adjudicated
-  labels, outcome definitions and inferential analysis requires the reviewed protocol.
+- Human annotation outcomes retain raw revisions. Scores are calculated separately
+  by reviewer under frozen rules, never pooled across reviewers or certified as
+  persuasion. Conflicting duplicate readings are excluded, not resolved by recency.
+  Choosing adjudicated labels and inferential analysis requires the reviewed protocol.
 - Mock providers prove plumbing only. In particular, the legacy `mock` generator is
   not a role-adherence simulator. An apparent absence of a role effect is not a finding.
 - No Phase 1B research tools, six-condition grid, voting, images, peer review,
@@ -135,7 +153,7 @@ All mutation endpoints retain the existing authentication/origin middleware.
 
 ## Verification
 
-Implementation verification on 10 September 2026: **426 tests passed in 40 files**,
+Behavioral revision verification on 10 September 2026: **439 tests passed in 41 files**,
 TypeScript build passed, and `git diff --check` passed. This includes the ten-case
 mock campaign and the authenticated HTML workflow test. No live-provider test was
 authorized or performed. Dependency installation reported three moderate advisory
@@ -153,6 +171,12 @@ Run `npm test`, `npm run build`, and `git diff --check`. New coverage includes:
   immutable revision/adjudication history and portable artifact hashes.
 - An authenticated loopback HTTP test exercising the actual HTML form workflow from
   draft through annotation/export, including HTML escaping and origin rejection.
+- Independent assessment contexts and no answer leakage into dialogue, valid null
+  and nonzero position changes, invalid JSON/missing answers, shared budgets,
+  assessment export, and interruption without reissuing probes.
+- Weighted criterion scoring, per-criterion reviewer hiding, actual-context reply
+  validation, duplicate-label conflicts, introduced-idea uptake and the difference
+  between unreviewed outcomes and a fully reviewed zero-contingency outcome.
 
 The HTTP integration test needs permission to bind a temporary loopback port in
 restricted sandboxes. It does not call an external model or service.

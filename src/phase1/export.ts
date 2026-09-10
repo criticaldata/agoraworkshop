@@ -9,7 +9,7 @@ import { allAnnotations } from '../semantic/phase1Annotations.js';
 import { getRun } from '../db/queries.js';
 
 // Includes partial evidence, recovery records and existing semantic artifacts.
-const TABLES = ['events', 'messages', 'invocations', 'opportunities', 'state_transitions', 'context_summaries', 'tool_calls', 'run_checkpoints', 'semantic_extractions', 'semantic_nodes', 'semantic_edges', 'semantic_evidence'] as const;
+const TABLES = ['events', 'messages', 'invocations', 'opportunities', 'state_transitions', 'context_summaries', 'tool_calls', 'run_checkpoints', 'semantic_extractions', 'semantic_nodes', 'semantic_edges', 'semantic_evidence', 'phase1_positions'] as const;
 export function campaignBundle(db: Db, id: string) {
   const frozen = campaign(db, id);
   const evidence = db.prepare('SELECT * FROM phase1_evidence WHERE campaign_id = ?').all(id) as { run_id: string; purpose: string }[];

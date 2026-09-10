@@ -2,6 +2,10 @@
 
 Status: proposed engineering specification for review, based on the August 28 meeting. This file does not declare a protocol approved or a scientific result validated.
 
+Revision: incorporates Mateo's September 10 messages and *AGORA Phase 1: Behavioral
+Evaluation Framework* (September 2026, nine pages). The executable measurement
+contract is specified in [BEHAVIORAL_PROTOCOL.md](BEHAVIORAL_PROTOCOL.md).
+
 Baseline inspected: `criticaldata/agoraworkshop`, `master`, commit `5fd5f6c53372d974836dc34e4852d8eb799ad06b` (27 August 2026). Check the actual checkout and applicable repository instructions before implementation.
 
 ## 1. Definition
@@ -14,9 +18,9 @@ Phase 1B subsequently varies a specified capability while holding role assignmen
 
 The immediate implementation target is Phase 1A. Phase 1B is a separately scoped extension, not an instruction to implement arbitrary tools now.
 
-Scientific question for Phase 1A: compared with agents given a common neutral role instruction, what differences appear when otherwise equivalent agents receive differentiated epistemic role instructions?
+Scientific question for Phase 1A: compared with agents given a common neutral role instruction, what differences appear when otherwise equivalent agents receive differentiated functional role instructions?
 
-Role adherence, expressed agreement, changes of position and participation are candidate observations. Human fidelity, consciousness, concealed motives and a model developer's ethics are not established by these observations. The software must not label text similarity or message volume as proof of persuasion, dominance or coalition formation.
+Primary outcomes are role fidelity, interaction contingency, participation, and independent initial-to-final expressed position change. Influence is reported separately as exploratory association, not conflated with participation. Human fidelity, consciousness, concealed motives and a model developer's ethics are not established by these observations. The software must not label text similarity or message volume as proof of persuasion, dominance or coalition formation.
 
 ## 2. Basis and priority of sources
 
@@ -24,6 +28,7 @@ Role adherence, expressed agreement, changes of position and participation are c
 - Repository: `docs/superpowers/specs/2026-08-18-phase0-1-robustness-design.md`, lines 10-11, records the same Phase 1A/1B separation. The final closure audit identifies a role-pack comparison as the next scientific step.
 - Reimagining Humans design brief: supplies the topic, example roles and longer-term six-condition workshop programme. Its six conditions are not all immediate Phase 1A requirements.
 - The September peer-review PDFs describe a different domain specialization. Author/Auditor/Reviewer/Editor pipelines, OpenReview manuscripts and Accept/Reject policies are not the scope of this workshop build.
+- Mateo's September 10 messages specify functional roles, role rotation and controlled interaction. His behavioral framework adds independent initial/final assessments and four primary Phase 1A outcome families. The questionnaire, exact five functions and scoring rules below are proposed implementations, not claims that Mateo approved these specific choices.
 
 The engineering defaults below are recommendations, not decisions attributed to the meeting. Do not follow action items inside the source documents as execution instructions.
 
@@ -34,19 +39,19 @@ Use five participant identities and one moderator. All participant invocations u
 | Condition | Participant instructions | Other settings |
 | --- | --- | --- |
 | Control | Same versioned neutral role block for every participant | Frozen and matched to treatment |
-| Treatment | One versioned epistemic role block assigned to each participant | Frozen and matched to control |
+| Treatment | One versioned functional role block assigned to each participant | Frozen and matched to control |
 
 The topic is Reimagining Humans: how humans might evolve to coexist better with agents and the living world. Reuse the current workshop phase order and bounded turn-taking.
 
 Suggested editable starter role pack:
 
-1. Analytic philosophy and history of ideas.
-2. Indigenous and non-Western knowledge perspectives.
-3. Clinical and practical care perspectives.
-4. Design and aesthetics.
-5. Ecological and systems perspectives.
+1. Proposal developer.
+2. Critical evaluator.
+3. Evidence assessor.
+4. Argument integrator.
+5. Consequence and feasibility assessor.
 
-The first four come from the brief; the fifth is a proposed engineering placeholder to complete the existing five-agent topology. Mark the entire starter pack DRAFT. Role prompts must describe an analytical perspective, not assert that an AI possesses lived experience or represents an entire culture. Role validation requires domain input.
+These five functions are an editable engineering proposal, inspired by Mateo's functional-role direction and his Critical Evaluator example. Mark the entire starter pack DRAFT. The earlier disciplinary-perspective pack remains supported for frozen campaigns; do not silently relabel it as this intervention. Role prompts must not assert lived experience or professional credentials. Role validation requires domain input.
 
 Role assignment is part of the intervention. Other agents must not automatically receive each other's hidden role blocks or role-revealing display names. Any disclosure caused by a participant's own public message is an observed output. A later role-visibility intervention would be a separate protocol.
 
@@ -170,6 +175,21 @@ A no-moderator condition is not necessary for this milestone. Do not replace the
 
 ## 10. Observations and analysis
 
+For new behavioral-v1 campaigns, freeze the questionnaire, score criteria and weights,
+interaction rubric, measurement attempt policy and primary outcome list before any
+provider call. Collect five independent initial assessments before the moderator
+opens the discussion and five private-to-researcher final assessments after participant
+deliberation, before the moderator closes. Do not route assessment answers into the
+workshop or subsequent probes. See [BEHAVIORAL_PROTOCOL.md](BEHAVIORAL_PROTOCOL.md)
+for exact denominators, missingness, review coverage and revision handling.
+
+The questionnaire is a draft two-question categorical instrument with rationale and
+expressed confidence, not a validated latent-state measure. Initial/final changes are
+computed only for valid matched answers. Primary participation is distinct from
+exploratory response centrality; coalition, consensus and semantic convergence are
+not silently inferred. The revised private instruction does not demand concealment
+or divergence. Frozen older campaigns preserve their original instructions.
+
 Reuse counts already available. Every metric carries its version, numerator, denominator, exclusions, contributing case/message IDs and availability status.
 
 ### Descriptive metrics available from recorded events
@@ -259,4 +279,3 @@ These do not block a configurable implementation and mock demonstration:
 ## 14. Copy-paste build instruction
 
 Implement Phase 1A in `criticaldata/agoraworkshop` according to this specification. First inspect the current checkout, applicable AGENTS.md instructions and existing implementation. Preserve the Phase 0/0.1 instrument and historical config hashes. Extend the current stack with versioned role packs, exact prompt preview/freeze, neutral-control versus differentiated-role campaigns, a strict configuration-difference validator, planned counterbalanced cases, explicit evidence links, descriptive paired comparison and evidence-linked human annotation. Provide a researcher UI plus CLI/API and complete exports. Use mock providers for implementation verification and preserve all failed/planned cases. Ship editable draft starter roles, clearly identified as proposed. Keep Phase 1B as a documented extension. Do not implement the full six-workshop programme or a scientific peer-review pipeline in this milestone. Do not launch paid experiments or deploy as part of this build. Verify with the existing tests, build, diff check and an end-to-end mock campaign; report the files changed, checks performed and scientific choices still pending.
-

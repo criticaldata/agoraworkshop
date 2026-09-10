@@ -11,9 +11,11 @@ import { getInvocations, getMessages, getRun } from '../src/db/queries.js';
 import { WorkshopRunner } from '../src/orchestrator/runner.js';
 import { MockProvider } from '../src/providers/mock.js';
 import { readEvents } from '../src/events/recorder.js';
+import { STARTER_ROLES } from '../src/phase1/contracts.js';
 import { frozen, tempDb, tempDir } from './helpers.js';
 
-const input = (blocks = 1) => ({ ...starterInput(frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } }).config), blocks });
+// Keep exercising the first frozen protocol without implicitly upgrading it.
+const input = (blocks = 1) => ({ ...starterInput(frozen({ recovery: { enabled: true, checkpoint_every: 'opportunity' } }).config), role_pack: structuredClone(STARTER_ROLES), evaluation: undefined, blocks });
 afterEach(() => vi.restoreAllMocks());
 
 describe('Phase 1A frozen protocol', () => {

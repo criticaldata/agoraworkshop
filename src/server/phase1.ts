@@ -26,6 +26,7 @@ function editor(input: PlanInput): string {
   ${field('neutral', 'Neutral control instruction', input.role_pack.neutral_instruction)}
   ${input.role_pack.roles.map((r, i) => `<fieldset><legend>Role ${i + 1}: ${esc(r.title)}</legend>${field(`role_id_${i}`, 'Stable role ID', r.id, 1)}${field(`role_title_${i}`, 'Role title', r.title, 1)}${field(`role_${i}`, 'Exact instruction (only assigned participant receives this)', r.instruction)}</fieldset>`).join('')}
   ${field('rubric_version', 'Frozen rubric version', input.role_pack.rubric.version, 1)}${field('rubric', 'Human review rubric', input.role_pack.rubric.instructions)}
+  <details><summary>Behavioral evaluation protocol: questionnaire, role criteria and scoring</summary><p>These defaults are proposed, not approved by Mateo. Initial assessments are independent; final assessments use authorized discussion history. Probes are not broadcast and consume the same frozen agent/campaign budgets. Use null to retain the legacy transcript-only protocol.</p>${field('evaluation', 'Versioned evaluation JSON (null disables it)', JSON.stringify(input.evaluation ?? null, null, 2), 25)}</details>
   ${field('opening', 'Moderator opening (identical across paired cases)', input.opening_message)}
   <p><label>Blocks / pairs <input name="blocks" type="number" min="1" max="50" value="${input.blocks}" required></label>
   <label>Provider-call ceiling <input name="calls" type="number" min="1" max="100000" value="${input.limits.max_provider_calls}" required></label>
@@ -35,7 +36,9 @@ function editor(input: PlanInput): string {
 }
 
 function formInput(body: Record<string, string>): unknown {
+  const evaluation = body.evaluation ? JSON.parse(body.evaluation) : null;
   return { title: body.title, protocol_id: body.protocol_id, protocol_version: body.protocol_version, purpose: body.purpose,
+    ...(evaluation ? { evaluation } : {}),
     base_config: JSON.parse(body.base_config!), blocks: Number(body.blocks), opening_message: body.opening,
     limits: { max_provider_calls: Number(body.calls), max_reported_tokens: Number(body.tokens) },
     role_pack: { id: body.pack_id, version: body.pack_version, title: body.pack_title, status: body.pack_status, common_instruction: body.common, neutral_instruction: body.neutral,
@@ -91,6 +94,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
     res.send(page('Human evidence review', `<h1>Human evidence review</h1><p>Labels from colleagues are hidden for each source/category until you submit your own. Identity is self-declared under the existing shared researcher credential; this is workflow blinding, not adversarial access isolation. Avoid the unblinded campaign/export pages while independently reviewing.</p>
     <form><label>Reviewer identity <input name="author" value="${esc(author)}" required></label><button>Open my review</button></form>
     <h2>Frozen rubric</h2>${json(c.plan.input.role_pack.rubric)}${json(c.plan.input.role_pack.roles.map(r => ({ id: r.id, title: r.title, assessment_perspective: r.instruction })))}
+    ${c.plan.input.evaluation ? `<details><summary>Predefined outcome definitions, criterion weights and questionnaire</summary>${json(c.plan.input.evaluation)}</details><p>New categories: role_criterion (criterion_id, label scored, score 0–2; or not_assessable and null score), direct_reply, interaction_contingency (present plus relation: supports/challenges/extends/rejects/revises), introduced_idea (present, quoted idea), argument_uptake (idea_annotation_id). Positive interaction labels require earlier, actually exposed peer evidence. For uptake, the source is the introduced idea and the target is the later peer reuse. Absent uptake requires review of all eligible follow-up messages. Missing review is never counted as absent.</p>` : ''}
     ${author ? `<form method="post" action="/phase1/campaigns/${esc(id)}/annotations">${field('annotation', 'Annotation JSON (replace evidence IDs and exact quote; add target_message_id and target_quote for relational readings)', JSON.stringify({ run_id: sources[0]?.run_id ?? '', message_id: sources[0]?.message_id ?? '', author, annotator_type: 'human', rubric_version: c.plan.input.role_pack.rubric.version, category: 'role_consistency', label: 'not_assessable', quote: sources[0]?.content ?? '', reason: 'Explain the quoted evidence against the frozen rubric.' }, null, 2), 15)}<button>Submit immutable annotation</button></form><h2>Visible review history</h2>${json(reviewerAnnotations(db, id, author))}` : ''}
     <details><summary>Source messages (public and authorized researcher-visible private records)</summary>${json(sources)}</details><p>Allowed categories: role_consistency, agreement, disagreement, position_change, public_private_difference. Add supersedes or adjudicates IDs for an append-only revision. Role-consistency assessment uses evaluator targets in the unblinded campaign comparison; hiding condition metadata does not prevent inference from text.</p>`));
   });

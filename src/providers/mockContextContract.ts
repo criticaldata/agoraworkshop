@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { mockPositionContent } from '../phase1/positions.js';
 import { canonicalize } from '../config/hash.js';
 import type { AgentInvocationRequest, AgentInvocationResult, AgentProvider } from './types.js';
 
@@ -37,7 +38,7 @@ export class MockContextContractProvider implements AgentProvider {
       responseTs: ts,
       latencyMs: 0,
       finishReason: 'context_contract',
-      content: canonicalize(receipt),
+      content: mockPositionContent(request) ?? canonicalize(receipt),
       usage: { inputTokens: 0, outputTokens: 0 },
       failure: null,
       raw: { context_contract: receipt },

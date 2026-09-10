@@ -25,6 +25,7 @@ import { nowIso } from '../core/ids.js';
 import { runProvenance } from '../db/queries.js';
 import { REQUIRED_BUNDLE_FILES, REQUIRED_BUNDLE_ITEMS } from './bundleContract.js';
 import { evaluatePhase01, type LiveCanaryLink } from '../acceptance/phase01.js';
+import { positionRows, positionPromptPreview } from '../phase1/positions.js';
 
 
 export interface ExportOptions {
@@ -85,6 +86,12 @@ export function exportRun(options: ExportOptions): ExportResult {
 
   write('canonical_config.yaml', 'config', toYaml(config));
   write('canonical_config.json', 'config', `${run.config_canonical}\n`);
+  if (config.phase1?.evaluation) {
+    write('phase1_positions.json', 'phase1_assessment', json({
+      warning: 'Researcher-only assessments, not dialogue. Legacy run analytics exclude these assessment calls; inspect their recorded usage separately.',
+      protocol: config.phase1.evaluation, prompt_preview: positionPromptPreview(config), records: positionRows(db, runId),
+    }));
+  }
 
   write(
     'run_metadata.json',

@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { mockPositionContent } from '../phase1/positions.js';
 import type { AgentInvocationRequest, AgentInvocationResult, AgentProvider } from './types.js';
 
 /**
@@ -25,7 +26,7 @@ export class MockProvider implements AgentProvider {
       .update(request.messages.at(-1)?.content ?? '')
       .digest('hex');
 
-    const content =
+    const content = mockPositionContent(request) ??
       `[${request.agentId}] ${PHRASES[parseInt(seed.slice(0, 4), 16) % PHRASES.length]} ` +
       `(context depth ${request.messages.length}, seed ${seed.slice(0, 8)})`;
 

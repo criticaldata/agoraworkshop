@@ -31,6 +31,7 @@ import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 import { ballotRows, collectBallots, saveCollectiveOutput, startStage, finishStage } from '../phase1/collective.js';
 import { assertCampaignUnlocked } from '../phase1/scienceStore.js';
+import { isBehavioralTerminalOutcome } from '../phase1/terminalOutcome.js';
 import { ToolGateway } from '../tools/gateway.js';
 import { getMessages, getOpportunities, getRun, getTransitions, type OpportunityRow } from '../db/queries.js';
 
@@ -305,7 +306,7 @@ export class WorkshopRunner {
         await this.runPhase(phase);
         if (stage) {
           const participantOpportunities = getOpportunities(this.db, this.runId).filter(o => o.workshop_state === phase && o.agent_id !== this.config.moderator.id);
-          this.endCanonicalStage(stage, participantOpportunities.length === this.roundsFor(phase) * 5 && participantOpportunities.every(o => o.resolution === 'success'));
+          this.endCanonicalStage(stage, participantOpportunities.length === this.roundsFor(phase) * 5 && participantOpportunities.every(o => isBehavioralTerminalOutcome(o.resolution)));
         }
       }
 

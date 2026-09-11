@@ -18,6 +18,7 @@ import { auditSummaryFidelity } from '../orchestrator/summaries.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
 import { scriptedModeratorVersion } from '../providers/scriptedModerator.js';
 import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
+import { isBehavioralTerminalOutcome } from '../phase1/terminalOutcome.js';
 
 export type Phase01Status = 'PASS' | 'FAIL' | 'NOT_EXERCISED';
 export interface Phase01Metric { id: string; status: Phase01Status; evidence: string; }
@@ -338,7 +339,7 @@ function evaluateRecoveryIdempotency(
   const transitionKeys = events.filter((event) => event.event_type === 'state_transition_completed').map((event) => `${event.payload['from_state']}->${event.payload['to_state']}`);
   if (transitionKeys.some((key, index) => transitionKeys.indexOf(key) !== index)) problems.push('duplicate state transition after resume');
   const outputMessageIds = opportunities
-    .filter((opportunity) => opportunity.resolution === 'success' && opportunity.message_id !== null)
+    .filter((opportunity) => isBehavioralTerminalOutcome(opportunity.resolution) && opportunity.message_id !== null)
     .map((opportunity) => opportunity.message_id as string);
   if (outputMessageIds.some((messageId, index) => outputMessageIds.indexOf(messageId) !== index)) problems.push('duplicate final message assigned to more than one opportunity after resume');
   return { id: 'M27', status: problems.length ? 'FAIL' : 'PASS', evidence: problems.length ? problems.slice(0, 3).join('; ') : `resume evidence for ${runId} has no duplicate actions` };

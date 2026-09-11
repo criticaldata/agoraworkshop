@@ -45,6 +45,7 @@ import {
 import { REQUIRED_BUNDLE_FILES } from '../export/bundleContract.js';
 import { auditPrivacyLeaks } from './privacy.js';
 import type { GateStatus } from './gates.js';
+import { isBehavioralTerminalOutcome } from '../phase1/terminalOutcome.js';
 
 export type MetricId =
   | 'M1' | 'M2' | 'M3' | 'M4' | 'M5' | 'M6' | 'M7' | 'M8'
@@ -155,8 +156,6 @@ function zeroIsPass(count: number, pass: string, fail: (n: number) => string): [
   return count === 0 ? ['PASS', pass] : ['FAIL', fail(count)];
 }
 
-const BEHAVIOURAL_RESOLUTIONS = new Set(['success', 'explicit_abstention', 'no_op']);
-
 /** Sets are compared by content; recipient order is not part of the contract. */
 function sameMembers(a: readonly string[], b: readonly string[]): boolean {
   if (a.length !== b.length) return false;
@@ -181,7 +180,7 @@ function m1(db: Db, runId: string): MetricResult {
     (o) =>
       o.resolution === null ||
       o.resolved_at === null ||
-      (!BEHAVIOURAL_RESOLUTIONS.has(o.resolution) && !o.failure_category),
+      (!isBehavioralTerminalOutcome(o.resolution) && !o.failure_category),
   );
   const [status, observed] = zeroIsPass(
     open.length,
@@ -489,7 +488,7 @@ function m10(db: Db, runId: string): MetricResult {
   }
   const conflated = opportunities.filter(
     (o) =>
-      (o.resolution !== null && BEHAVIOURAL_RESOLUTIONS.has(o.resolution) && o.failure_category) ||
+      (o.resolution !== null && isBehavioralTerminalOutcome(o.resolution) && o.failure_category) ||
       (o.resolution === 'infrastructure_failure' && o.behaviourally_available === 1),
   );
   const [status, observed] = zeroIsPass(
@@ -596,7 +595,7 @@ function m12(db: Db, runId: string, evidenceRunId: string | null): MetricResult 
 
   // No injected fault may end up counted as a decision the agent made.
   const conflated = getOpportunities(db, target).filter(
-    (o) => o.resolution !== null && BEHAVIOURAL_RESOLUTIONS.has(o.resolution) && o.failure_category,
+    (o) => o.resolution !== null && isBehavioralTerminalOutcome(o.resolution) && o.failure_category,
   );
   if (conflated.length > 0) {
     problems.push(`${conflated.length} injected failures were recorded as agent behaviour`);

@@ -76,8 +76,15 @@ export function ballotInstruction(config: ExperimentConfig): string {
   return 'AGORA_SEALED_BALLOT_V1\n' + canonicalize(config.phase1!.evaluation!.questionnaire) +
     '\nYour independent final position has already been recorded. Cast one sealed vote per question. Return only JSON: {"ballots":[{"question_id":"...","choice":"exact option or null for abstention"}]}. Use JSON null, not a string, to abstain. Answer every question exactly once. You cannot see other ballots before submitting. Individual ballots are retained for authorized researchers and never added to participant context. Only aggregate counts are published. A decision requires all five valid ballots and at least three votes for one option. Missing/invalid ballots block a decision; abstentions do not reduce the threshold; ties and no-majority outcomes remain unresolved. No repair or second attempt.';
 }
+
+function parseJsonEnvelope(content: string): unknown {
+  const trimmed = content.trim();
+  const fenced = trimmed.match(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/i);
+  return JSON.parse(fenced?.[1]?.trim() ?? trimmed);
+}
+
 export function parseBallot(content: string, config: ExperimentConfig): Ballot {
-  const value = BallotSchema.parse(JSON.parse(content));
+  const value = BallotSchema.parse(parseJsonEnvelope(content));
   const questions = config.phase1!.evaluation!.questionnaire.questions;
   if (value.ballots.length !== questions.length || new Set(value.ballots.map(b => b.question_id)).size !== questions.length) throw new Error('Every ballot question must appear exactly once');
   for (const q of questions) {

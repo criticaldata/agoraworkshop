@@ -4,16 +4,17 @@
 **Repository:** `criticaldata/agoraworkshop`  
 **Branch:** `codex/phase1a-pre-human-review-closure`  
 **Base:** PR #9 head `4f20c23660d9e508c4d6724aedd7f1cb7a2c52ec`  
-**Implementation head at report creation:** `bd08fa98738927bb7d07aea0f16d5d65a1ba8007`  
+**Implementation head at report creation:** to be updated after final verification
 **Delivery model:** stacked pull request [#10](https://github.com/criticaldata/agoraworkshop/pull/10) on Simon's open PR #9; this report does not authorize or perform a merge.
 
 ## Executive disposition
 
 The branch closes the Phase 1A engineering and pre-human-review scientific
-contract. The role treatment, canonical workshop stages, outcome definitions,
-missingness policy, statistical analysis plan, calibration instruments,
-reviewer workflow, adjudication workflow, protected projections, dataset
-locking and Phase 1B transition predicate are now explicit, versioned and
+contract and records a completed live calibration against the authorized AGORA
+NVIDIA vLLM endpoint. The role treatment, canonical workshop stages, outcome
+definitions, missingness policy, statistical analysis plan, calibration
+instruments, reviewer workflow, adjudication workflow, protected projections,
+dataset locking and Phase 1B transition predicate are explicit, versioned and
 covered by executable tests.
 
 This is not a claim that Phase 1A is scientifically closed. The exact current
@@ -22,14 +23,14 @@ boundary is:
 | Area | Current state |
 |---|---|
 | Software and protocol contract | `CLOSED_FOR_HUMAN_VALIDATION` |
-| Machine-verifiable P1-A/P1-B/P1-C contracts | Technically verified by tests |
-| External live-provider evidence | `BLOCKED_EXTERNAL_LIVE_PROVIDER` until the authorized NVIDIA vLLM endpoint and key are available |
+| Machine-verifiable P1-A/P1-B/P1-C contracts | `PASS` in the clean live calibration package |
+| External live-provider evidence | `EXECUTED`; NVIDIA vLLM served `qwen3-32b` through the authorized tunnel |
 | Human calibration/reliability | `PENDING_HUMAN_VALIDATION` |
 | Phase 1B | `INACTIVE`; no eligibility until P1-D and Phase 1A closure are complete |
 
-The branch therefore ends at the correct handoff: there is no remaining
-scientific design decision required before launch, but live execution and human
-review must produce evidence that software cannot honestly fabricate.
+The branch therefore ends at the correct handoff: live machine calibration is
+complete and the dataset is locked, while independent human coding,
+reliability and adjudication remain the only scientific closure work.
 
 ## Scope and non-claims
 
@@ -182,16 +183,17 @@ The calibration manifest currently freezes the following conditions:
 | Seed | `20260911` |
 | Thinking | disabled/omitted |
 | Effort | low |
-| Config hash | `sha256:411bd3386c10a63d024d0a4cc23399775d1d3820fdec054cab6073cc9a51a9ab` |
-| Instrument manifest hash | `sha256:8080f1498c87c67baa5ae642b10eda38736ead878bcacbb95b94a6a297867727` |
+| Frozen campaign manifest hash | `sha256:da16e9dcb14d682805d9dbb675f0743beb1e8c25d755e75b77068c28422d5b14` |
+| Treatment config hash in calibration manifest | `sha256:9c6acb5bd75ff724623c15c471b37a9453c6706ea64eaf14ea024d4d7e638877` |
+| Instrument manifest hash | `sha256:54a99890c07990f41df01d1122fdb7e8777243a027b5d1c0c415c08acb53f676` |
 
 Instrument hashes:
 
 | Instrument | SHA-256 |
 |---|---|
-| Role registry | `sha256:0ff1d4a6506fa5df130a403f9e8a8ddc730d5d5f50b2c9220209df111904df55` |
+| Role registry | `sha256:78541c247047429eadc0390738988b20e459fb0eed164ba4d05c65c92c3fdd10` |
 | Expressed-position questionnaire | `sha256:c8ea97b4f1cabc2cdd12674d6c52292bffb3ab946175a5bbb28163f5304b33f7` |
-| Behavioral rubric | `sha256:0037e244e5837b028c8861d612a97a6fc9aa4a06675b26ed65e648cfcdc06115` |
+| Behavioral rubric | `sha256:07a8940a0fabea413b8693ac434951ba52b0dd1083036b16717dac86900da5e9` |
 | Outcome metric registry | `sha256:746099ebef4e405a830d329918b98c18d93dcdb2b1e7de0318854ba5bc4a461d` |
 | Statistical analysis plan | `sha256:424a54778120297115c40353600ff82187d1806572c21d50051510a5a47cbadd` |
 
@@ -199,59 +201,82 @@ Instrument hashes:
 
 | Gate | Status | Interpretation |
 |---|---|---|
-| P1-A | Technically verified | Canonical protocol, runtime integrity and deterministic S8 contracts pass executable checks |
-| P1-B | Technically verified as a contract | Behavioral observability, typed outcomes and coverage rules are implemented; empirical labels remain pending |
-| P1-C | Technically verified as a contract | Paired comparability, role/topology and AB–BA balance rules are implemented |
-| P1-D | `PENDING_HUMAN_VALIDATION` | Requires live/locked evidence, independent review, reliability and adjudication; no significance result is required |
+| P1-A | `PASS` | Clean live campaign completed all canonical stages with valid S1/S6/S7 records, sealed ballots and deterministic S8 outputs |
+| P1-B | `PASS` | Clean live campaign produced a locked, reconstructable dataset with machine provenance and annotation-supporting units; human labels remain pending |
+| P1-C | `PASS` | Ten paired blocks completed the predeclared role rotation and AB–BA balance under the frozen treatment-only comparison |
+| P1-D | `PENDING_HUMAN_VALIDATION` | Live/locked evidence is present; independent review, empirical reliability and adjudication remain; no significance result is required |
 | Phase 1A | `CLOSED_FOR_HUMAN_VALIDATION` | No further scientific design blocker remains before launching the prescribed package |
 | Phase 1B | `INACTIVE` | Eligibility requires P1-A/B/C PASS, P1-D PASS and explicit Phase 1A closure |
 
 The gate implementation deliberately does not allow a mock to satisfy live
-calibration or scientific validation. The machine status is a handoff state,
-not a fabricated scientific result.
+calibration or scientific validation. The clean live package is a machine-level
+handoff state, not a fabricated human-scientific result.
 
-## Current provider state and evidence boundary
+## Current provider state and live evidence
 
-The provider preflight was run with:
-
-```text
-npx tsx src/cli.ts phase1 calibration-ready --config configs/agora_phase1a_calibration.yaml
-```
-
-Current result:
+The provider preflight succeeded against the authorized AGORA service through
+the local SSH tunnel:
 
 ```text
-state: BLOCKED_EXTERNAL_LIVE_PROVIDER
-provider: nvidia_vllm
+endpoint: http://127.0.0.1:18000/v1
+adapter: nvidia_vllm
 model: qwen3-32b
-config_hash: sha256:411bd3386c10a63d024d0a4cc23399775d1d3820fdec054cab6073cc9a51a9ab
+vLLM: 0.25.1
+models discovered: 1
+max context: 8192
+chat probe: finish=stop, input_tokens=31, output_tokens=5
 ```
 
-No `NVIDIA_VLLM_BASE_URL` or `NVIDIA_VLLM_API_KEY` was present in the execution
-environment. Consequently this report records no live run IDs, live response
-counts, calibration variance, latency, throughput, burden, contamination,
-human reliability or final sample-size estimate. The deterministic mocks and
-fixtures verify contracts only; they are not scientific observations.
+The live campaign used only the AGORA service on remote port 8000, exposed
+locally as port 18000. The separate Leoclaw service on port 8002 was not
+invoked and is not part of this evidence.
 
-The exact launch procedure is:
+### Clean live calibration package
 
-1. Provide the authorized NVIDIA vLLM endpoint and credential through the
-   environment, never through Git or a configuration file committed to the
-   repository.
-2. Run provider preflight and retain its receipt.
-3. Run the frozen baseline.
-4. Run the identical paired rerun with the same configuration hash.
-5. Run a separate fault campaign with controlled failure injection.
-6. Export and verify all packages, traces, hashes and gates.
-7. Lock the calibration dataset and create the content-addressed human package.
-8. Have two independent reviewers code the common subset.
-9. Compute reliability, inspect disagreements, adjudicate append-only and
-   recompute P1-D.
-10. Freeze precision and sample size only after calibration variance is observed.
+| Item | Result |
+|---|---|
+| Campaign | `campaign_8fba623b-ce2c-497f-bd26-dcdb3cd91fe5` |
+| Provider/model | `nvidia_vllm` / `qwen3-32b` |
+| Planned/completed cases | `20 / 20` |
+| Paired blocks | `10` |
+| Provider attempts | `700` |
+| Reported tokens | `1,296,818` |
+| Unknown-usage attempts | `0` |
+| Run failures/interruption/budget skips | `0 / 0 / 0` |
+| Valid sealed ballots | `100 / 100` |
+| Dataset snapshot | `dataset_62e76c3ecbfa21d9963` |
+| Dataset SHA-256 | `sha256:62e76c3ecbfa21d99639597ccd66535aa45af49d3b8e35ca38f862f32924f569` |
+| Human-validation package | `hvp_45ed182fec0fd5c1f2e` |
+| Human package SHA-256 | `sha256:45ed182fec0fd5c1f2ebebc6ec626f85cb59842bff996c9c6df9aa04e76e36e7` |
+| Calibration package | `data/phase1a_nvidia_vllm_calibration_20260911c_finalized/` |
+| Remote archive | `/data/AGORA/temporary_artifacts/20260911_phase1a_nvidia_vllm_calibration_clean` |
+| Export SHA-256 | `c30d149c347513d4fa621c896ba193c2fe0911dc9c724b81e632cc85dd40e714` |
 
-If the endpoint is unavailable, the correct state remains exactly
-`BLOCKED_EXTERNAL_LIVE_PROVIDER`; the launch package can be prepared, but the
-campaign must not be represented as executed.
+The remote copy and export hash were independently checked over SSH. The
+application records the handoff as `EXTERNAL_ARCHIVE_DECLARED`; immutable/WORM
+confirmation remains an operator-level assertion and is not claimed here.
+
+An initial live campaign was retained separately as a diagnostic because the
+provider returned some valid ballot objects inside Markdown JSON fences. The
+raw responses were preserved, the parser was corrected with a narrowly scoped
+envelope normalizer and a regression test, and the clean campaign above was
+rerun from a new frozen campaign. No metrics from the diagnostic campaign are
+used in the closure claim.
+
+The clean campaign's machine gates are:
+
+```text
+P1-A = PASS
+P1-B = PASS
+P1-C = PASS
+P1-D = PENDING_HUMAN_VALIDATION
+```
+
+The locked package contains 1,156 coding units assigned to two independent
+reviewers. No reviewer labels, reliability coefficient, adjudication result,
+human RF/ICR estimate, precision estimate or final sample-size decision is
+claimed yet. Those values remain unavailable until the prescribed human review
+workflow is executed.
 
 ## Test and verification evidence
 
@@ -265,6 +290,7 @@ Final local verification on this branch:
 | `npm audit --audit-level=high` | PASS; 0 vulnerabilities |
 | `npm audit --omit=dev` | PASS; 0 vulnerabilities |
 | `git diff --check` | PASS |
+| Phase 0 regression package | PASS; `ready=true`, Gates 1–3 PASS, M1–M22 PASS |
 | Phase 1 ballot contract tests | PASS; typed S7 terminal statuses, trace receipt and S1–S8 ordering |
 | Phase 1 review UI/workspace tests | PASS; independent reviewer and adjudicator workflow |
 | Restart/backup/recovery tests | PASS at the implemented contract level |
@@ -275,6 +301,13 @@ negative tests intentionally damage traces, hashes, topology, permissions,
 missing deliveries, reviewer identity, package membership and stage ordering and
 expect failure. This makes the tests evidence about the acceptance logic rather
 than only smoke checks.
+
+The Phase 0 regression package was rerun in a fresh database after the Phase 1A
+changes. It produced baseline `run_15fca2df-8dd3-4ff2-aba4-238a931ef505`, exact
+rerun `run_257c5f89-741d-4f7f-9822-5fff794a3898` and fault run
+`run_92365bff-1c56-4caa-a0bb-d20824f79464`, all under the expected mock
+configs. The stored report is in `data/phase0_regression_20260911/` and its
+acceptance result is `phase0_validated=true` with no outstanding items.
 
 ## Independent review disposition
 
@@ -323,12 +356,13 @@ substituted for the eventual live package.
 
 ## Final conclusion
 
-Phase 1A is ready to launch the prescribed live calibration and human-review
-workflow. The engineering and scientific contract is no longer an open design
-problem. The remaining evidence is external by nature: an authorized live
-provider run and independent human coding/adjudication. Until those occur, the
-scientifically honest status is `PENDING_HUMAN_VALIDATION`, with provider state
-`BLOCKED_EXTERNAL_LIVE_PROVIDER` when the endpoint is unavailable.
+Phase 1A is ready for the prescribed human-review workflow. The engineering
+and scientific contract is no longer an open design problem, and the clean
+NVIDIA vLLM calibration has produced a locked, auditable machine-evidence
+package. The remaining evidence is external by nature: independent human
+coding, empirical reliability and adjudication. Until those occur, the
+scientifically honest status is `PENDING_HUMAN_VALIDATION`; no RF, ICR,
+reliability, precision or Phase 1B eligibility claim is made.
 
 ### PR delivery
 

@@ -1,0 +1,28 @@
+{
+  "ok": true,
+  "provider": "nvidia_vllm",
+  "endpoint": "http://127.0.0.1:18000/v1",
+  "authorization_present": true,
+  "model": "qwen3-32b",
+  "checked_at": "2026-09-11T08:23:31.870Z",
+  "request_contract": {
+    "path": "/v1/chat/completions",
+    "max_tokens": 16,
+    "thinking": "disabled"
+  },
+  "models": {
+    "count": 1,
+    "ids": ["qwen3-32b"],
+    "max_context_tokens": 8192
+  },
+  "server": {
+    "version": "0.25.1"
+  },
+  "chat": {
+    "finish_reason": "stop",
+    "content_length": 11,
+    "input_tokens": 31,
+    "output_tokens": 5
+  },
+  "failure": null
+}

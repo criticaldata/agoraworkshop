@@ -205,6 +205,9 @@ describe('voting rules', () => {
   });
   it('rejects duplicates, invalid options and unknown voters', () => {
     expect(() => parseBallot('{"ballots":[]}', config)).toThrow();
+    const valid = JSON.stringify({ ballots: config.phase1!.evaluation!.questionnaire.questions.map(q => ({ question_id: q.id, choice: q.options[0] })) });
+    const fenced = '```json\n' + valid + '\n```';
+    expect(parseBallot(fenced, config)).toEqual(JSON.parse(valid));
     expect(() => aggregateBallots(config, 'run', make(['invented']))).toThrow();
     const rows = make([question.options[0]!]);
     expect(() => aggregateBallots(config, 'run', [...rows, ...rows])).toThrow(/duplicate/);

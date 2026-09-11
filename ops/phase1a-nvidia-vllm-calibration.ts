@@ -9,10 +9,10 @@ import { CANONICAL_PROTOCOL } from '../src/phase1/canonicalContract.js';
 import { calibrationAnalysisPlan } from '../src/phase1/scienceContract.js';
 import { calibrationManifest } from '../src/phase1/calibration.js';
 import { freezeCalibrationInstruments, instrumentManifestHash } from '../src/phase1/instruments.js';
-import { recordClosureEvidence } from '../src/phase1/closure.js';
+import { closureEvidence, recordClosureEvidence } from '../src/phase1/closure.js';
 import { executeScientificAnalysis } from '../src/phase1/scientificAnalysis.js';
 import { scientificDataset, lockScientificDataset } from '../src/phase1/scientificDataset.js';
-import { archiveHandoff, readScienceSnapshot } from '../src/phase1/scienceStore.js';
+import { archiveHandoff, campaignLock, readScienceSnapshot } from '../src/phase1/scienceStore.js';
 import { createHumanValidationPackage } from '../src/phase1/reviewWorkspace.js';
 import { exportCampaign } from '../src/phase1/export.js';
 import { configHash } from '../src/config/hash.js';
@@ -117,36 +117,50 @@ function runSummary(db: ReturnType<typeof getDatabase>, campaignId: string) {
   });
 }
 
-async function main(): Promise<void> {
-  const blocks = Number(flag('blocks', String(DEFAULT_BLOCKS)));
-  if (!Number.isInteger(blocks) || blocks < 10 || blocks % 10 !== 0) throw new Error('Phase 1A live calibration requires a positive multiple of ten blocks for role rotation and AB/BA balance');
-  if (process.env.NVIDIA_VLLM_BASE_URL?.trim() === undefined || process.env.NVIDIA_VLLM_API_KEY?.trim() === undefined) throw new Error('BLOCKED_EXTERNAL_LIVE_PROVIDER: set NVIDIA_VLLM_BASE_URL and NVIDIA_VLLM_API_KEY before executing live calibration');
-  const outDir = resolve(flag('out', 'data/phase1a_nvidia_vllm_calibration_20260911'));
-  mkdirSync(outDir, { recursive: true });
-  const input = buildInput(blocks);
-  if (input.base_config.model.model !== 'qwen3-32b' || input.base_config.model.provider !== 'nvidia_vllm') throw new Error('Provider provenance contract violated');
-  const db = getDatabase();
-  const campaignId = freezeCampaign(db, input);
-  const frozen = campaign(db, campaignId);
-  const protocolReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'protocol_approval', 'The frozen Phase 1A protocol, role-only treatment, five-participant topology, canonical S1-S8 stages, scripted moderator, fixed provider parameters and predeclared analysis contract were registered before execution.'));
-  const analysisPlanReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'analysis_plan', 'The reviewed calibration SAP freezes the paired-block unit, RF primary, ICR key secondary, secondary family, missingness, 10,000-resample paired bootstrap, Holm correction, retry policy and human reliability thresholds before execution.', [protocolReceipt.evidence_hash]));
+function existingReceipt(db: ReturnType<typeof getDatabase>, campaignId: string, kind: 'protocol_approval' | 'analysis_plan' | 'calibration_report' | 'analysis_report') {
+  const receipt = closureEvidence(db, campaignId).find(entry => entry.kind === kind);
+  if (!receipt) throw new Error(`Missing ${kind} closure evidence for existing campaign ${campaignId}`);
+  return { evidence_hash: receipt.evidence_hash };
+}
 
-  await runCampaign(db, campaignId, { allowLive: true });
-  const runtime = campaignAnalysis(db, campaignId);
-  if (runtime.denominators.completed !== runtime.denominators.planned) throw new Error(`Live calibration did not complete all planned cases: ${runtime.denominators.completed}/${runtime.denominators.planned}`);
+function lockedDataset(db: ReturnType<typeof getDatabase>, campaignId: string) {
+  const scienceSnapshotId = campaignLock(db, campaignId);
+  const dataset = db.prepare("SELECT snapshot_id, content_hash, state FROM phase1_dataset_snapshots WHERE campaign_id = ? AND state = 'LOCKED' ORDER BY created_at DESC LIMIT 1").get(campaignId) as { snapshot_id: string; content_hash: string; state: string } | undefined;
+  if (!scienceSnapshotId || !dataset) throw new Error(`Locked dataset metadata is incomplete for campaign ${campaignId}`);
+  return { id: scienceSnapshotId, snapshot_id: dataset.snapshot_id, sha256: dataset.content_hash, state: dataset.state };
+}
+
+function finalizeCampaign(db: ReturnType<typeof getDatabase>, campaignId: string, outDir: string, archiveUri: string) {
+  const frozen = campaign(db, campaignId);
+  if (frozen.cases.some(entry => entry.state !== 'completed')) throw new Error(`Cannot finalize campaign with incomplete cases: ${frozen.cases.filter(entry => entry.state !== 'completed').map(entry => `${entry.case_id}:${entry.state}`).join(', ')}`);
+  const protocolReceipt = existingReceipt(db, campaignId, 'protocol_approval');
+  const analysisPlanReceipt = existingReceipt(db, campaignId, 'analysis_plan');
   const preview = scientificDataset(db, campaignId);
-  const locked = lockScientificDataset(db, campaignId);
-  const archive = archiveHandoff(db, locked.id, flag('archive', '/data/AGORA/temporary_artifacts/20260911_phase1a_nvidia_vllm_calibration'));
+  const locked = campaignLock(db, campaignId)
+    ? lockedDataset(db, campaignId)
+    : (() => {
+      const created = lockScientificDataset(db, campaignId);
+      return { id: created.id, snapshot_id: created.snapshot_id, sha256: created.canonical_hash, state: created.state };
+    })();
+  const archive = archiveHandoff(db, locked.snapshot_id, archiveUri);
   const packageReceipt = createHumanValidationPackage(db, locked.snapshot_id, REVIEWERS);
-  const analysis = executeScientificAnalysis(db, campaignId, locked.snapshot_id);
+  const existingAnalysis = db.prepare("SELECT id, content_hash FROM phase1_science_snapshots WHERE campaign_id = ? AND kind = 'analysis' ORDER BY created_at DESC LIMIT 1").get(campaignId) as { id: string; content_hash: string } | undefined;
+  const analysis = existingAnalysis ? { id: existingAnalysis.id, hash: existingAnalysis.content_hash } : executeScientificAnalysis(db, campaignId, locked.id);
   const updated = scientificDataset(db, campaignId);
-  const treatment = frozen.plan.cases.find(item => item.condition === 'treatment')!;
-  const instruments = freezeCalibrationInstruments({ role_pack: input.role_pack, evaluation: input.evaluation, analysis_plan: input.analysis_plan, protocol: input.canonical });
+  const treatment = frozen.plan.cases.find(item => item.condition === 'treatment');
+  if (!treatment || !frozen.plan.input.evaluation || !frozen.plan.input.analysis_plan || !frozen.plan.input.canonical) throw new Error('Frozen campaign is missing the Phase 1A scientific contract');
+  const instruments = freezeCalibrationInstruments({ role_pack: frozen.plan.input.role_pack, evaluation: frozen.plan.input.evaluation, analysis_plan: frozen.plan.input.analysis_plan, protocol: frozen.plan.input.canonical });
   const manifest = calibrationManifest(treatment.config, instruments);
-  const calibrationReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'calibration_report', 'Live NVIDIA vLLM calibration completed under the frozen role-only manifest. The campaign has a locked snapshot and a blinded two-reviewer package. RF, ICR, reliability and precision values remain explicitly pending human annotation; no synthetic value is promoted.', [protocolReceipt.evidence_hash, analysisPlanReceipt.evidence_hash]));
-  const analysisReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'analysis_report', `Machine analysis snapshot ${analysis.id} was generated from locked dataset ${locked.id}. Annotation-dependent endpoints are unavailable until the frozen human review protocol is executed.`, [calibrationReceipt.evidence_hash]));
+  const prior = closureEvidence(db, campaignId);
+  const calibrationReceipt = prior.some(entry => entry.kind === 'calibration_report')
+    ? existingReceipt(db, campaignId, 'calibration_report')
+    : recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'calibration_report', 'Live NVIDIA vLLM calibration completed under the frozen role-only manifest. The campaign has a locked snapshot and a blinded two-reviewer package. RF, ICR, reliability and precision values remain explicitly pending human annotation; no synthetic value is promoted.', [protocolReceipt.evidence_hash, analysisPlanReceipt.evidence_hash]));
+  const analysisReceipt = prior.some(entry => entry.kind === 'analysis_report')
+    ? existingReceipt(db, campaignId, 'analysis_report')
+    : recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'analysis_report', `Machine analysis snapshot ${analysis.id} was generated from locked dataset ${locked.snapshot_id}. Annotation-dependent endpoints are unavailable until the frozen human review protocol is executed.`, [calibrationReceipt.evidence_hash]));
   const finalRuntime = campaignAnalysis(db, campaignId);
   const exportPath = exportCampaign(db, campaignId, outDir);
+  const runs = runSummary(db, campaignId);
   const report = {
     version: 'agora-phase1a-live-calibration-report-v1',
     status: 'LIVE_EXECUTED_HUMAN_VALIDATION_PENDING',
@@ -157,16 +171,16 @@ async function main(): Promise<void> {
     instrument_manifest_hash: instrumentManifestHash(instruments),
     preregistration: { protocol_approval_hash: protocolReceipt.evidence_hash, analysis_plan_hash: analysisPlanReceipt.evidence_hash },
     post_execution_evidence: { calibration_report_hash: calibrationReceipt.evidence_hash, analysis_report_hash: analysisReceipt.evidence_hash },
-    planned_blocks: blocks,
+    planned_blocks: frozen.plan.input.blocks,
     runtime: { ...finalRuntime.denominators, usage: finalRuntime.usage, p1_gates: finalRuntime.closure.gates },
-    runs: runSummary(db, campaignId),
+    runs,
     calibration: {
       machine_observations: { preview_gates: preview.gates, locked_gates: updated.gates, p1_gate_status: finalRuntime.closure.gates },
       rf_distribution: 'PENDING_HUMAN_VALIDATION',
       icr_distribution: 'PENDING_HUMAN_VALIDATION',
       initial_final_variation: 'PENDING_HUMAN_VALIDATION',
       annotation_burden: { package_units: packageReceipt.manifest.unit_count, reviewer_count: REVIEWERS.length },
-      infrastructure_contamination: runSummary(db, campaignId).map(run => ({ case_id: run.case_id, retry_attempts: run.retry_attempts, successful_invocations: run.successful_invocations, invocations: run.invocations })),
+      infrastructure_contamination: runs.map(run => ({ case_id: run.case_id, retry_attempts: run.retry_attempts, successful_invocations: run.successful_invocations, invocations: run.invocations })),
       precision_and_n: 'PENDING_HUMAN_VALIDATION: RF paired variance requires frozen human labels; no value is imputed.',
     },
     snapshot: { snapshot_id: locked.snapshot_id, content_hash: locked.sha256, state: 'LOCKED', archive_handoff: archive, package_id: packageReceipt.package_id, package_hash: packageReceipt.content_hash },
@@ -175,7 +189,34 @@ async function main(): Promise<void> {
     evidence_boundary: 'Live provider execution is real; RF/ICR and reliability are not claimed until independent human annotation, reliability and adjudication are complete.',
   };
   writeFileSync(resolve(outDir, 'calibration_report.json'), `${JSON.stringify(report, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
-  writeFileSync(resolve(outDir, 'campaign_input_hash.json'), `${JSON.stringify({ campaign_id: campaignId, input_hash: configHash(input), config_hash: frozen.row.manifest_hash }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+  writeFileSync(resolve(outDir, 'campaign_input_hash.json'), `${JSON.stringify({ campaign_id: campaignId, input_hash: configHash(frozen.plan.input), config_hash: frozen.row.manifest_hash }, null, 2)}\n`, { flag: 'wx', mode: 0o600 });
+  return report;
+}
+
+async function main(): Promise<void> {
+  const blocks = Number(flag('blocks', String(DEFAULT_BLOCKS)));
+  if (!Number.isInteger(blocks) || blocks < 10 || blocks % 10 !== 0) throw new Error('Phase 1A live calibration requires a positive multiple of ten blocks for role rotation and AB/BA balance');
+  if (process.env.NVIDIA_VLLM_BASE_URL?.trim() === undefined || process.env.NVIDIA_VLLM_API_KEY?.trim() === undefined) throw new Error('BLOCKED_EXTERNAL_LIVE_PROVIDER: set NVIDIA_VLLM_BASE_URL and NVIDIA_VLLM_API_KEY before executing live calibration');
+  const outDir = resolve(flag('out', 'data/phase1a_nvidia_vllm_calibration_20260911'));
+  mkdirSync(outDir, { recursive: true });
+  const db = getDatabase();
+  const existingCampaignId = flag('campaign', '').trim();
+  if (existingCampaignId) {
+    const report = finalizeCampaign(db, existingCampaignId, outDir, flag('archive', '/data/AGORA/temporary_artifacts/20260911_phase1a_nvidia_vllm_calibration'));
+    console.log(JSON.stringify(report, null, 2));
+    return;
+  }
+  const input = buildInput(blocks);
+  if (input.base_config.model.model !== 'qwen3-32b' || input.base_config.model.provider !== 'nvidia_vllm') throw new Error('Provider provenance contract violated');
+  const campaignId = freezeCampaign(db, input);
+  const frozen = campaign(db, campaignId);
+  const protocolReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'protocol_approval', 'The frozen Phase 1A protocol, role-only treatment, five-participant topology, canonical S1-S8 stages, scripted moderator, fixed provider parameters and predeclared analysis contract were registered before execution.'));
+  const analysisPlanReceipt = recordClosureEvidence(db, campaignId, evidence(frozen.row.manifest_hash, 'analysis_plan', 'The reviewed calibration SAP freezes the paired-block unit, RF primary, ICR key secondary, secondary family, missingness, 10,000-resample paired bootstrap, Holm correction, retry policy and human reliability thresholds before execution.', [protocolReceipt.evidence_hash]));
+
+  await runCampaign(db, campaignId, { allowLive: true });
+  const runtime = campaignAnalysis(db, campaignId);
+  if (runtime.denominators.completed !== runtime.denominators.planned) throw new Error(`Live calibration did not complete all planned cases: ${runtime.denominators.completed}/${runtime.denominators.planned}`);
+  const report = finalizeCampaign(db, campaignId, outDir, flag('archive', '/data/AGORA/temporary_artifacts/20260911_phase1a_nvidia_vllm_calibration'));
   console.log(JSON.stringify(report, null, 2));
 }
 

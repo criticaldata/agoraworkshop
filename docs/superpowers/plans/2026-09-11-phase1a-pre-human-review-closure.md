@@ -18,6 +18,9 @@
 - Use `success`, `explicit_abstention` and `no_op` as the only behavioral terminal outcomes.
 - Keep timeout, provider/tool failure, invalid response, deadline, budget, cancellation and incomplete evidence non-behavioral.
 - Mocks are infrastructure fixtures only and cannot satisfy live, human reliability or confirmatory gates.
+- P1-D is externally reported as `PENDING_HUMAN_VALIDATION`; its only remaining blockers are frozen human coverage, empirical reliability and adjudication.
+- RF and ICR reliability requires alpha >= 0.80 per criterion/category and at least 30 pairable units per stratum; relation alpha is reported but exploratory.
+- If the live provider is unavailable, report the exact state `BLOCKED_EXTERNAL_LIVE_PROVIDER` and produce the frozen launch package.
 - Do not add a dependency unless the existing lockfile and `npm audit` justify it.
 - Do not put credentials, reviewer mappings or private transcripts in committed manifests.
 - Do not call Phase 1A scientifically validated before independent human review, reliability and required adjudication.
@@ -39,6 +42,45 @@
 - `docs/phase1/*.md`, `docs/phase1/PHASE1A_CLOSURE_STATUS.md`: protocol and final readiness report.
 
 ---
+
+### Task 0: Record scientific source traceability and frozen design decisions
+
+**Files:**
+- Create: `docs/phase1/PHASE1A_SOURCE_TRACEABILITY.md`
+- Modify: `docs/superpowers/specs/2026-09-11-phase1a-pre-human-review-closure-design.md`
+- Test: `tests/phase1Documentation.test.ts`
+
+**Interfaces:**
+- The matrix binds each major decision to one of the three supplied PDFs or the
+  independent audit, one repository contract, one falsifying test and one status.
+- The matrix records the frozen RF/ICR reliability threshold, coverage rule,
+  paired-block bootstrap, Holm family and P1-D status without claiming empirical
+  calibration.
+
+- [ ] **Step 1: Read and extract all four governing sources**
+
+Verify the three PDFs and `docs/phase1/AGORA_PHASE1_PR9_INDEPENDENT_REVIEW.md`
+exist, record their page/section locations and preserve the source precedence in
+the design spec.
+
+- [ ] **Step 2: Write the traceability matrix and design decisions**
+
+Add rows for fixed treatment, run/block unit, S1-S8, roles, questionnaire, rubric,
+human review, metric families, outcome hierarchy, missingness, bootstrap, Holm,
+calibration, N/precision, gates, S7/S8, claim boundaries and each audit finding.
+
+- [ ] **Step 3: Run the source/documentation assertions**
+
+Run: `npx vitest run tests/phase1Documentation.test.ts`
+Expected: FAIL until the documentation test is added in Task 12; the matrix is
+then used as the source of the test's required terms and artifacts.
+
+- [ ] **Step 4: Commit the traceability artifact**
+
+```bash
+git add docs/phase1/PHASE1A_SOURCE_TRACEABILITY.md docs/superpowers/specs/2026-09-11-phase1a-pre-human-review-closure-design.md
+git commit -m "docs: freeze Phase 1A scientific source traceability"
+```
 
 ### Task 1: Add the shared behavioral-terminal contract
 
@@ -421,9 +463,11 @@ full primary/key-secondary registry or paired bootstrap contract exists.
 
 - [ ] **Step 3: Implement reliability calculations**
 
-Compute alpha only where the declared scale permits it; use nominal agreement for
-interaction labels; preserve `not_assessable` and unreviewed as missingness. Store
-threshold as pending until human approval and expose whether evidence is sufficient.
+Compute alpha only where the declared scale permits it; use nominal distance for
+interaction labels; preserve `not_assessable` and unreviewed as missingness. Require
+30 pairable units per stratum and mark RF/ICR valid only at alpha >= 0.80. Keep
+relation alpha diagnostic and exploratory. Expose coverage and threshold states
+without inventing values when human labels are absent.
 
 - [ ] **Step 4: Implement SAP classification and estimates**
 
@@ -434,7 +478,7 @@ imputation. Keep fine relation subtypes exploratory.
 - [ ] **Step 5: Run focused and analysis tests**
 
 Run: `npx vitest run tests/phase1Reliability.test.ts tests/phase1Statistics.test.ts tests/phase1Science.test.ts`  
-Expected: PASS with `BLOCKED_HUMAN_REVIEW` when labels are absent.
+Expected: PASS with `PENDING_HUMAN_VALIDATION` when labels are absent.
 
 - [ ] **Step 6: Commit**
 
@@ -511,14 +555,14 @@ git commit -m "feat: add authenticated blinded review and adjudication"
 - Use external statuses `NOT_EXERCISED`, `EXECUTED_BUT_INVALID`,
   `EXECUTED_BUT_MISSING`, `VALID` for M01.
 - Produce `phase1GateStatus(db, campaignId): { P1A; P1B; P1C; P1D; blockers }`.
-- Produce `BLOCKED_HUMAN_REVIEW` for P1-D whenever human labels, reliability or
+- Produce `PENDING_HUMAN_VALIDATION` for P1-D whenever human labels, reliability or
   adjudication are absent; never return scientific pass from a mock-only run.
 
 - [ ] **Step 1: Write gate regression tests**
 
 Test missing S7, malformed ballot, orphan trace, unlocked dataset, unassigned
 review and no human labels. Assert P1-B may pass observability while P1-D is
-`BLOCKED_HUMAN_REVIEW`; assert M01 states are distinct.
+`PENDING_HUMAN_VALIDATION`; assert M01 states are distinct.
 
 - [ ] **Step 2: Run tests to verify failure**
 
@@ -563,8 +607,8 @@ git commit -m "fix: separate Phase 1 observability and human-review gates"
 - [ ] **Step 1: Write config/readiness tests**
 
 Assert five participants, no tools, fixed moderator, role-treatment-only
-differences, frozen instrument hashes and `READY_FOR_LIVE_CALIBRATION` when the
-provider URL/key is absent. Assert a mock provider cannot return live readiness.
+differences, frozen instrument hashes and `BLOCKED_EXTERNAL_LIVE_PROVIDER` when
+the provider URL/key is absent. Assert a mock provider cannot return live readiness.
 
 - [ ] **Step 2: Run tests to verify failure**
 
@@ -586,8 +630,8 @@ run IDs, hashes and exports; never synthesize a live result.
 - [ ] **Step 5: Run config, CLI and regression tests**
 
 Run: `npx vitest run tests/phase1Calibration.test.ts tests/config.test.ts tests/phase1Campaign.test.ts`  
-Expected: PASS with explicit unavailable state when no authorized live provider is
-configured in the execution environment.
+Expected: PASS with exact `BLOCKED_EXTERNAL_LIVE_PROVIDER` state when no authorized
+live provider is configured in the execution environment.
 
 - [ ] **Step 6: Commit**
 
@@ -604,8 +648,8 @@ git commit -m "feat: freeze Phase 1A calibration manifest and readiness"
 - Test: `tests/phase1Documentation.test.ts`
 
 **Interfaces:**
-- Document `ENGINEERING_COMPLETE`, `READY_FOR_LIVE_CALIBRATION`,
-  `READY_FOR_HUMAN_REVIEW`, `BLOCKED_HUMAN_REVIEW` and `CONFIRMATORY_READY`.
+- Document `ENGINEERING_COMPLETE`, `BLOCKED_EXTERNAL_LIVE_PROVIDER`,
+  `READY_FOR_HUMAN_REVIEW`, `PENDING_HUMAN_VALIDATION` and `CONFIRMATORY_READY`.
 - State that role prompts are design instruments, not externally validated exact
   psychological measures.
 - State that Phase 1B is inactive and that live/human evidence is required for
@@ -616,7 +660,11 @@ git commit -m "feat: freeze Phase 1A calibration manifest and readiness"
 Assert the closure report contains the PR base/head, branch/SHA, PR7 semantic
 decision, all finding statuses, frozen instrument IDs/versions/hashes, P1-A to
 P1-D statuses, test/build/audit commands, dataset/review package fields, live
-availability and explicit blockers.
+availability and explicit blockers. Also require the 15 canonical artifacts:
+scientific contract, protocol, role registry, questionnaire, rubric, outcome/
+metric registry, SAP, codebook, reliability protocol, calibration manifest/report,
+locked snapshot manifest, human-validation package manifest, gate report and
+Phase 1B transition contract.
 
 - [ ] **Step 2: Run the documentation test to verify failure**
 
@@ -672,7 +720,7 @@ remaining blocker; a green build is not a security review.
 
 Inspect only whether the authorized provider endpoint and required key are present.
 Run preflight through the configured provider if available. If unavailable, create
-the frozen manifest and launch instructions and report `READY_FOR_LIVE_CALIBRATION`.
+the frozen manifest and launch instructions and report `BLOCKED_EXTERNAL_LIVE_PROVIDER`.
 Never replace the provider with a mock and never fabricate labels, reliability or
 live run IDs.
 

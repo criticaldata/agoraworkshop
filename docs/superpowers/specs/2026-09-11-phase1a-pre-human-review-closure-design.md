@@ -16,14 +16,14 @@ The externally visible states are deliberately separate:
 
 - `ENGINEERING_COMPLETE`: the implementation, controls, exports, tests and non-human
   gates are complete.
-- `READY_FOR_LIVE_CALIBRATION`: the frozen calibration package exists, but no real
-  provider campaign has been executed in the current environment.
+- `CALIBRATION_FROZEN`: the frozen calibration package exists; the live provider
+  state is reported separately as available or `BLOCKED_EXTERNAL_LIVE_PROVIDER`.
 - `CALIBRATION_FROZEN`: the role pack, questionnaire, rubric, outcome registry and
   SAP are immutable for the calibration run.
 - `READY_FOR_HUMAN_REVIEW`: a live campaign has been executed and a blinded package
   is locked for independent annotation.
-- `BLOCKED_HUMAN_REVIEW`: technical prerequisites are complete but human labels,
-  reliability or adjudication are still required.
+- `PENDING_HUMAN_VALIDATION`: technical prerequisites are complete but the frozen
+  human labels, reliability and adjudication evidence are still required.
 - `CONFIRMATORY_READY`: only available after the required human reliability and
   adjudication evidence is present.
 
@@ -56,6 +56,67 @@ to a scientifically validated or confirmatory state.
 - Claiming that the role prompts have external psychological validation.
 - Claiming semantic human reliability before independent human labels exist.
 - A physical WORM guarantee when the deployment does not provide one.
+
+## 2.1 Governing scientific sources and decisions
+
+The implementation is governed by the following local sources, in precedence order:
+
+1. `AGORA_Phase1_Scientific_Foundation_and_Experimental_Framework.pdf`, especially
+   pp. 5-16 and 17-22: fixed environment plus one treatment, five participants,
+   run/paired-block unit, S1-S8 boundaries, seven metric families, P1-A to P1-D,
+   calibration before confirmatory claims and claim boundaries.
+2. `AGORA_Phase1A_Scientific_Basis_for_Behavioral_Rubric.pdf`, pp. 1-4: DQI,
+   CACS and DCS provide construct/coding provenance; the AGORA rubric is a new
+   adapted instrument; independent review, Krippendorff alpha, disagreement
+   inspection and append-only adjudication are required.
+3. `AGORA_Phase1A_Statistical_Analysis_Plan_v0.1_revised.pdf`, pp. 1-10: run /
+   paired-block analysis, RF primary endpoint, ICR/participation concentration/
+   position change secondary family, paired-block bootstrap, Holm correction,
+   missingness and calibration-dependent N/precision.
+4. `docs/phase1/AGORA_PHASE1_PR9_INDEPENDENT_REVIEW.md`: current implementation
+   evidence and defect reproduction, subordinate to the scientific sources.
+
+The source-to-implementation matrix is committed at
+`docs/phase1/PHASE1A_SOURCE_TRACEABILITY.md`. Each row binds a source requirement
+to a concrete contract, test and status. Generic scientific knowledge cannot replace
+an unavailable source.
+
+The following choices close the scientific decisions that the sources intentionally
+leave open before human coding:
+
+- Role Fidelity is the sole primary endpoint. ICR is the key secondary. Gini and
+  initial-to-final expressed position change form the prespecified secondary family.
+  Fine relation subtypes, private/public uptake, divergence, modularity, coalition,
+  structural minority and S8 quality remain exploratory/descriptive.
+- The inferential unit is the predeclared paired block; messages and agents remain
+  nested observations. The primary uncertainty method is a 10,000-resample,
+  two-sided, 95% paired-block nonparametric bootstrap. Holm correction applies to
+  the three prespecified secondary endpoints. Primary alpha is 0.05.
+- Human validation requires at least two independent authenticated reviewers. All
+  confirmatory RF and ICR eligible units in the frozen calibration package are
+  double-coded; a reliability stratum must have at least 30 pairable units. The
+  acceptance threshold is Krippendorff alpha >= 0.80 for every RF criterion and
+  ICR presence/absence category. Alpha in [0.667, 0.80) is diagnostic and requires
+  codebook review/recalibration; alpha < 0.667 is a reliability failure. These
+  cutoffs are a conservative coding-reliability convention, not proof of validity.
+  Relation-subtype alpha is computed and reported with the same diagnostic bands,
+  but relation subtypes do not gate the primary endpoint.
+- Confirmatory coverage is 100% for RF/ICR eligible units, with no unresolved
+  independent conflicts after adjudication. Any disagreement on a confirmatory
+  unit triggers adjudication; low alpha triggers a new instrument version and a
+  recalibration cycle. Adjudication cannot erase the pre-adjudication alpha.
+- Final N and target precision remain calibration-derived. After live calibration,
+  freeze the observed paired-RF variability, target half-width and resulting block
+  count under `B ≈ (z_0.975 * sigma_delta / h*)^2`, checked by simulation against
+  the bounded outcome distribution. No operational block count is treated as a
+  final scientific N before this calculation.
+- P1-D is externally reported as `PENDING_HUMAN_VALIDATION` after all technical
+  prerequisites are satisfied. Its only remaining blockers are the frozen human
+  coverage, empirical reliability and required adjudication; it never requires a
+  significant treatment effect.
+- If the authorized live provider is unavailable, the exact provider state is
+  `BLOCKED_EXTERNAL_LIVE_PROVIDER`; the frozen manifest and launch instructions are
+  still produced, and no mock result is promoted to live calibration.
 
 ## 3. Experimental invariants
 
@@ -213,9 +274,13 @@ The canonical IDs are:
 Every instrument has status `draft`, `frozen_for_calibration` or
 `confirmatory_ready`. `confirmatory_ready` requires a locked dataset, completed
 human reliability, adjudication where required and an accepted analysis record.
-The reliability threshold is a versioned field that remains `pending_human_approval`
-until the human review protocol has approved it; this pending value cannot block
-execution of calibration, but it does block confirmatory readiness.
+The reliability threshold is frozen before reviewers code: Krippendorff alpha >=
+0.80 for every RF criterion and ICR presence/absence category, with at least 30
+pairable units per reliability stratum. The [0.667, 0.80) band is diagnostic and
+requires codebook review/recalibration; below 0.667 fails reliability. Relation
+subtype alpha is reported under the same bands but is exploratory and does not gate
+the primary endpoint. This threshold cannot block execution of calibration, but it
+does block confirmatory readiness.
 
 ### Role pack
 
@@ -299,7 +364,7 @@ coverage, completion, disagreement, reliability, lock state and export state.
   contract are present. It is explicitly not scientific validation.
 - **P1-C run comparability:** provider/model/deployment/parameters/tools/moderator/
   topic/context/schedule/budget equality and attributable failures.
-- **P1-D analysis/scientific readiness:** ends as `BLOCKED_HUMAN_REVIEW` when
+- **P1-D analysis/scientific readiness:** ends as `PENDING_HUMAN_VALIDATION` when
   technical prerequisites are satisfied but human labels, reliability or
   adjudication are pending. It never reports significance and never passes merely
   because a mock run exists.
@@ -319,7 +384,7 @@ If an authorized live provider is reachable, the campaign runs under that frozen
 configuration and produces baseline/treatment paired blocks, complete exports,
 the locked snapshot and a blinded review package. If no live provider is reachable,
 the implementation produces the exact frozen manifest and launch instructions and
-reports `READY_FOR_LIVE_CALIBRATION`; it must not create synthetic calibration
+reports `BLOCKED_EXTERNAL_LIVE_PROVIDER`; it must not create synthetic calibration
 labels, reliability or live run IDs.
 
 Mocks remain valid for infrastructure and adversarial tests only. They are marked

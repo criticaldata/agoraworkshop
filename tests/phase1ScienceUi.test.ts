@@ -8,13 +8,13 @@ import { tempDb } from './helpers.js';
 
 it('exposes scientific setup, coverage, explicit dataset locking and analysis exports through authenticated UI/API', async () => {
   const db = tempDb(), app = express();
-  app.use(createAuthMiddleware({ password: 'test-only', scope: 'all', realm: 'test' }));
+  app.use(createAuthMiddleware({ password: 'test-only', users: new Map([['reviewer', { role: 'admin', password: 'test-only' }]]), scope: 'all', realm: 'test' }));
   app.use(express.urlencoded({ extended: false })); app.use(express.json());
   app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve,reject) => { server.once('listening',resolve); server.once('error',reject); });
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
-  const auth = { authorization: `Basic ${Buffer.from('researcher:test-only').toString('base64')}` };
+  const auth = { authorization: `Basic ${Buffer.from('reviewer:test-only').toString('base64')}` };
   const request = (path:string, init:RequestInit={}) => fetch(base+path, { ...init, headers:{...auth,...init.headers}, redirect:'manual' });
   const post = (path:string, value:unknown) => request(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(value)});
   const formPost = (path:string, value:URLSearchParams) => request(path,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:value});

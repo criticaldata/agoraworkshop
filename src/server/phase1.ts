@@ -15,6 +15,7 @@ import { executeScientificAnalysis } from '../phase1/scientificAnalysis.js';
 import { scienceSnapshots, readScienceSnapshot, campaignLock } from '../phase1/scienceStore.js';
 import { reviewArtifact, visibleArtifactReviews } from '../phase1/artifactReview.js';
 import { collectiveRecords } from '../phase1/collective.js';
+import { permissionForPath, requirePermission } from './auth.js';
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const json = (value: unknown) => `<pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(value, null, 2))}</pre>`;
@@ -64,6 +65,11 @@ function formInput(body: Record<string, string>): unknown {
 export function phase1Router(db: Db, templatePath: string): Router {
   initializePhase1(db);
   const router = Router();
+  router.use((req, res, next) => {
+    const permission = permissionForPath(req.path);
+    if (!permission) { next(); return; }
+    requirePermission(permission)(req, res, next);
+  });
   const jobs = new Map<string, Promise<void>>();
   const errors = new Map<string, string>();
   const launch = (id: string, live: boolean, resume: boolean) => {
@@ -108,7 +114,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
     <form method="post" action="/phase1/campaigns/${esc(id)}/export"><p>Export is unblinded and contains private transcripts and all labels.</p><button>Download full review bundle</button></form>`, { refresh: jobs.has(id) }));
   });
   router.get('/phase1/campaigns/:id/review', (req, res) => {
-    const id = String(req.params.id), c = campaign(db, id), author = typeof req.query.author === 'string' ? req.query.author : '';
+    const id = String(req.params.id), c = campaign(db, id), author = req.agoraPrincipal?.id ?? '';
     // Deliberately omit conditions, hidden prompts and role assignments here.
     const sources = c.cases.flatMap(r => r.run_id ? getMessages(db, r.run_id).filter(m => m.sender_agent_id !== c.plan.input.base_config.moderator.id).map(m => ({ run_id: r.run_id!, ...m, evaluator_target_role: c.plan.cases.find(p => p.id === r.case_id)!.targets[m.sender_agent_id] })) : []);
     res.send(page('Human evidence review', `<h1>Human evidence review</h1><p>Labels from colleagues are hidden for each source/category until you submit your own. Identity is self-declared under the existing shared researcher credential; this is workflow blinding, not adversarial access isolation. Avoid the unblinded campaign/export pages while independently reviewing.</p>
@@ -119,8 +125,8 @@ export function phase1Router(db: Db, templatePath: string): Router {
     ${author ? `<form method="post" action="/phase1/campaigns/${esc(id)}/annotations">${field('annotation', 'Annotation JSON (replace evidence IDs and exact quote; add target_message_id and target_quote for relational readings)', JSON.stringify({ run_id: sources[0]?.run_id ?? '', message_id: sources[0]?.message_id ?? '', author, annotator_type: 'human', rubric_version: c.plan.input.role_pack.rubric.version, category: 'role_consistency', label: 'not_assessable', quote: sources[0]?.content ?? '', reason: 'Explain the quoted evidence against the frozen rubric.' }, null, 2), 15)}<button>Submit immutable annotation</button></form><h2>Visible review history</h2>${json(reviewerAnnotations(db, id, author))}` : ''}
     <details><summary>Source messages (public and authorized researcher-visible private records)</summary>${json(sources)}</details><p>Allowed categories: role_consistency, agreement, disagreement, position_change, public_private_difference. Add supersedes or adjudicates IDs for an append-only revision. Role-consistency assessment uses evaluator targets in the unblinded campaign comparison; hiding condition metadata does not prevent inference from text.</p>`));
   });
-  router.post('/phase1/campaigns/:id/annotations', (req, res) => { const raw = JSON.parse(req.body.annotation); annotate(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review?author=${encodeURIComponent(raw.author)}`); });
-  router.post('/phase1/campaigns/:id/artifact-reviews', (req, res) => { const raw = JSON.parse(req.body.review); reviewArtifact(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review?author=${encodeURIComponent(raw.author)}`); });
+  router.post('/phase1/campaigns/:id/annotations', (req, res) => { const raw = { ...JSON.parse(req.body.annotation), author: req.agoraPrincipal?.id }; annotate(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review`); });
+  router.post('/phase1/campaigns/:id/artifact-reviews', (req, res) => { const raw = { ...JSON.parse(req.body.review), author: req.agoraPrincipal?.id }; reviewArtifact(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review`); });
   router.post('/phase1/campaigns/:id/export', (req, res) => { const id = String(req.params.id); res.attachment(`${id}.json`).json(campaignBundle(db, id)); });
   router.post('/phase1/campaigns/:id/closure-evidence', (req, res) => { recordClosureEvidence(db, String(req.params.id), JSON.parse(String(req.body.evidence))); res.redirect(303, `/phase1/campaigns/${req.params.id}`); });
 
@@ -146,13 +152,13 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.post('/api/phase1/campaigns/:id/start', (req, res) => { launch(String(req.params.id), req.body.allow_live === true, req.body.resume_interrupted === true); res.status(202).json({ id: req.params.id, status: 'accepted' }); });
   router.post('/api/phase1/campaigns/:id/annotations', (req, res) => res.status(201).json({ id: annotate(db, String(req.params.id), req.body) }));
   router.post('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => res.status(201).json({ id: reviewArtifact(db, String(req.params.id), req.body) }));
-  router.get('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => res.json(visibleArtifactReviews(db, String(req.params.id), String(req.query.author ?? ''))));
+  router.get('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => res.json(visibleArtifactReviews(db, String(req.params.id), req.agoraPrincipal?.id ?? '')));
   router.post('/api/phase1/campaigns/:id/closure-evidence', (req, res) => res.status(201).json(recordClosureEvidence(db, String(req.params.id), req.body)));
   router.get('/api/phase1/campaigns/:id/science', (req, res) => { const id = String(req.params.id), lock = campaignLock(db, id); res.json({ dataset: lock ? readScienceSnapshot(db, lock).payload : scientificDataset(db, id), lock, snapshots: scienceSnapshots(db, id).map(s => ({ id: s.id, kind: s.kind, hash: s.content_hash })) }); });
   router.post('/api/phase1/campaigns/:id/lock-dataset', (req, res) => { if (req.body.confirm_lock !== true) throw new Error('confirm_lock=true required'); res.status(201).json(lockScientificDataset(db, String(req.params.id))); });
   router.post('/api/phase1/campaigns/:id/analyze', (req, res) => res.status(201).json(executeScientificAnalysis(db, String(req.params.id), String(req.body.dataset_id))));
   router.get('/api/phase1/campaigns/:id/snapshots/:snapshot', (req, res) => { const saved = readScienceSnapshot(db, String(req.params.snapshot)); if (saved.campaign_id !== String(req.params.id)) throw new Error('Snapshot belongs to another campaign'); res.attachment(`${saved.id}.json`).json(saved); });
-  router.get('/api/phase1/campaigns/:id/annotations', (req, res) => res.json(reviewerAnnotations(db, String(req.params.id), String(req.query.author ?? ''))));
+  router.get('/api/phase1/campaigns/:id/annotations', (req, res) => res.json(reviewerAnnotations(db, String(req.params.id), req.agoraPrincipal?.id ?? '')));
   router.post('/api/phase1/campaigns/:id/evidence', (req, res) => { if (!['exact_rerun', 'failure_attribution'].includes(req.body.purpose)) throw new Error('Invalid evidence purpose'); linkEvidence(db, String(req.params.id), String(req.body.run_id), req.body.purpose); res.json({ linked: true }); });
   router.post('/api/phase1/campaigns/:id/export', (req, res) => res.json(campaignBundle(db, String(req.params.id))));
   router.use((error: Error, req: import('express').Request, res: import('express').Response, _next: import('express').NextFunction) => { if (req.path.startsWith('/api/')) res.status(400).json({ error: error.message }); else res.status(400).send(page('Phase 1A validation error', `<h1>Cannot proceed</h1>${json(error.message)}<p>Use Back to correct the draft; frozen campaigns cannot be edited.</p>`)); });

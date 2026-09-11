@@ -8,7 +8,7 @@ import { tempDb } from './helpers.js';
 
 it('supports the authenticated UI draft → preview → freeze → mock → review → export workflow', async () => {
   const db = tempDb(), app = express();
-  app.use(createAuthMiddleware({ password: 'test-only', scope: 'all', realm: 'test' }));
+  app.use(createAuthMiddleware({ password: 'test-only', users: new Map([['reviewer', { role: 'admin', password: 'test-only' }]]), scope: 'all', realm: 'test' }));
   app.use(express.urlencoded({ extended: false })); app.use(express.json());
   app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
   const server = app.listen(0, '127.0.0.1');

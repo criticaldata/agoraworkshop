@@ -1,5 +1,7 @@
 import { createHash, timingSafeEqual } from 'node:crypto';
 import type { NextFunction, Request, RequestHandler, Response } from 'express';
+import { parseUsersFromEnv, permissionForPath, permits, type AuthPrincipal, type AuthUser, type Permission } from './principal.js';
+export { permissionForPath } from './principal.js';
 
 /**
  * Access control for the deployed instance.
@@ -26,6 +28,8 @@ export type AuthScope = 'write' | 'all';
 export interface AuthConfig {
   /** The shared credential. `null` means none was configured. */
   password: string | null;
+  /** Named principals for review and administrative workflows. */
+  users?: ReadonlyMap<string, AuthUser>;
   /** `write` protects only state-changing requests; `all` protects everything. */
   scope: AuthScope;
   realm: string;
@@ -56,7 +60,7 @@ export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthCon
   // The realm is the name the browser's sign-in dialog shows, so it carries the product
   // name. Browsers cache credentials against it: changing this asks once more, then
   // settles. AGORA_AUTH_REALM overrides it on an instance that would rather not.
-  return { password, scope, realm: env['AGORA_AUTH_REALM'] ?? 'AGORA WORKSHOP' };
+  return { password, users: parseUsersFromEnv(env), scope, realm: env['AGORA_AUTH_REALM'] ?? 'AGORA WORKSHOP' };
 }
 
 /**
@@ -85,6 +89,51 @@ export function isAuthorised(header: string | undefined, password: string): bool
   if (separator === -1) return false;
   // The username is unused; a single shared credential is the whole model.
   return constantTimeEquals(decoded.slice(separator + 1), password);
+}
+
+function basicCredentials(header: string | undefined): { username: string; password: string } | null {
+  if (!header || !header.toLowerCase().startsWith('basic ')) return null;
+  let decoded: string;
+  try {
+    decoded = Buffer.from(header.slice(6).trim(), 'base64').toString('utf8');
+  } catch {
+    return null;
+  }
+  const separator = decoded.indexOf(':');
+  if (separator === -1) return null;
+  return { username: decoded.slice(0, separator), password: decoded.slice(separator + 1) };
+}
+
+function authenticate(header: string | undefined, config: AuthConfig): AuthPrincipal | null {
+  const credentials = basicCredentials(header);
+  if (!credentials) return null;
+  const named = config.users?.get(credentials.username);
+  if (named && constantTimeEquals(credentials.password, named.password)) {
+    return { id: credentials.username, role: named.role, legacy: false };
+  }
+  if (config.password && constantTimeEquals(credentials.password, config.password)) {
+    return { id: credentials.username || 'legacy-operator', role: 'operator', legacy: true };
+  }
+  return null;
+}
+
+export function permissionForRequest(path: string): Permission | null {
+  return permissionForPath(path);
+}
+
+export function requirePermission(permission: Permission): RequestHandler {
+  return function permissionMiddleware(req: Request, res: Response, next: NextFunction): void {
+    const principal = req.agoraPrincipal;
+    if (!principal) {
+      res.status(401).json({ error: 'authentication required' });
+      return;
+    }
+    if (!permits(principal.role, permission)) {
+      res.status(403).json({ error: 'insufficient permission', required: permission });
+      return;
+    }
+    next();
+  };
 }
 
 /**
@@ -133,29 +182,37 @@ export function createAuthMiddleware(config: AuthConfig): RequestHandler {
     }
 
     const writing = changing && !PREFERENCE_PATHS.has(req.path);
-    const mustAuthenticate = writing || config.scope === 'all';
+    const requiredPermission = permissionForRequest(req.path);
+    const mustAuthenticate = writing || config.scope === 'all' || requiredPermission !== null;
     if (!mustAuthenticate) {
       next();
       return;
     }
 
-    if (!config.password) {
+    if (!config.password && !(config.users && config.users.size > 0)) {
       // Fail closed: without a credential there is no way to authorise this, so it is
       // refused rather than served. Reading stays available unless `scope` is `all`.
       res.status(503).json({
         error: 'authentication is not configured',
         detail: changing
-          ? 'Set AGORA_AUTH_PASSWORD on this instance to enable starting runs and exporting bundles.'
+          ? 'Set AGORA_AUTH_PASSWORD or AGORA_AUTH_USERS on this instance to enable protected operations.'
           : 'This instance is configured to protect every route, but no AGORA_AUTH_PASSWORD is set.',
       });
       return;
     }
 
-    if (!isAuthorised(req.get('authorization'), config.password)) {
+    const principal = authenticate(req.get('authorization'), config);
+    if (!principal) {
       res
         .status(401)
         .set('WWW-Authenticate', `Basic realm="${config.realm}", charset="UTF-8"`)
         .json({ error: 'authentication required' });
+      return;
+    }
+
+    req.agoraPrincipal = principal;
+    if (requiredPermission && !permits(principal.role, requiredPermission)) {
+      res.status(403).json({ error: 'insufficient permission', required: requiredPermission });
       return;
     }
 
@@ -170,5 +227,5 @@ export function describeAuth(config: AuthConfig): string {
   }
   return config.scope === 'all'
     ? 'auth:    enabled for the whole instance'
-    : 'auth:    enabled for starting runs and exporting; reading is open';
+    : 'auth:    enabled for writes and sensitive Phase 1 reads; public operational reads remain open';
 }

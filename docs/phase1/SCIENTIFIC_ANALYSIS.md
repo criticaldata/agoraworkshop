@@ -213,10 +213,13 @@ the implementation even when development code differs from git HEAD. Each snapsh
 has a content hash; tampering is rejected. Campaign export includes snapshots,
 artifact reviews and the annotation lock.
 
-P1-B now requires locked outcome-specific annotation coverage in addition to machine
-provenance. The analysis reports computed readiness blockers separately from final
-scientific sign-off. The application never marks overall scientific PASS merely
-because calculations execute, a report is uploaded, or a p-value is small.
+P1-B is the machine-level behavioral-observability gate: it requires a locked,
+reconstructable dataset, canonical stage/provenance evidence and annotation-
+supporting coding units. It does not require human labels. Independent labels,
+reliability and adjudication remain the deliberate P1-D requirements. The
+analysis reports computed readiness blockers separately from final scientific
+sign-off. The application never marks overall scientific PASS merely because
+calculations execute, a report is uploaded, or a p-value is small.
 
 ## Interfaces and verification
 

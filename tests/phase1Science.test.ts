@@ -82,7 +82,7 @@ describe('scientific measurement and analysis lifecycle', () => {
     expect(() => annotate(db, id, {})).toThrow(/locked/);
     await expect(runCampaign(db, id)).rejects.toThrow(/locked/);
     expect(campaignBundle(db, id).artifacts.scientific_snapshots).toHaveLength(3);
-    expect(campaignAnalysis(db, id).closure.gates.find(g => g.id === 'P1-B')!.status).toBe('BLOCKED');
+    expect(campaignAnalysis(db, id).closure.gates.find(g => g.id === 'P1-B')!.status).toBe('PASS');
     db.prepare("UPDATE phase1_science_snapshots SET content_hash = 'tampered' WHERE id = ?").run(locked.id);
     expect(() => executeScientificAnalysis(db, id, locked.id)).toThrow(/hash mismatch/);
     db.close();

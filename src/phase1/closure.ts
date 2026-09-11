@@ -62,7 +62,21 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
   const missingEvidence = ['protocol_approval', 'analysis_plan', 'calibration_report', 'reliability_report', 'analysis_report'].filter(kind => !evidence.some(e => e.kind === kind));
   const preregistered = ['protocol_approval', 'analysis_plan'].every(kind => evidence.some(e => e.kind === kind && e.before_execution === 1));
   const lock = campaignLock(db, id);
-  const coverage = lock ? readScienceSnapshot(db, lock).payload.gates?.annotation_coverage_complete === true : false;
+  // P1-B is the machine-level behavioral-observability gate. It requires a
+  // locked, reconstructable dataset and annotation-supporting coding units, but
+  // it must not require human labels: independent coding, reliability and
+  // adjudication are the deliberate P1-D blockers.
+  const lockedPayload = lock ? readScienceSnapshot(db, lock).payload as {
+    gates?: { canonical_protocol_complete?: boolean; comparability?: boolean };
+    coding_units?: unknown[];
+    source_runs?: Array<{ run?: { provider?: string } | null }>;
+  } : null;
+  const observability = !!lockedPayload &&
+    lockedPayload.gates?.canonical_protocol_complete === true &&
+    lockedPayload.gates?.comparability === true &&
+    (lockedPayload.coding_units?.length ?? 0) > 0 &&
+    (lockedPayload.source_runs ?? []).length === cases.length &&
+    (lockedPayload.source_runs ?? []).every(source => !!source.run);
   const currentDataset = lock ? (() => { try { return scientificDataset(db, id); } catch { return null; } })() : null;
   const reviewPackage = db.prepare(`SELECT p.manifest_json FROM phase1_review_packages p
     JOIN phase1_dataset_snapshots s ON s.snapshot_id = p.snapshot_id
@@ -74,8 +88,8 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
     gates: [
       gate('P1-A', 'Protocol integrity', canonical && cases.every(c => c.state === 'completed') && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.complete && c.verified) && runtimePass,
         'Requires the canonical eight stages, valid S1/S6/S7 records, sealed context, deterministic S8 and existing runtime audits. Zero change and no-majority decisions are allowed.'),
-      gate('P1-B', 'Behavioral observability', canonical && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.verified) && runtimePass && coverage,
-        'Requires machine provenance plus a locked dataset with complete outcome-specific annotation coverage. Runtime-only success is not full behavioral observability.'),
+      gate('P1-B', 'Behavioral observability', canonical && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.verified) && runtimePass && observability,
+        'Requires machine provenance, a locked reconstructable dataset and annotation-supporting evidence. Human labels, reliability and adjudication are P1-D requirements, not P1-B requirements.'),
       gate('P1-C', 'Experimental comparability', plan.comparisons.every(c => c.valid) && plan.input.blocks % 10 === 0,
         'Role-only paired differences; complete five-role rotation crossed with AB/BA order requires a multiple of ten blocks. This is balance, not a power calculation.'),
       { id: 'P1-D', title: 'Scientific analysis readiness / closure', status: humanValidationComplete ? 'PASS' : 'PENDING_HUMAN_VALIDATION',

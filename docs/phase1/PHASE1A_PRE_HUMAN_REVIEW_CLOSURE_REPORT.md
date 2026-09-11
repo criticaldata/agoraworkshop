@@ -5,7 +5,7 @@
 **Branch:** `codex/phase1a-pre-human-review-closure`  
 **Base:** PR #9 head `4f20c23660d9e508c4d6724aedd7f1cb7a2c52ec`  
 **Implementation head at report creation:** `bd08fa98738927bb7d07aea0f16d5d65a1ba8007`  
-**Delivery model:** stacked pull request on Simon's open PR #9; this report does not authorize or perform a merge.
+**Delivery model:** stacked pull request [#10](https://github.com/criticaldata/agoraworkshop/pull/10) on Simon's open PR #9; this report does not authorize or perform a merge.
 
 ## Executive disposition
 
@@ -332,7 +332,6 @@ scientifically honest status is `PENDING_HUMAN_VALIDATION`, with provider state
 
 ### PR delivery
 
-This report is committed on the stacked branch and is intended to be submitted
-as a new pull request against PR #9's head branch. The PR URL will be recorded
-here after the remote push and creation step; PR #9 remains open and no merge is
-performed by this task.
+This report is committed on the stacked branch and submitted as
+[PR #10](https://github.com/criticaldata/agoraworkshop/pull/10) against PR #9's
+head branch. PR #9 remains open and no merge is performed by this task.

@@ -4,7 +4,7 @@
 **Repository:** `criticaldata/agoraworkshop`  
 **Branch:** `codex/phase1a-pre-human-review-closure`  
 **Base:** PR #9 head `4f20c23660d9e508c4d6724aedd7f1cb7a2c52ec`  
-**Implementation head at report creation:** to be updated after final verification
+**Implementation head at report creation:** `1710050`
 **Delivery model:** stacked pull request [#10](https://github.com/criticaldata/agoraworkshop/pull/10) on Simon's open PR #9; this report does not authorize or perform a merge.
 
 ## Executive disposition
@@ -302,12 +302,13 @@ missing deliveries, reviewer identity, package membership and stage ordering and
 expect failure. This makes the tests evidence about the acceptance logic rather
 than only smoke checks.
 
-The Phase 0 regression package was rerun in a fresh database after the Phase 1A
-changes. It produced baseline `run_15fca2df-8dd3-4ff2-aba4-238a931ef505`, exact
-rerun `run_257c5f89-741d-4f7f-9822-5fff794a3898` and fault run
-`run_92365bff-1c56-4caa-a0bb-d20824f79464`, all under the expected mock
-configs. The stored report is in `data/phase0_regression_20260911/` and its
-acceptance result is `phase0_validated=true` with no outstanding items.
+The Phase 0 regression package was rerun in a fresh database at the final
+implementation commit. It produced baseline
+`run_8b5d1c21-1f5e-4a52-9725-45c8c74ad9de`, exact rerun
+`run_8602d7c4-24f0-4013-a599-063fa58a0b30` and fault run
+`run_47fda272-5f89-4d10-b575-14d471e24962`, all under the expected mock
+configs. The stored report is in `data/phase0_regression_final_20260911/` and
+its acceptance result is `phase0_validated=true` with no outstanding items.
 
 ## Independent review disposition
 

@@ -22,6 +22,7 @@ it('supports the authenticated UI draft → preview → freeze → mock → revi
     expect((await request('/api/phase1/drafts', { method: 'POST', headers: { origin: 'https://elsewhere.test' } })).status).toBe(403);
     const setup = await (await request('/phase1')).text();
     expect(setup).toContain('Save draft and preview');
+    expect(setup).toContain('Canonical eight-stage protocol');
     const decode = (s: string) => s.replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&');
     const form = new URLSearchParams();
     for (const m of setup.matchAll(/<textarea name="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g)) form.set(m[1]!, decode(m[2]!));
@@ -35,12 +36,17 @@ it('supports the authenticated UI draft → preview → freeze → mock → revi
     const frozen = await post('/phase1/freeze', new URLSearchParams({ draft_id: draftPath.split('/').at(-1)! }));
     expect(frozen.status).toBe(303);
     const path = frozen.headers.get('location')!, id = path.split('/').at(-1)!;
+    const evidence = { version: 'phase1-closure-evidence-v1', manifest_hash: campaign(db, id).row.manifest_hash, kind: 'analysis_plan', author: 'alice', title: 'Draft plan', body: 'Uncertainty, missingness and multiplicity require review.', related_evidence_hashes: [] };
+    expect((await post(`${path}/closure-evidence`, new URLSearchParams({ evidence: JSON.stringify(evidence) }))).status).toBe(303);
     expect((await post(`${path}/start`, new URLSearchParams())).status).toBe(303);
     for (let n = 0; n < 100 && campaign(db, id).row.state === 'running'; n++) await new Promise(r => setTimeout(r, 10));
     expect(campaign(db, id).row.state).toBe('completed');
     const detail = await (await request(path)).text();
     expect(detail).toContain('&lt;script&gt;bad()&lt;/script&gt;');
     expect(detail).not.toContain('<script>bad()</script>');
+    expect(detail).toContain('Scientific closure gates');
+    expect(detail).toContain('Structured Final Output');
+    expect(detail).toContain('deterministic_collective_artifact_v1');
     const review = await (await request(`${path}/review?author=alice`)).text();
     const annotation = decode([...review.matchAll(/<textarea name="annotation"[^>]*>([\s\S]*?)<\/textarea>/g)][0]![1]!);
     expect((await post(`${path}/annotations`, new URLSearchParams({ annotation }))).status).toBe(303);
@@ -52,6 +58,9 @@ it('supports the authenticated UI draft → preview → freeze → mock → revi
     expect(bundle.artifacts.manifest.cases).toHaveLength(2);
     expect(bundle.artifacts.manifest.plan.input.evaluation.version).toBe('behavioral-v1');
     expect(bundle.artifacts.runs[0].records.phase1_positions).toHaveLength(10);
+    expect(bundle.artifacts.runs[0].records.phase1_ballots).toHaveLength(5);
+    expect(bundle.artifacts.runs[0].records.phase1_stages).toHaveLength(8);
+    expect(bundle.artifacts.closure_evidence).toHaveLength(1);
     expect(bundle.artifacts.comparison.behavioral[0].initial_final_change.value).toBe(0);
     expect(bundle.artifacts.comparison.status.scientific_analysis_completed).toBe(false);
   } finally {

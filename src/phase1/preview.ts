@@ -6,8 +6,8 @@ import { turnInstruction, type TurnInstructionInput } from '../prompts/registry.
  * actual invocations remain the authority for dynamic history and scheduling. */
 export function previewInstructions(config: ExperimentConfig) {
   const instructions: { agent_id: string; state: WorkshopState; round: number; channel: string; text: string }[] = [];
-  for (const state of plannedStates(config.workshop.rounds)) {
-    const rounds = state === 'CLOSING' ? 1 : config.workshop.rounds[state.toLowerCase() as keyof typeof config.workshop.rounds];
+  for (const state of plannedStates(config.workshop.rounds, !!config.phase1?.canonical)) {
+    const rounds = state === 'CLOSING' || state === 'PUBLIC_RECONVENING' ? 1 : config.workshop.rounds[state.toLowerCase() as keyof typeof config.workshop.rounds];
     for (let round = 0; round < rounds; round++) {
       const add = (input: Omit<TurnInstructionInput, 'config' | 'state' | 'roundIndex' | 'totalRounds'>) => instructions.push({ agent_id: input.agentId, state, round, channel: input.channel, text: turnInstruction({ ...input, config, state, roundIndex: round, totalRounds: rounds }) });
       if (round === 0 || state === 'PUBLIC_DISCUSSION') add({ agentId: config.moderator.id, isModerator: true, channel: 'public' });

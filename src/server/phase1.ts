@@ -7,6 +7,7 @@ import { campaign, freezeCampaign, initializePhase1, linkEvidence, planCampaign,
 import { campaignAnalysis } from '../phase1/analysis.js';
 import { campaignBundle } from '../phase1/export.js';
 import { page } from './pages.js';
+import { recordClosureEvidence } from '../phase1/closure.js';
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const json = (value: unknown) => `<pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(value, null, 2))}</pre>`;
@@ -28,6 +29,7 @@ function editor(input: PlanInput): string {
   ${field('rubric_version', 'Frozen rubric version', input.role_pack.rubric.version, 1)}${field('rubric', 'Human review rubric', input.role_pack.rubric.instructions)}
   <details><summary>Behavioral evaluation protocol: questionnaire, role criteria and scoring</summary><p>These defaults are proposed, not approved by Mateo. Initial assessments are independent; final assessments use authorized discussion history. Probes are not broadcast and consume the same frozen agent/campaign budgets. Use null to retain the legacy transcript-only protocol.</p>${field('evaluation', 'Versioned evaluation JSON (null disables it)', JSON.stringify(input.evaluation ?? null, null, 2), 25)}</details>
   ${field('opening', 'Moderator opening (identical across paired cases)', input.opening_message)}
+  <details><summary>Canonical eight-stage protocol and sealed voting</summary><p>S1 → S2 → S3 → S4 reconvening → S5 second plenary → S6 independent final positions → S7 sealed ballots → S8 deterministic output. Proposed voting rule: three of five votes, all five ballots valid; no-majority is unresolved. This rule still needs scientific approval. Use null only for legacy experiments.</p>${field('canonical', 'Canonical protocol JSON', JSON.stringify(input.canonical ?? null, null, 2), 9)}</details>
   <p><label>Blocks / pairs <input name="blocks" type="number" min="1" max="50" value="${input.blocks}" required></label>
   <label>Provider-call ceiling <input name="calls" type="number" min="1" max="100000" value="${input.limits.max_provider_calls}" required></label>
   <label>Reported-token stop threshold <input name="tokens" type="number" min="1" value="${input.limits.max_reported_tokens}" required></label></p>
@@ -37,8 +39,10 @@ function editor(input: PlanInput): string {
 
 function formInput(body: Record<string, string>): unknown {
   const evaluation = body.evaluation ? JSON.parse(body.evaluation) : null;
+  const canonical = body.canonical ? JSON.parse(body.canonical) : null;
   return { title: body.title, protocol_id: body.protocol_id, protocol_version: body.protocol_version, purpose: body.purpose,
     ...(evaluation ? { evaluation } : {}),
+    ...(canonical ? { canonical } : {}),
     base_config: JSON.parse(body.base_config!), blocks: Number(body.blocks), opening_message: body.opening,
     limits: { max_provider_calls: Number(body.calls), max_reported_tokens: Number(body.tokens) },
     role_pack: { id: body.pack_id, version: body.pack_version, title: body.pack_title, status: body.pack_status, common_instruction: body.common, neutral_instruction: body.neutral,
@@ -65,7 +69,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
     return JSON.parse(r.input_json) as PlanInput;
   };
   router.get('/phase1', (req, res) => {
-    const input = typeof req.query.duplicate === 'string' ? campaign(db, req.query.duplicate).plan.input : starterInput(loadConfigFile(templatePath).config);
+    const input = typeof req.query.duplicate === 'string' ? campaign(db, req.query.duplicate).plan.input : starterInput(loadConfigFile(templatePath).config, true);
     const rows = db.prepare('SELECT id, title, state FROM phase1_campaigns ORDER BY created_at DESC').all() as { id: string; title: string; state: string }[];
     res.send(page('Phase 1A setup', `<p>${rows.map(r => `<a href="/phase1/campaigns/${esc(r.id)}">${esc(r.title)} · ${esc(r.state)}</a>`).join('<br>')}</p>${editor(input)}`));
   });
@@ -81,6 +85,9 @@ export function phase1Router(db: Db, templatePath: string): Router {
     res.send(page(c.row.title, `<h1>${esc(c.row.title)}</h1><p>${esc(c.row.state)} · ${esc(c.row.manifest_hash)}</p><p>${esc(errors.get(id) ?? '')}</p>
     <p><a href="/phase1?duplicate=${esc(id)}">Duplicate as editable draft</a> · <a href="/phase1/campaigns/${esc(id)}/review">Human evidence review</a></p>
     ${json({ workload: c.plan.workload, limits: c.plan.input.limits, usage: analysis.usage, denominators: analysis.denominators, status: analysis.status })}
+    <h2>Scientific closure gates</h2><p>Software execution is not scientific PASS. Uploaded evidence is retained with hashes, not automatically certified.</p>${json(analysis.closure)}
+    <details><summary>Register closure evidence</summary><p>Approval and analysis plans must be recorded before the first case starts. Other reports can be added later. Reviewer identity is self-declared. See docs/phase1/CANONICAL_PROTOCOL.md for the evidence schema.</p><form method="post" action="/phase1/campaigns/${esc(id)}/closure-evidence">${field('evidence', 'Evidence JSON', JSON.stringify({ version: 'phase1-closure-evidence-v1', manifest_hash: c.row.manifest_hash, kind: 'analysis_plan', author: '', title: '', body: '', related_evidence_hashes: [] }, null, 2), 12)}<button>Record evidence (not a PASS approval)</button></form></details>
+    <h2>Eight-stage outcomes</h2><p>Researcher view: individual ballots and authorized private contexts are sensitive. They are never sent to other participants.</p>${analysis.collective.map(r => `<details><summary>${esc(r.case_id)} · ${r.audit.complete && r.audit.verified ? 'Complete, verified' : 'Pending or incomplete'}</summary>${json(r.records?.stages)}${json(r.records?.output)}${json(r.audit)}<details><summary>Sealed individual ballot records (researcher-only)</summary>${json(r.records?.ballots)}</details></details>`).join('')}
     <form method="post" action="/phase1/campaigns/${esc(id)}/start"><label><input type="checkbox" name="live" value="yes">Authorize live provider calls (only needed for non-mock provider)</label><br><label><input type="checkbox" name="resume" value="yes">Resume interrupted cases when their frozen recovery policy permits</label><br><button>Execute pending cases</button></form>
     <table><thead><tr><th>Case</th><th>Status</th><th>Inspect</th><th>Error</th></tr></thead><tbody>${c.cases.map(r => `<tr><td>${esc(r.case_id)}</td><td>${esc(r.state)}</td><td>${r.run_id ? `<a href="/runs/${esc(r.run_id)}">Run</a> · <a href="/runs/${esc(r.run_id)}/timeline">Timeline</a> · <a href="/runs/${esc(r.run_id)}/transcript">Transcript</a>` : 'Not started'}</td><td>${esc(r.error)}</td></tr>`).join('')}</tbody></table>
     <h2>Paired descriptive comparison</h2>${json(analysis.pairs)}<details><summary>Measurements, provenance IDs and technical checks</summary>${json(analysis)}</details>
@@ -100,6 +107,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
   });
   router.post('/phase1/campaigns/:id/annotations', (req, res) => { const raw = JSON.parse(req.body.annotation); annotate(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review?author=${encodeURIComponent(raw.author)}`); });
   router.post('/phase1/campaigns/:id/export', (req, res) => { const id = String(req.params.id); res.attachment(`${id}.json`).json(campaignBundle(db, id)); });
+  router.post('/phase1/campaigns/:id/closure-evidence', (req, res) => { recordClosureEvidence(db, String(req.params.id), JSON.parse(String(req.body.evidence))); res.redirect(303, `/phase1/campaigns/${req.params.id}`); });
 
   // Same service functions as the UI and CLI. Mount after the existing auth middleware.
   router.post('/api/phase1/preview', (req, res) => { const plan = planCampaign(req.body); res.json({ plan, prompts: previewPrompts(plan) }); });
@@ -108,6 +116,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.get('/api/phase1/campaigns/:id', (req, res) => res.json({ ...campaign(db, String(req.params.id)), analysis: campaignAnalysis(db, String(req.params.id)), execution_error: errors.get(String(req.params.id)) ?? null }));
   router.post('/api/phase1/campaigns/:id/start', (req, res) => { launch(String(req.params.id), req.body.allow_live === true, req.body.resume_interrupted === true); res.status(202).json({ id: req.params.id, status: 'accepted' }); });
   router.post('/api/phase1/campaigns/:id/annotations', (req, res) => res.status(201).json({ id: annotate(db, String(req.params.id), req.body) }));
+  router.post('/api/phase1/campaigns/:id/closure-evidence', (req, res) => res.status(201).json(recordClosureEvidence(db, String(req.params.id), req.body)));
   router.get('/api/phase1/campaigns/:id/annotations', (req, res) => res.json(reviewerAnnotations(db, String(req.params.id), String(req.query.author ?? ''))));
   router.post('/api/phase1/campaigns/:id/evidence', (req, res) => { if (!['exact_rerun', 'failure_attribution'].includes(req.body.purpose)) throw new Error('Invalid evidence purpose'); linkEvidence(db, String(req.params.id), String(req.body.run_id), req.body.purpose); res.json({ linked: true }); });
   router.post('/api/phase1/campaigns/:id/export', (req, res) => res.json(campaignBundle(db, String(req.params.id))));

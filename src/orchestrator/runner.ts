@@ -29,6 +29,7 @@ import { buildProvider } from '../providers/registry.js';
 import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
+import { ballotRows, collectBallots, saveCollectiveOutput, startStage, finishStage } from '../phase1/collective.js';
 import { ToolGateway } from '../tools/gateway.js';
 import { getMessages, getOpportunities, getRun, getTransitions, type OpportunityRow } from '../db/queries.js';
 
@@ -182,7 +183,7 @@ export class WorkshopRunner {
     }
 
     this.scriptedModerator =
-      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider(this.config.phase1?.opening_message) : null;
+      this.config.moderator.mode === 'scripted' ? new ScriptedModeratorProvider(this.config.phase1?.opening_message, !!this.config.phase1?.canonical) : null;
 
     if (this.resuming && this.config.phase1?.evaluation) {
       // Reconstruct both dialogue and assessment usage; never double-count a
@@ -190,7 +191,7 @@ export class WorkshopRunner {
       const totals = Object.fromEntries([...this.config.participants, this.config.moderator].map(p => [p.id, { calls: 0, tokens: 0 }]));
       const calls = this.db.prepare('SELECT agent_id, input_tokens, output_tokens FROM invocations WHERE run_id = ?').all(this.runId) as { agent_id: string; input_tokens: number | null; output_tokens: number | null }[];
       for (const call of calls) { const t = totals[call.agent_id]!; t.calls++; t.tokens += (call.input_tokens ?? 0) + (call.output_tokens ?? 0); }
-      for (const row of positionRows(this.db, this.runId)) if (row.response_json || row.status === 'pending') {
+      for (const row of [...positionRows(this.db, this.runId), ...ballotRows(this.db, this.runId)]) if (row.response_json || row.status === 'pending') {
         const result = row.response_json ? JSON.parse(row.response_json) as import('../providers/types.js').AgentInvocationResult : null;
         const t = totals[row.agent_id]!; t.calls++; t.tokens += (result?.usage.inputTokens ?? 0) + (result?.usage.outputTokens ?? 0);
       }
@@ -285,14 +286,22 @@ export class WorkshopRunner {
     let termination: TerminationReason = 'completed';
 
     try {
+      this.beginCanonicalStage('S1');
       await this.assessPositions('initial');
-      const phases = plannedStates(this.config.workshop.rounds);
+      this.endCanonicalStage('S1', positionRows(this.db, this.runId).filter(r => r.phase === 'initial' && r.status === 'valid').length === 5);
+      const phases = plannedStates(this.config.workshop.rounds, !!this.config.phase1?.canonical);
       for (const phase of phases) {
         if (this.deadlineHit || this.cancelRequested) break;
         if (phase === 'CLOSING') break; // closing is always run below
         const resumingEarlierState = this.resuming && phaseRank(phase) < phaseRank(this.resumeState ?? 'CREATED');
         if (!resumingEarlierState && !(this.resuming && phase === this.resumeState)) this.transition(phase);
+        const stage = ({ PUBLIC_DISCUSSION: 'S2', PRIVATE_OR_BREAKOUT: 'S3', PUBLIC_RECONVENING: 'S4', FINAL_DISCUSSION: 'S5' } as Partial<Record<WorkshopState, string>>)[phase];
+        if (stage) this.beginCanonicalStage(stage);
         await this.runPhase(phase);
+        if (stage) {
+          const participantOpportunities = getOpportunities(this.db, this.runId).filter(o => o.workshop_state === phase && o.agent_id !== this.config.moderator.id);
+          this.endCanonicalStage(stage, participantOpportunities.length === this.roundsFor(phase) * 5 && participantOpportunities.every(o => o.resolution === 'success'));
+        }
       }
 
       if (this.cancelRequested) {
@@ -302,7 +311,25 @@ export class WorkshopRunner {
         return this.result('CANCELLED', 'cancelled');
       }
 
+      this.beginCanonicalStage('S6');
       await this.assessPositions('final');
+      this.endCanonicalStage('S6', positionRows(this.db, this.runId).filter(r => r.phase === 'final' && r.status === 'valid').length === 5);
+      if (this.config.phase1?.canonical) {
+        this.beginCanonicalStage('S7');
+        await collectBallots({ db: this.db, config: this.config, runId: this.runId, hash: this.frozen.hash,
+          history: this.history, provider: this.provider, budgets: this.budgets, stopped: () => this.stopRequested(),
+          onRecord: row => this.emit('phase1_ballot_recorded', { agent_id: row.agent_id, payload: { record_id: row.record_id, status: row.status } }),
+        });
+        this.endCanonicalStage('S7', ballotRows(this.db, this.runId).filter(r => r.status === 'valid').length === 5);
+        this.beginCanonicalStage('S8');
+        const output = saveCollectiveOutput(this.db, this.config, this.runId);
+        if (output.inserted) this.emit('phase1_collective_output', { payload: { artifact_hash: output.hash, participant_behavior: false } });
+        this.endCanonicalStage('S8', true);
+        if (this.cancelRequested) {
+          this.transition('CANCELLED', 'cancelled by operator'); this.finishRun('CANCELLED', 'cancelled');
+          this.emit('run_cancelled', { payload: {} }); return this.result('CANCELLED', 'cancelled');
+        }
+      }
       // The workshop always closes explicitly, even when the deadline cut it short.
       if (this.state !== 'CLOSING') this.transition('CLOSING', this.deadlineHit ? 'deadline reached' : undefined);
       await this.runClosing();
@@ -342,6 +369,14 @@ export class WorkshopRunner {
   }
 
   // ---------------------------------------------------------------- phases
+
+  private beginCanonicalStage(stage: string): void {
+    if (this.config.phase1?.canonical && startStage(this.db, this.runId, stage)) this.emit('phase1_stage_started', { payload: { stage } });
+  }
+  private endCanonicalStage(stage: string, complete: boolean): void {
+    const status = complete ? 'complete' : 'incomplete';
+    if (this.config.phase1?.canonical && finishStage(this.db, this.runId, stage, status)) this.emit('phase1_stage_finished', { payload: { stage, status } });
+  }
 
   private async assessPositions(phase: 'initial' | 'final'): Promise<void> {
     await collectPositions({ db: this.db, config: this.config, runId: this.runId, hash: this.frozen.hash,
@@ -433,6 +468,8 @@ export class WorkshopRunner {
         return rounds.private_or_breakout;
       case 'FINAL_DISCUSSION':
         return rounds.final_discussion;
+      case 'PUBLIC_RECONVENING':
+        return this.config.phase1?.canonical?.reconvening_rounds ?? 0;
       default:
         return 0;
     }
@@ -1454,11 +1491,11 @@ function isToolFailureKind(
 }
 
 function isWorkshopState(value: string): value is WorkshopState {
-  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(value);
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'PUBLIC_RECONVENING', 'FINAL_DISCUSSION', 'CLOSING', 'COMPLETED', 'FAILED', 'CANCELLED'].includes(value);
 }
 
 function phaseRank(state: WorkshopState): number {
-  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'FINAL_DISCUSSION', 'CLOSING'].indexOf(state);
+  return ['CREATED', 'INTRODUCTION', 'PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'PUBLIC_RECONVENING', 'FINAL_DISCUSSION', 'CLOSING'].indexOf(state);
 }
 
 function opportunityMatches(row: OpportunityRow, spec: TurnSpec): boolean {

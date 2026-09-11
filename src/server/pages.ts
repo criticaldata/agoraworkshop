@@ -392,6 +392,7 @@ const PHASE_LABEL: Record<string, string> = {
   INTRODUCTION: 'Introductions',
   PUBLIC_DISCUSSION: 'Open discussion',
   PRIVATE_OR_BREAKOUT: 'Breakouts',
+  PUBLIC_RECONVENING: 'Public reconvening (S4)',
   FINAL_DISCUSSION: 'Final round',
   CLOSING: 'Closing',
 };

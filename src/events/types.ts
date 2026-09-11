@@ -12,6 +12,10 @@ export const EVENT_TYPES = [
   'run_interrupted',
   'run_resumed',
   'phase1_position_recorded',
+  'phase1_stage_started',
+  'phase1_stage_finished',
+  'phase1_ballot_recorded',
+  'phase1_collective_output',
   'recovery_opportunity_reopened',
 
   'state_transition_started',

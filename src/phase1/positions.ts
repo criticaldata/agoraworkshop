@@ -95,5 +95,6 @@ export async function collectPositions(input: {
 /** Provider-independent mock fixture: a valid response proves schema plumbing,
  * not deliberation, confidence calibration or role fidelity. */
 export function mockPositionContent(request: AgentInvocationRequest): string | null {
+  if (request.ballotProbe) return JSON.stringify({ ballots: request.ballotProbe.questions.map(q => ({ question_id: q.id, choice: q.options[0] })) });
   return request.positionProbe ? JSON.stringify({ answers: request.positionProbe.questions.map(q => ({ question_id: q.id, choice: q.options[0], confidence: 50, rationale: 'Deterministic measurement fixture; not a behavioral finding.' })) }) : null;
 }

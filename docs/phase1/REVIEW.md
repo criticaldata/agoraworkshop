@@ -1,5 +1,20 @@
 # Phase 1A implementation — review guide
 
+## Canonical eight-stage increment
+
+See [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md) for the confirmed stage sequence,
+proposed S7 rule, new UI and test coverage. The new branch builds on merged PR #6.
+S4 reconvening, S6-before-S7 sealing, deterministic S8, durable records, exports and
+closure evidence registration are implemented. Scientific PASS stays blocked;
+rubric-specific calibration/reliability and inferential evaluators remain a separate
+increment after their contracts are agreed. No live experiment or deployment ran.
+
+Verification for this increment (September 10, 2026): `npm test` — **451 tests in
+42 files passed**; `npm run build` passed; `git diff --check` passed. These are
+engineering checks, not live calibration or scientific validation evidence.
+
+The sections below describe the previously merged behavioral foundation.
+
 This branch extends the existing instrument, not the scientific peer-review pipeline
 described in the September PDFs. The controlling proposal is
 [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). The roles and rubric remain DRAFT.

@@ -16,6 +16,10 @@ import { getRun } from '../db/queries.js';
 import { previewInstructions } from './preview.js';
 import { DRAFT_EVALUATION, EvaluationSchema, FUNCTIONAL_ROLES } from './evaluationContract.js';
 import { positionPromptPreview } from './positions.js';
+import { CanonicalProtocolSchema, CANONICAL_PROTOCOL } from './canonicalContract.js';
+import { ballotInstruction } from './collective.js';
+import { resolvedScriptedModeratorLine } from '../providers/scriptedModerator.js';
+import { plannedStates } from '../orchestrator/stateMachine.js';
 
 export const PlanInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -24,6 +28,7 @@ export const PlanInputSchema = z.object({
   base_config: ExperimentConfigSchema,
   role_pack: RolePackSchema,
   evaluation: EvaluationSchema.optional(),
+  canonical: CanonicalProtocolSchema.optional(),
   blocks: z.number().int().min(1).max(50),
   opening_message: z.string().trim().min(1).max(12000),
   limits: z.object({ max_provider_calls: z.number().int().positive().max(100000), max_reported_tokens: z.number().int().positive() }).strict(),
@@ -40,7 +45,7 @@ export interface Plan {
   version: 'phase1a-campaign-v1'; input: PlanInput;
   cases: PlannedCase[]; comparisons: ReturnType<typeof compareConditions>[];
   role_hashes: Record<string, string>;
-  workload: { planned_cases: number; maximum_attempts: number; position_probe_attempts?: number; token_limit_semantics: string };
+  workload: { planned_cases: number; maximum_attempts: number; position_probe_attempts?: number; ballot_attempts?: number; token_limit_semantics: string };
 }
 export interface CampaignRow {
   id: string; title: string; state: string; manifest_json: string; manifest_hash: string;
@@ -116,6 +121,7 @@ export function planCampaign(raw: unknown): Plan {
         phase1: { phase: '1A', protocol_id: input.protocol_id, protocol_version: input.protocol_version,
           condition, common_instruction: input.role_pack.common_instruction, opening_message: input.opening_message,
           ...(input.evaluation ? { evaluation: input.evaluation } : {}),
+          ...(input.canonical ? { canonical: input.canonical } : {}),
           assignments: Object.fromEntries(base.participants.map(p => {
             const role = input.role_pack.roles.find(r => r.id === targets[p.id])!;
             return [p.id, condition === 'control' ? { role_id: 'neutral', instruction: input.role_pack.neutral_instruction } : { role_id: role.id, instruction: role.instruction }];
@@ -137,15 +143,18 @@ export function planCampaign(raw: unknown): Plan {
     role_hashes: Object.fromEntries(input.role_pack.roles.map(r => [r.id, configHash(r.instruction)])),
     workload: { planned_cases: cases.length,
       ...(input.evaluation ? { position_probe_attempts: cases.length * 10 } : {}),
+      ...(input.canonical ? { ballot_attempts: cases.length * 5 } : {}),
       maximum_attempts: cases.length * base.budgets.max_calls_per_agent * 6 * (base.runtime.max_retries + 1),
       token_limit_semantics: 'Stop before the next provider call once reported tokens reach the threshold. One in-flight response can cross it. Missing usage stops further calls; this is not a guaranteed monetary ceiling.',
     },
   };
 }
 
-export function starterInput(base: ExperimentConfig): PlanInput {
+export function starterInput(base: ExperimentConfig, canonical = false): PlanInput {
   base = structuredClone(base);
-  return { title: 'Reimagining Humans: role pilot', protocol_id: 'reimagining-humans-1a', protocol_version: 'draft-1', purpose: 'engineering',
+  if (canonical) base.workshop.rounds = { introduction: 0, public_discussion: Math.max(1, base.workshop.rounds.public_discussion), private_or_breakout: Math.max(1, base.workshop.rounds.private_or_breakout), final_discussion: Math.max(1, base.workshop.rounds.final_discussion) };
+  return { title: 'Reimagining Humans: role pilot', protocol_id: 'reimagining-humans-1a', protocol_version: canonical ? 'canonical-draft-1' : 'draft-1', purpose: 'engineering',
+    ...(canonical ? { canonical: structuredClone(CANONICAL_PROTOCOL) } : {}),
     base_config: { ...base, moderator: { ...base.moderator, mode: 'scripted' }, workshop: { ...base.workshop, topic: 'How might humans evolve to coexist better with agents and the living world?' } },
     role_pack: { ...structuredClone(STARTER_ROLES), id: 'reimagining-humans-functional', version: 'functional-draft-1', title: 'Functional roles (proposed)', roles: structuredClone(FUNCTIONAL_ROLES), rubric: { version: 'functional-draft-1', instructions: DRAFT_EVALUATION.interaction_rubric } },
     evaluation: structuredClone(DRAFT_EVALUATION), blocks: 10,
@@ -160,6 +169,9 @@ export function previewPrompts(plan: Plan) {
     moderator: moderatorSystemPrompt(c.config), opening_message: c.config.phase1!.opening_message,
     turn_instructions: previewInstructions(c.config),
     ...(c.config.phase1?.evaluation ? { position_probes: positionPromptPreview(c.config) } : {}),
+    ...(c.config.phase1?.canonical ? { canonical: c.config.phase1.canonical,
+      moderator_script: plannedStates(c.config.workshop.rounds, true).map(state => ({ state, text: resolvedScriptedModeratorLine(state, c.config.phase1!.opening_message, true) })),
+      ballot_instruction: ballotInstruction(c.config), ballot_context: 'Same authorized dialogue snapshot for all ballots; no assessment answers, ballots or collective outcome included. S6 must be fully valid first. S8 makes no provider call.' } : {}),
   }));
 }
 

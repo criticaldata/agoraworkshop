@@ -112,6 +112,11 @@ export interface TurnInstructionInput {
 export function turnInstruction(input: TurnInstructionInput): string {
   const { config, state, isModerator, channel } = input;
 
+  if (config.phase1?.canonical && !isModerator) {
+    if (state === 'PUBLIC_RECONVENING') return 'Report what you choose to share publicly from your breakout: proposals, disagreements and open questions. Do not claim that unreported private discussion is visible to the full group.';
+    if (state === 'FINAL_DISCUSSION') return 'Public Plenary II: engage with a specific prior argument from the public discussion. Explain whether you incorporate, challenge or reject it and why. Independent final positions will be recorded separately after this discussion.';
+  }
+
   if (isModerator) {
     switch (state) {
       case 'INTRODUCTION':

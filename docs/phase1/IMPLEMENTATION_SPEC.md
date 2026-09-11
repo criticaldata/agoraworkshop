@@ -2,6 +2,11 @@
 
 Status: proposed engineering specification for review, based on the August 28 meeting. This file does not declare a protocol approved or a scientific result validated.
 
+Canonical September 10 addendum: [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md)
+supersedes the earlier reused-stage description for opted-in new experiments.
+Mateo confirmed S1–S8, sealed S7 after independent S6, and deterministic S8.
+Legacy frozen campaigns retain the earlier execution contract.
+
 Revision: incorporates Mateo's September 10 messages and *AGORA Phase 1: Behavioral
 Evaluation Framework* (September 2026, nine pages). The executable measurement
 contract is specified in [BEHAVIORAL_PROTOCOL.md](BEHAVIORAL_PROTOCOL.md).

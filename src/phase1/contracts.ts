@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { EvaluationSchema } from './evaluationContract.js';
+import { CanonicalProtocolSchema } from './canonicalContract.js';
 
 const text = z.string().trim().min(1).max(12000);
 export const RolePackSchema = z.object({
@@ -20,6 +21,7 @@ export const Phase1ConfigSchema = z.object({
   assignments: z.record(z.string(), z.object({ role_id: text, instruction: text }).strict()),
   opening_message: text,
   evaluation: EvaluationSchema.optional(),
+  canonical: CanonicalProtocolSchema.optional(),
 }).strict();
 
 export const STARTER_ROLES: RolePack = {

@@ -1,0 +1,56 @@
+import { expect, it } from 'vitest';
+import express from 'express';
+import type { AddressInfo } from 'node:net';
+import { phase1Router } from '../src/server/phase1.js';
+import { createAuthMiddleware } from '../src/server/auth.js';
+import { campaign } from '../src/phase1/campaign.js';
+import { tempDb } from './helpers.js';
+
+it('exposes scientific setup, coverage, explicit dataset locking and analysis exports through authenticated UI/API', async () => {
+  const db = tempDb(), app = express();
+  app.use(createAuthMiddleware({ password: 'test-only', scope: 'all', realm: 'test' }));
+  app.use(express.urlencoded({ extended: false })); app.use(express.json());
+  app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve,reject) => { server.once('listening',resolve); server.once('error',reject); });
+  const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`;
+  const auth = { authorization: `Basic ${Buffer.from('researcher:test-only').toString('base64')}` };
+  const request = (path:string, init:RequestInit={}) => fetch(base+path, { ...init, headers:{...auth,...init.headers}, redirect:'manual' });
+  const post = (path:string, value:unknown) => request(path,{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(value)});
+  const formPost = (path:string, value:URLSearchParams) => request(path,{method:'POST',headers:{'content-type':'application/x-www-form-urlencoded'},body:value});
+  try {
+    const html = await (await request('/phase1?scientific=true')).text();
+    expect(html).toContain('agora-analysis-v1'); expect(html).toContain('expressed-position-v1');
+    const decode=(s:string)=>s.replace(/&quot;/g,'"').replace(/&#39;/g,"'").replace(/&lt;/g,'<').replace(/&gt;/g,'>').replace(/&amp;/g,'&');
+    const form = new URLSearchParams();
+    for (const m of html.matchAll(/<textarea name="([^"]+)"[^>]*>([\s\S]*?)<\/textarea>/g)) form.set(m[1]!,decode(m[2]!));
+    for (const m of html.matchAll(/<input type="hidden" name="([^"]+)" value="([^"]*)">/g)) form.set(m[1]!,decode(m[2]!));
+    form.set('title','Science fixture');form.set('purpose','engineering');form.set('blocks','1');form.set('calls','200');form.set('tokens','2000000');
+    const draft = await formPost('/phase1/drafts',form);
+    expect(draft.status).toBe(303);
+    const freeze = await formPost('/phase1/freeze',new URLSearchParams({draft_id:draft.headers.get('location')!.split('/').at(-1)!}));
+    const path=freeze.headers.get('location')!,id=path.split('/').at(-1)!,api=`/api/phase1/campaigns/${id}`;
+    expect(campaign(db,id).plan.input.analysis_plan!.bootstrap).toBeNull();
+    expect((await fetch(base+api+'/science')).status).toBe(401);
+    expect((await post(api+'/lock-dataset',{confirm_lock:true})).status).toBe(400);
+    expect((await post(api+'/start',{})).status).toBe(202);
+    for(let n=0;n<100&&campaign(db,id).row.state==='running';n++) await new Promise(r=>setTimeout(r,10));
+    expect(campaign(db,id).row.state).toBe('completed');
+    const science = await (await request(path+'/science')).text();
+    expect(science).toContain('Annotation coverage and reliability');
+    expect(science).toContain('Lock this dataset');
+    expect((await post(api+'/lock-dataset',{})).status).toBe(400);
+    const locked=await (await post(api+'/lock-dataset',{confirm_lock:true})).json() as any;
+    expect(locked.id).toMatch(/^science_/);
+    const computed=await (await post(api+'/analyze',{dataset_id:locked.id})).json() as any;
+    const report=await (await request(api+'/snapshots/'+computed.id)).json() as any;
+    expect(report.payload.readiness.scientific_pass).toBe(false);
+    expect(report.payload.implementation.hash).toMatch(/^sha256:/);
+    expect((await request('/api/phase1/campaigns/other/snapshots/'+computed.id)).status).toBe(400);
+    expect((await post(api+'/annotations',{})).status).toBe(400);
+    expect((await (await request(path+'/science')).text())).toContain('Calculate and save immutable analysis');
+    const bundle=await (await post(api+'/export',{})).json() as any;
+    expect(bundle.artifacts.annotation_lock).toBe(locked.id);
+    expect(bundle.artifacts.scientific_snapshots).toHaveLength(2);
+  } finally { server.closeAllConnections();await new Promise<void>(resolve=>server.close(()=>resolve()));db.close(); }
+},15000);

@@ -4,6 +4,7 @@ import type { Db } from '../db/index.js';
 import { getMessages, getInvocation } from '../db/queries.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
 import { campaign } from '../phase1/campaign.js';
+import { assertCampaignUnlocked } from '../phase1/scienceStore.js';
 
 // Human readings extend the existing semantic evidence layer; they never change
 // messages, machine extraction edges, or the context shown to workshop agents.
@@ -48,6 +49,8 @@ export function reviewerAnnotations(db: Db, id: string, author: string): Annotat
 }
 
 export function annotate(db: Db, id: string, raw: unknown): string {
+  return db.transaction(() => {
+  assertCampaignUnlocked(db, id);
   const { plan, cases } = campaign(db, id), a = AnnotationSchema.parse(raw);
   if (!cases.some(c => c.run_id === a.run_id)) throw new Error('Annotation run is not a campaign case');
   if (a.rubric_version !== plan.input.role_pack.rubric.version) throw new Error('Use the frozen rubric version');
@@ -95,4 +98,5 @@ export function annotate(db: Db, id: string, raw: unknown): string {
   const annotationId = `annotation_${randomUUID()}`;
   db.prepare('INSERT INTO phase1_annotations VALUES (?, ?, ?, ?, ?, ?, ?)').run(annotationId, id, a.run_id, a.message_id, a.author, JSON.stringify(a), new Date().toISOString());
   return annotationId;
+  }).immediate();
 }

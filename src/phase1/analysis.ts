@@ -56,7 +56,10 @@ export function campaignAnalysis(db: Db, id: string) {
     const calls = c.run_id ? getInvocations(db, c.run_id).filter(i => i.agent_id !== planned.config.moderator.id) : [];
     checks.push({ id: `P1A-PROMPTS:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.every(i => i.system_prompt === participantSystemPrompt(planned.config, i.agent_id).text) ? 'PASS' : 'FAIL', note: 'Recorded participant system prompts equal the frozen resolver.' });
     checks.push({ id: `P1A-VISIBILITY:${c.case_id}`, status: !c.run_id || !calls.length ? 'NOT_EXERCISED' : auditPrivacyLeaks(db, c.run_id).violations.length ? 'FAIL' : 'PASS', note: 'Reuse the existing context-visibility audit; not a claim about generated disclosure.' });
-    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.some(i => i.outcome !== 'success') ? 'FAIL' : 'PASS', note: 'Any provider failure is visible; a completed run does not imply every call succeeded.' });
+    const opportunities = c.run_id ? getOpportunities(db, c.run_id) : [];
+    const retainedRetries = plan.input.analysis_plan?.retain_successful_retries === true;
+    const deliveryOkay = calls.every(i => i.outcome === 'success' || (retainedRetries && opportunities.some(o => o.opportunity_id === i.opportunity_id && o.resolution === 'success' && i.attempt < o.attempts)));
+    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : deliveryOkay ? 'PASS' : 'FAIL', note: retainedRetries ? 'Frozen analysis policy permits failed attempts only when the same opportunity subsequently succeeded; retry burden is retained.' : 'Any provider failure is visible; a completed run does not imply every call succeeded.' });
     if (planned.config.phase1?.evaluation) {
       const probes = c.run_id ? positionRows(db, c.run_id) : [];
       checks.push({ id: `P1A-POSITIONS:${c.case_id}`, status: probes.length === 10 && probes.every(r => r.status === 'valid') ? 'PASS' : 'NOT_EXERCISED', note: 'Ten schema-valid assessment records required; no requirement for a nonzero position change.' });

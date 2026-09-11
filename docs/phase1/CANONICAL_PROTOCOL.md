@@ -1,5 +1,9 @@
 # Canonical Phase 1A: eight-stage engineering increment
 
+Follow-up: [SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) now implements the
+configurable scientific machinery listed as pending in this historical increment.
+The eight-stage execution contract itself remains unchanged.
+
 Status: implemented for review, not scientific closure. Based on Mateo's explicit
 September 10 confirmation of S1–S8 and his Scientific Foundation and Experimental
 Framework. The stage order is confirmed; the concrete voting rule below is a

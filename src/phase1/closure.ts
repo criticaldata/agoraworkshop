@@ -3,6 +3,7 @@ import type { Db } from '../db/index.js';
 import { campaign } from './campaign.js';
 import { canonicalize, configHash } from '../config/hash.js';
 import { nowIso } from '../core/ids.js';
+import { campaignLock, readScienceSnapshot } from './scienceStore.js';
 
 const text = z.string().trim().min(1).max(100000);
 export const ClosureEvidenceSchema = z.object({
@@ -59,13 +60,15 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
   const runtimePass = checks.every(c => c.status === 'PASS');
   const missingEvidence = ['protocol_approval', 'analysis_plan', 'calibration_report', 'reliability_report', 'analysis_report'].filter(kind => !evidence.some(e => e.kind === kind));
   const preregistered = ['protocol_approval', 'analysis_plan'].every(kind => evidence.some(e => e.kind === kind && e.before_execution === 1));
+  const lock = campaignLock(db, id);
+  const coverage = lock ? readScienceSnapshot(db, lock).payload.gates?.annotation_coverage_complete === true : false;
   return {
     version: 'phase1-closure-gates-v1', scope: 'Machine evidence checks, not a scientific release certificate',
     gates: [
       gate('P1-A', 'Protocol integrity', canonical && cases.every(c => c.state === 'completed') && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.complete && c.verified) && runtimePass,
         'Requires the canonical eight stages, valid S1/S6/S7 records, sealed context, deterministic S8 and existing runtime audits. Zero change and no-majority decisions are allowed.'),
-      gate('P1-B', 'Behavioral observability', canonical && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.verified) && runtimePass,
-        'Checks recorded behavioral evidence and provenance availability, not role fidelity or reviewer validity. Human measurement validation remains under P1-D.'),
+      gate('P1-B', 'Behavioral observability', canonical && canonicalChecks.length === cases.length && canonicalChecks.every(c => c.verified) && runtimePass && coverage,
+        'Requires machine provenance plus a locked dataset with complete outcome-specific annotation coverage. Runtime-only success is not full behavioral observability.'),
       gate('P1-C', 'Experimental comparability', plan.comparisons.every(c => c.valid) && plan.input.blocks % 10 === 0,
         'Role-only paired differences; complete five-role rotation crossed with AB/BA order requires a multiple of ten blocks. This is balance, not a power calculation.'),
       gate('P1-D', 'Scientific analysis readiness / closure', false,
@@ -74,6 +77,7 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
     scientific_pass: false, preregistered_documents_recorded: preregistered,
     missing_evidence: missingEvidence,
     evidence: evidence.map(e => ({ hash: e.evidence_hash, kind: e.kind, author: e.payload.author, title: e.payload.title, recorded_at: e.recorded_at, before_execution: !!e.before_execution, verification: 'recorded_not_independently_validated' })),
-    pending_implementation: ['Rubric-specific oracle calibration and reviewer-reliability evaluator after the rubric and thresholds are frozen.', 'Agreed inferential analysis executor with uncertainty, missing-data and multiple-outcome handling.'],
+    scientific_dataset_id: lock,
+    pending_scientific_decisions: ['Approve exact instruments, statistical methods, reliability thresholds and sample-size justification.', 'Supply independent calibration annotations and confirmatory data; review the computed evidence before scientific sign-off.'],
   };
 }

@@ -1,5 +1,19 @@
 # Phase 1A implementation — review guide
 
+## Scientific machinery increment
+
+[SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) documents the new opt-in v2
+questionnaire, endpoint families, coding/adjudication resolution, Krippendorff
+reliability, paired bootstrap/Holm calculations, optional REML sensitivity model,
+human S8 quality review, immutable datasets/analysis snapshots and UI/API/CLI.
+It supersedes the pending-engineering list below; final scientific choices and
+live evidence remain pending. No production deployment or paid experiment ran.
+
+Verification: **466 tests in 45 files passed**, including published reliability
+reference examples, seeded numerical checks, snapshot/locking/tampering tests and
+the scientific UI/API lifecycle. Build and whitespace checks passed. These results
+validate engineering behavior, not the scientific instruments themselves.
+
 ## Canonical eight-stage increment
 
 See [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md) for the confirmed stage sequence,

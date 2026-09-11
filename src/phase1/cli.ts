@@ -7,6 +7,12 @@ import { exportCampaign } from './export.js';
 import { annotate } from '../semantic/phase1Annotations.js';
 
 import { recordClosureEvidence } from './closure.js';
+import { scientificDataset, lockScientificDataset } from './scientificDataset.js';
+import { executeScientificAnalysis } from './scientificAnalysis.js';
+import { scienceSnapshots, readScienceSnapshot } from './scienceStore.js';
+import { analysisPlanDraft } from './scienceContract.js';
+import { scientificEvaluationDraft } from './evaluationContract.js';
+import { reviewArtifact } from './artifactReview.js';
 
 export async function phase1Command(db: Db, args: string[], flags: Record<string, string>): Promise<number> {
   const [command, id] = args;
@@ -14,6 +20,11 @@ export async function phase1Command(db: Db, args: string[], flags: Record<string
   const requiredId = () => { if (!id) throw new Error('Campaign ID required'); return id; };
   let result: unknown;
   switch (command) {
+    case 'science-template': result = { ...starterInput(loadConfigFile(flags.config ?? 'configs/agora_phase0_1_context_contract.yaml').config, true), evaluation: scientificEvaluationDraft(), analysis_plan: analysisPlanDraft() }; break;
+    case 'science': result = { preview: scientificDataset(db, requiredId()), snapshots: scienceSnapshots(db, id!) }; break;
+    case 'lock-dataset': result = lockScientificDataset(db, requiredId()); break;
+    case 'analyze': if (!flags.dataset) throw new Error('--dataset <locked snapshot ID> required'); result = executeScientificAnalysis(db, requiredId(), flags.dataset); break;
+    case 'snapshot': result = readScienceSnapshot(db, requiredId()); break;
     case 'template': result = starterInput(loadConfigFile(flags.config ?? 'configs/agora_phase0_1_context_contract.yaml').config, flags.legacy !== 'true'); break;
     case 'plan': { const plan = planCampaign(input()); result = { plan, prompts: previewPrompts(plan) }; break; }
     case 'draft': result = { draft_id: saveDraft(db, input()) }; break;
@@ -21,13 +32,14 @@ export async function phase1Command(db: Db, args: string[], flags: Record<string
     case 'run': await runCampaign(db, requiredId(), { allowLive: flags.live === 'true', resumeInterrupted: flags.resume === 'true' }); result = campaignAnalysis(db, id!); break;
     case 'show': result = { ...campaign(db, requiredId()), analysis: campaignAnalysis(db, id!) }; break;
     case 'annotate': result = { annotation_id: annotate(db, requiredId(), input()) }; break;
+    case 'review-artifact': result = { review_id: reviewArtifact(db, requiredId(), input()) }; break;
     case 'closure-evidence': result = recordClosureEvidence(db, requiredId(), input()); break;
     case 'evidence': {
       if (!flags.run || !['failure_attribution', 'exact_rerun'].includes(flags.purpose ?? '')) throw new Error('--run <id> --purpose exact_rerun|failure_attribution required');
       linkEvidence(db, requiredId(), flags.run, flags.purpose as 'exact_rerun' | 'failure_attribution'); result = { linked: true }; break;
     }
     case 'export': result = { path: exportCampaign(db, requiredId(), flags.out ?? 'exports/phase1') }; break;
-    default: throw new Error('Use phase1 template|plan|draft|freeze|run|show|annotate|evidence|closure-evidence|export. Plan/draft/freeze/annotate/closure-evidence use --input file.json; run requires explicit --live for non-mock providers and --resume for interrupted cases. Template defaults to canonical; --legacy true retains the earlier protocol.');
+    default: throw new Error('Use phase1 template|science-template|plan|draft|freeze|run|show|annotate|review-artifact|evidence|closure-evidence|science|lock-dataset|analyze|snapshot|export. analyze requires --dataset ID. Plan/draft/freeze/annotate/review-artifact/closure-evidence use --input file.json; run requires explicit --live for non-mock providers and --resume for interrupted cases. Template defaults to canonical; --legacy true retains the earlier protocol.');
   }
   console.log(JSON.stringify(result, null, 2));
   return command === 'run' && campaign(db, id!).row.state !== 'completed' ? 1 : 0;

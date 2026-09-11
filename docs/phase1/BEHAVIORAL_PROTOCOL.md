@@ -1,5 +1,9 @@
 # Behavioral evaluation v1 — proposed operational protocol
 
+Optional successor: [SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) documents
+behavioral-v2, preserving this frozen v1 contract while enabling the proposed SAP
+hierarchy and structured expressed-position responses.
+
 Canonical extension: [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md) adds distinct
 S4/S5, S7 sealed ballots, deterministic S8 and closure evidence tracking without
 changing this optional behavioral-v1 instrument for legacy frozen campaigns.

@@ -8,8 +8,10 @@ export const RolePackSchema = z.object({
   common_instruction: text, neutral_instruction: text,
   roles: z.array(z.object({ id: text, title: text, instruction: text })).length(5),
   rubric: z.object({ version: text, instructions: text }),
+  scientific_basis: z.object({ sources: z.array(text).min(1), constructs: z.record(z.string(), z.object({ purpose: text, theoretical_mapping: text, inclusions: z.array(text).min(1), exclusions: z.array(text).min(1), examples: z.array(text).min(1) }).strict()) }).strict().optional(),
 }).strict().superRefine((p, ctx) => {
   if (new Set(p.roles.map(r => r.id)).size !== p.roles.length) ctx.addIssue({ code: 'custom', message: 'role IDs must be unique' });
+  if (p.scientific_basis && JSON.stringify(Object.keys(p.scientific_basis.constructs).sort()) !== JSON.stringify(p.roles.map(r => r.id).sort())) ctx.addIssue({ code: 'custom', message: 'Scientific constructs must cover exactly the five role IDs' });
 });
 export type RolePack = z.infer<typeof RolePackSchema>;
 

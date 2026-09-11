@@ -30,6 +30,7 @@ import type { AgentProvider } from '../providers/types.js';
 import type { FaultInjectingProvider } from '../providers/faultInjection.js';
 import { ScriptedModeratorProvider } from '../providers/scriptedModerator.js';
 import { ballotRows, collectBallots, saveCollectiveOutput, startStage, finishStage } from '../phase1/collective.js';
+import { assertCampaignUnlocked } from '../phase1/scienceStore.js';
 import { ToolGateway } from '../tools/gateway.js';
 import { getMessages, getOpportunities, getRun, getTransitions, type OpportunityRow } from '../db/queries.js';
 
@@ -114,6 +115,10 @@ export class WorkshopRunner {
 
   constructor(options: ExecuteRunOptions) {
     this.db = options.db;
+    if (options.resumeRunId && this.db.prepare("SELECT 1 FROM sqlite_master WHERE name = 'phase1_cases'").get()) {
+      const linked = this.db.prepare('SELECT campaign_id FROM phase1_cases WHERE run_id = ?').get(options.resumeRunId) as { campaign_id: string } | undefined;
+      if (linked) assertCampaignUnlocked(this.db, linked.campaign_id);
+    }
     this.frozen = options.frozen;
     this.config = options.frozen.config;
     this.runId = options.resumeRunId ?? options.runId ?? newRunId();

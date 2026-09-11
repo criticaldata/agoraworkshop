@@ -102,6 +102,10 @@ export function initializePhase1(db: Db): void {
       UNIQUE(assignment_id, reviewer_id));
     CREATE INDEX IF NOT EXISTS idx_phase1_review_submissions_unit
       ON phase1_review_submissions(snapshot_id, unit_id, reviewer_id);
+    CREATE TABLE IF NOT EXISTS phase1_review_packages (
+      package_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+      manifest_json TEXT NOT NULL, content_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
+      UNIQUE(snapshot_id));
     CREATE TABLE IF NOT EXISTS phase1_adjudications (
       adjudication_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
       unit_id TEXT NOT NULL, adjudicator_id TEXT NOT NULL, decision_json TEXT NOT NULL,

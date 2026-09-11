@@ -1,4 +1,8 @@
-# Behavioral evaluation v1 — proposed operational protocol
+# Behavioral evaluation v1 — legacy operational protocol
+
+Phase 1A closure uses the versioned `behavioral-v2` rubric and the frozen
+scientific contract/SAP. This file is retained as the earlier compatible protocol
+reference; it is not an open design item for the canonical Phase 1A campaign.
 
 Optional successor: [SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) documents
 behavioral-v2, preserving this frozen v1 contract while enabling the proposed SAP

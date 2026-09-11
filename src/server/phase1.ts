@@ -16,7 +16,7 @@ import { scienceSnapshots, readScienceSnapshot, campaignLock } from '../phase1/s
 import { reviewArtifact, visibleArtifactReviews } from '../phase1/artifactReview.js';
 import { collectiveRecords } from '../phase1/collective.js';
 import { permissionForPath, requirePermission } from './auth.js';
-import { createReviewAssignments, blindedReviewProjection, submitIndependentReview, listAdjudicationCandidates, submitAdjudication } from '../phase1/reviewWorkspace.js';
+import { createHumanValidationPackage, readHumanValidationPackage, reviewAssignments, blindedReviewProjection, submitIndependentReview, adjudicationWorkspace, listAdjudicationCandidates, submitAdjudication } from '../phase1/reviewWorkspace.js';
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const json = (value: unknown) => `<pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(value, null, 2))}</pre>`;
@@ -103,7 +103,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
     const id = String(req.params.id), c = campaign(db, id), analysis = campaignAnalysis(db, id);
     res.send(page(c.row.title, `<h1>${esc(c.row.title)}</h1><p>${esc(c.row.state)} · ${esc(c.row.manifest_hash)}</p><p>${esc(errors.get(id) ?? '')}</p>
     <p><a href="/phase1?duplicate=${esc(id)}">Duplicate as editable draft</a> · <a href="/phase1/campaigns/${esc(id)}/review">Human evidence review</a></p>
-    ${c.plan.input.analysis_plan ? `<p><a href="/phase1/campaigns/${esc(id)}/science">Scientific analysis workspace: coverage, reliability, dataset lock and results</a></p>` : ''}
+    ${c.plan.input.analysis_plan ? `<p><a href="/phase1/campaigns/${esc(id)}/science">Scientific analysis workspace: coverage, reliability, dataset lock and results</a>${campaignLock(db, id) ? ` · <a href="/phase1/review/snapshots/${esc(campaignLock(db, id) as string)}">Human validation package</a>` : ''}</p>` : ''}
     ${json({ workload: c.plan.workload, limits: c.plan.input.limits, usage: analysis.usage, denominators: analysis.denominators, status: analysis.status })}
     <h2>Scientific closure gates</h2><p>Software execution is not scientific PASS. Uploaded evidence is retained with hashes, not automatically certified.</p>${json(analysis.closure)}
     <details><summary>Register closure evidence</summary><p>Approval and analysis plans must be recorded before the first case starts. Other reports can be added later. Reviewer identity is self-declared. See docs/phase1/CANONICAL_PROTOCOL.md for the evidence schema.</p><form method="post" action="/phase1/campaigns/${esc(id)}/closure-evidence">${field('evidence', 'Evidence JSON', JSON.stringify({ version: 'phase1-closure-evidence-v1', manifest_hash: c.row.manifest_hash, kind: 'analysis_plan', author: '', title: '', body: '', related_evidence_hashes: [] }, null, 2), 12)}<button>Record evidence (not a PASS approval)</button></form></details>
@@ -128,6 +128,42 @@ export function phase1Router(db: Db, templatePath: string): Router {
   });
   router.post('/phase1/campaigns/:id/annotations', (req, res) => { const raw = { ...JSON.parse(req.body.annotation), author: req.agoraPrincipal?.id }; annotate(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review`); });
   router.post('/phase1/campaigns/:id/artifact-reviews', (req, res) => { const raw = { ...JSON.parse(req.body.review), author: req.agoraPrincipal?.id }; reviewArtifact(db, String(req.params.id), raw); res.redirect(303, `/phase1/campaigns/${req.params.id}/review`); });
+  router.get('/phase1/review/snapshots/:snapshot', (req, res) => {
+    const principal = req.agoraPrincipal!;
+    const snapshot = String(req.params.snapshot), pkg = readHumanValidationPackage(db, snapshot), assignments = reviewAssignments(db, snapshot, principal.id);
+    const publicManifest = pkg ? Object.fromEntries(Object.entries(pkg.manifest).filter(([key]) => key !== 'reviewer_ids')) : null;
+    res.send(page('Human validation package', `<h1>Human validation package</h1><p>This view exposes only the authenticated reviewer’s assignments. It does not expose condition, target role, prompts, colleague labels or aggregate effects.</p>${pkg ? json(publicManifest) : '<p>No package has been frozen yet. A scientific admin must create it from the locked snapshot.</p>'}<h2>My assigned units</h2>${assignments.length ? assignments.map(a => `<p><a href="/phase1/review/assignments/${esc(a.assignment_id)}">${esc(a.unit_id)} · ${esc(a.status)}</a></p>`).join('') : '<p>No assignments for this principal.</p>'}${['admin', 'operator'].includes(principal.role) ? `<p><a href="/phase1/review/snapshots/${esc(snapshot)}/manage">Manage reviewer assignments</a></p>` : ''}${principal.role === 'adjudicator' || principal.role === 'admin' ? `<p><a href="/phase1/adjudication/${esc(snapshot)}">Open adjudication workspace</a></p>` : ''}`));
+  });
+  router.get('/phase1/review/snapshots/:snapshot/manage', (req, res) => {
+    if (!['admin', 'operator'].includes(req.agoraPrincipal!.role)) { res.status(403).send(page('Forbidden', '<h1>Operator or admin permission required</h1>')); return; }
+    const snapshot = String(req.params.snapshot), pkg = readHumanValidationPackage(db, snapshot);
+    res.send(page('Manage human validation', `<h1>Manage human validation package</h1><p>Provide at least two named reviewer principals. Once frozen, reviewer membership cannot change without a new snapshot/version.</p>${pkg ? json(Object.fromEntries(Object.entries(pkg.manifest).filter(([key]) => key !== 'reviewer_ids'))) : ''}<form method="post" action="/phase1/review/snapshots/${esc(snapshot)}/assignments">${field('reviewers', 'Reviewer IDs (comma-separated)', '', 2)}<button>Freeze package and create assignments</button></form>`));
+  });
+  router.post('/phase1/review/snapshots/:snapshot/assignments', (req, res) => {
+    if (!['admin', 'operator'].includes(req.agoraPrincipal!.role)) { res.status(403).send('Operator or admin permission required'); return; }
+    const raw = String(req.body.reviewers ?? ''), reviewers = raw.split(/[\s,]+/).map(value => value.trim()).filter(Boolean);
+    createHumanValidationPackage(db, String(req.params.snapshot), reviewers);
+    res.redirect(303, `/phase1/review/snapshots/${esc(String(req.params.snapshot))}`);
+  });
+  router.get('/phase1/review/assignments/:assignment', (req, res) => {
+    const projection = blindedReviewProjection(db, String(req.params.assignment), req.agoraPrincipal!);
+    const label = { label: 'not_assessable', score: null, quote: projection.evidence.content, reason: 'Explain why the frozen evidence is or is not assessable.' };
+    res.send(page('Independent review', `<h1>Independent review</h1><p>Submit once. The server binds the authenticated reviewer identity and hides all other submissions.</p>${json(projection.evidence)}<form method="post" action="/phase1/review/assignments/${esc(projection.assignment_id)}">${field('label', 'Frozen rubric label JSON', JSON.stringify(label, null, 2), 12)}<button>Submit independent label</button></form>`));
+  });
+  router.post('/phase1/review/assignments/:assignment', (req, res) => {
+    const label = typeof req.body.label === 'string' ? JSON.parse(req.body.label) : req.body.label;
+    submitIndependentReview(db, String(req.params.assignment), req.agoraPrincipal!, label);
+    res.redirect(303, `/phase1/review/assignments/${esc(String(req.params.assignment))}`);
+  });
+  router.get('/phase1/adjudication/:snapshot', (req, res) => {
+    const snapshot = String(req.params.snapshot), rows = adjudicationWorkspace(db, snapshot);
+    res.send(page('Adjudication workspace', `<h1>Adjudication workspace</h1><p>Only disagreements after independent submission appear here. Original labels are read-only; each decision is append-only and retains its source submissions.</p>${rows.length ? rows.map(row => `<section><h2>${esc(row.candidate_id)}</h2>${json(row.evidence)}${json(row.submissions)}<form method="post" action="/phase1/adjudication">${hidden('candidate_id', row.candidate_id)}${field('decision', 'Adjudicated label JSON', JSON.stringify({ label: 'not_assessable', score: null, quote: row.evidence?.content ?? '', reason: 'Explain the adjudication against the frozen evidence.' }, null, 2), 12)}<button>Record append-only adjudication</button></form></section>`).join('') : '<p>No disagreements are currently ready for adjudication.</p>'}`));
+  });
+  router.post('/phase1/adjudication', (req, res) => {
+    const decision = typeof req.body.decision === 'string' ? JSON.parse(req.body.decision) : req.body.decision;
+    submitAdjudication(db, String(req.body.candidate_id), req.agoraPrincipal!, decision);
+    res.redirect(303, `/phase1/adjudication/${esc(String(req.body.candidate_id).split(':', 1)[0])}`);
+  });
   router.post('/phase1/campaigns/:id/export', (req, res) => { const id = String(req.params.id); res.attachment(`${id}.json`).json(campaignBundle(db, id)); });
   router.post('/phase1/campaigns/:id/closure-evidence', (req, res) => { recordClosureEvidence(db, String(req.params.id), JSON.parse(String(req.body.evidence))); res.redirect(303, `/phase1/campaigns/${req.params.id}`); });
 
@@ -171,11 +207,11 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.post('/api/phase1/review/snapshots/:snapshot/assignments', (req, res) => {
     const principal = req.agoraPrincipal;
     if (!principal || !['admin', 'operator'].includes(principal.role)) { res.status(403).json({ error: 'operator or admin permission required' }); return; }
-    res.status(201).json(createReviewAssignments(db, String(req.params.snapshot), req.body.reviewers));
+    res.status(201).json(createHumanValidationPackage(db, String(req.params.snapshot), req.body.reviewers));
   });
   router.get('/api/phase1/review/assignments/:assignment', (req, res) => res.json(blindedReviewProjection(db, String(req.params.assignment), req.agoraPrincipal!)));
   router.post('/api/phase1/review/assignments/:assignment', (req, res) => res.status(201).json({ id: submitIndependentReview(db, String(req.params.assignment), req.agoraPrincipal!, req.body.label) }));
-  router.get('/api/phase1/adjudication/:snapshot', (req, res) => res.json({ candidates: listAdjudicationCandidates(db, String(req.params.snapshot)) }));
+  router.get('/api/phase1/adjudication/:snapshot', (req, res) => res.json({ candidates: listAdjudicationCandidates(db, String(req.params.snapshot)), workspace: adjudicationWorkspace(db, String(req.params.snapshot)) }));
   router.post('/api/phase1/adjudication', (req, res) => res.status(201).json({ id: submitAdjudication(db, String(req.body.candidate_id), req.agoraPrincipal!, req.body.decision) }));
   router.post('/api/phase1/campaigns/:id/evidence', (req, res) => { if (!['exact_rerun', 'failure_attribution'].includes(req.body.purpose)) throw new Error('Invalid evidence purpose'); linkEvidence(db, String(req.params.id), String(req.body.run_id), req.body.purpose); res.json({ linked: true }); });
   router.post('/api/phase1/campaigns/:id/export', (req, res) => res.json(campaignBundle(db, String(req.params.id))));

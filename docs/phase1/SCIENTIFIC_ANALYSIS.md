@@ -1,25 +1,29 @@
 # Phase 1A scientific machinery — implementation and review contract
 
-This increment implements configurable instruments, human-coding resolution,
-reliability calculations, analysis snapshots and statistical utilities on top of
-PR #9's eight stages. It does **not** approve Mateo's draft SAP, invent scientific
-thresholds, run paid experiments, or certify scientific PASS.
+The frozen statistical design is [`STATISTICAL_ANALYSIS_PLAN.md`](STATISTICAL_ANALYSIS_PLAN.md),
+version `agora-sap-v1`. This page is the implementation and review guide for that
+contract; the scientific state remains `PENDING_HUMAN_VALIDATION` until the live
+calibration and independent human evidence exist. The interactive editor may still
+create explicitly marked draft campaigns, but a draft cannot silently replace the
+frozen calibration contract.
 
-The source requirements are Mateo's September 2026 *Scientific Basis for Functional
-Roles*, *Statistical Analysis Plan v0.1 revised*, and his expressed-position
-questionnaire proposal. The SAP still requires team decisions before confirmation.
+The source requirements are the supplied September 2026 *Scientific Basis for
+Functional Roles*, *Statistical Analysis Plan v0.1 revised*, and expressed-position
+questionnaire proposal. The frozen choices are recorded in the SAP and source
+traceability matrix; only calibration-derived precision and sample size remain
+data-dependent.
 
 ## Start here
 
 Open `/phase1?scientific=true` for an explicitly **draft** scientific template. It
-uses `behavioral-v2` and the SAP's proposed hierarchy (RF primary; ICR, participation
+uses `behavioral-v2` and the SAP's frozen hierarchy (RF primary; ICR, participation
 Gini and categorical position change secondary). Earlier templates and frozen
 campaigns keep their original contract. No saved campaign is migrated.
 
-The analysis-plan editor exposes unresolved choices as null: bootstrap method,
-seed, minimum pairs, reliability reviewers/thresholds/coverage, retry policy,
-precision target, sample-size justification, calibration link and sensitivity model.
-There are no hidden scientific defaults for these choices.
+Calibration-dependent precision, sample size and the external snapshot hash remain
+null until live evidence exists. All other Phase 1A endpoint, reliability,
+missingness, bootstrap and multiplicity decisions are versioned in the frozen SAP;
+there are no hidden defaults for the values that affect a frozen campaign.
 
 CLI equivalents:
 
@@ -142,9 +146,9 @@ explicit percentile or basic intervals, confidence level, resample count, uint32
 seed and minimum-pair requirement. Random draws use a versioned deterministic
 generator, and settings/source IDs are exported. Available optional two-sided testing
 uses the centered bootstrap of paired means with a finite Monte Carlo correction;
-`none` leaves p-values unavailable. This is not a randomization test. The team must
-select the procedure rather than treating SAP's mention of “95% CI” as a complete
-test specification. See [Shalizi's bootstrap notes](https://www.stat.cmu.edu/~cshalizi/uADA/19/lectures/ch06.pdf).
+`none` leaves p-values unavailable. This is not a randomization test. The frozen
+Phase 1A calibration contract uses the percentile interval, 10,000 resamples and
+the centered bootstrap p-value. See [Shalizi's bootstrap notes](https://www.stat.cmu.edu/~cshalizi/uADA/19/lectures/ch06.pdf).
 
 Degenerate samples retain their observed effect (including a true observed zero)
 but do not manufacture a confidence interval or p-value. Fewer than the declared
@@ -190,7 +194,7 @@ not replace sample-size simulation or substantive effect-size approval.
 6. A confirmatory plan requires reviewed instruments/methods, sample justification,
    reliability settings, retry policy, a calibration dataset hash and sensitivity
    specification. Calibration verification requires an actual local locked snapshot,
-   matching instrument semantics, live records and reliability meeting the proposed
+   matching instrument semantics, live records and reliability meeting the frozen
    confirmatory thresholds—not an arbitrary string or an uploaded PASS statement.
 7. Freeze the confirmatory plan before confirmatory execution; later analysis verifies
    that plan. It does not preregister after seeing confirmatory labels.

@@ -34,6 +34,9 @@ it('classifies every Phase 1 sensitive read before route code runs', () => {
   expect(permissionForPath('/api/phase1/campaigns/c1/science')).toBe('operate');
   expect(permissionForPath('/api/phase1/campaigns/c1/snapshots/s1')).toBe('operate');
   expect(permissionForPath('/api/phase1/review/snapshots/s1/assignments')).toBe('operate');
+  expect(permissionForPath('/phase1/review/snapshots/s1/manage')).toBe('operate');
+  expect(permissionForPath('/phase1/review/assignments/a1')).toBe('review');
+  expect(permissionForPath('/phase1/adjudication/s1')).toBe('adjudicate');
 });
 
 it('requires authentication for sensitive GET routes under default write scope', () => {

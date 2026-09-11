@@ -19,6 +19,10 @@ describe('Phase 1A instrument freeze', () => {
     const questionnaire = JSON.parse(manifests[1]!.canonical_json) as { stages: string[]; questions: Array<{ options: string[] }> };
     expect(questionnaire.stages).toEqual(['S1', 'S6']);
     expect(questionnaire.questions.every(question => question.options.length >= 2)).toBe(true);
+    const sap = JSON.parse(manifests[4]!.canonical_json) as { revision: string; bootstrap: { resamples: number }; reliability: { min_pairable_units: number } };
+    expect(sap.revision).toBe('v1-precalibration');
+    expect(sap.bootstrap.resamples).toBe(10000);
+    expect(sap.reliability.min_pairable_units).toBe(30);
     expect(instrumentManifestHash(manifests)).toMatch(/^sha256:/);
   });
 

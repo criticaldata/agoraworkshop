@@ -110,7 +110,10 @@ export function scientificDataset(db: Db, campaignId: string) {
     const groupUnits = resolved.filter(u => u.group === group);
     const ordinal = group !== 'interaction_contingency';
     const result = krippendorffAlpha(groupUnits.map(u => u.independent_values), ordinal ? 'ordinal' : 'nominal', ordinal ? [0, 1, 2] : [0, 1]);
-    const config = analysisPlan.reliability, threshold = config?.thresholds[group] ?? null;
+    const config = analysisPlan.reliability;
+    const threshold = config?.thresholds[group]
+      ?? (group.startsWith('role:') ? config?.thresholds.role_fidelity : config?.thresholds.interaction_contingency)
+      ?? null;
     const coverage = groupUnits.length ? result.pairable_units / groupUnits.length : null;
     return { group, ...result, coverage, threshold,
       passed: config !== null && threshold !== null && result.alpha !== null && result.alpha >= threshold && result.pairable_units >= config.min_pairable_units && coverage !== null && coverage >= config.min_coverage,
@@ -202,7 +205,9 @@ export function scientificDataset(db: Db, campaignId: string) {
   const annotationEndpoints = endpointIds.filter(e => ['role_fidelity', 'interaction_contingency', 'final_output_quality'].includes(e));
   const requiredReliability = reliability.filter(r => r.group.startsWith('role:') ? annotationEndpoints.includes('role_fidelity') : r.group.startsWith('artifact:') ? annotationEndpoints.includes('final_output_quality') : annotationEndpoints.includes('interaction_contingency'));
   const calibrationReliability = calibration && analysisPlan.reliability ? requiredReliability.every(required => {
-    const prior = calibration.reliability.find(r => r.group === required.group), threshold = analysisPlan.reliability!.thresholds[required.group];
+    const prior = calibration.reliability.find(r => r.group === required.group);
+    const threshold = analysisPlan.reliability!.thresholds[required.group]
+      ?? (required.group.startsWith('role:') ? analysisPlan.reliability!.thresholds.role_fidelity : analysisPlan.reliability!.thresholds.interaction_contingency);
     return threshold !== undefined && prior?.alpha != null && prior.alpha >= threshold && prior.pairable_units >= analysisPlan.reliability!.min_pairable_units && prior.coverage !== null && prior.coverage >= analysisPlan.reliability!.min_coverage;
   }) : false;
   return { version: 'agora-scientific-dataset-v1' as const, campaign_id: campaignId, manifest_hash: frozen.row.manifest_hash,

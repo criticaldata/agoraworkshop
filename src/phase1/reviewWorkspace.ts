@@ -4,6 +4,7 @@ import type { Db } from '../db/index.js';
 import type { AuthPrincipal } from '../server/principal.js';
 import type { AnnotationRecord } from '../semantic/phase1Annotations.js';
 import { verifyDatasetLock } from './scienceStore.js';
+import { configHash } from '../config/hash.js';
 
 const ReviewLabelSchema = z.object({
   label: z.enum(['present', 'absent', 'not_assessable', 'scored']),
@@ -18,13 +19,22 @@ export interface BlindedUnit {
   evidence: { message_id: string; content: string; workshop_state: string; channel: string; category: string; criterion_id?: string };
 }
 
-function snapshotPayload(db: Db, snapshotId: string): { campaign_id: string; payload_json: string; state: string } {
-  const row = db.prepare('SELECT campaign_id, payload_json, state FROM phase1_dataset_snapshots WHERE snapshot_id = ?').get(snapshotId) as { campaign_id: string; payload_json: string; state: string } | undefined;
+function ensureReviewPackageTable(db: Db): void {
+  db.exec(`CREATE TABLE IF NOT EXISTS phase1_review_packages (
+    package_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+    manifest_json TEXT NOT NULL, content_hash TEXT NOT NULL UNIQUE, created_at TEXT NOT NULL,
+    UNIQUE(snapshot_id)
+  )`);
+}
+
+function snapshotPayload(db: Db, snapshotId: string): { snapshot_id: string; campaign_id: string; payload_json: string; content_hash: string; state: string } {
+  ensureReviewPackageTable(db);
+  const row = db.prepare('SELECT snapshot_id, campaign_id, payload_json, content_hash, state FROM phase1_dataset_snapshots WHERE snapshot_id = ?').get(snapshotId) as { snapshot_id: string; campaign_id: string; payload_json: string; content_hash: string; state: string } | undefined;
   if (!row || row.state !== 'LOCKED' || !verifyDatasetLock(db, snapshotId).valid) throw new Error('Review assignments require a valid locked dataset snapshot');
   return row;
 }
 
-function unitsFromSnapshot(payload: any) {
+function unitsFromSnapshot(payload: any): Array<{ unit_id: string; evidence: BlindedUnit['evidence'] }> {
   const messages = new Map<string, any>();
   for (const source of payload.source_runs ?? []) for (const message of source.messages ?? []) messages.set(message.message_id, message);
   return (payload.coding_units ?? []).map((unit: any) => {
@@ -53,12 +63,71 @@ export function createReviewAssignments(db: Db, snapshotId: string, reviewers: s
   return created;
 }
 
+export function reviewAssignments(db: Db, snapshotId: string, reviewerId: string) {
+  snapshotPayload(db, snapshotId);
+  return db.prepare(`SELECT assignment_id, snapshot_id, reviewer_id, unit_id, status, created_at
+    FROM phase1_review_assignments WHERE snapshot_id = ? AND reviewer_id = ? ORDER BY unit_id`)
+    .all(snapshotId, reviewerId) as Array<{ assignment_id: string; snapshot_id: string; reviewer_id: string; unit_id: string; status: string; created_at: string }>;
+}
+
+export function createHumanValidationPackage(db: Db, snapshotId: string, reviewers: string[]) {
+  const snapshot = snapshotPayload(db, snapshotId);
+  if (new Set(reviewers).size !== reviewers.length || reviewers.length < 2) throw new Error('At least two distinct reviewers are required');
+  const existing = db.prepare('SELECT package_id, manifest_json, content_hash, created_at FROM phase1_review_packages WHERE snapshot_id = ?').get(snapshotId) as { package_id: string; manifest_json: string; content_hash: string; created_at: string } | undefined;
+  if (existing) {
+    const prior = JSON.parse(existing.manifest_json) as { reviewer_ids?: string[] };
+    if (JSON.stringify(prior.reviewer_ids ?? []) !== JSON.stringify([...reviewers].sort())) throw new Error('Human-validation package is already frozen; create a new dataset snapshot for reviewer changes');
+    return { package_id: existing.package_id, content_hash: existing.content_hash, manifest: prior };
+  }
+  const payload = JSON.parse(snapshot.payload_json) as Record<string, any>;
+  const units = unitsFromSnapshot(payload);
+  const assignments = createReviewAssignments(db, snapshotId, reviewers);
+  const base = {
+    version: 'agora-human-validation-package-v1', snapshot_id: snapshotId, snapshot_hash: snapshot.content_hash,
+    campaign_id: snapshot.campaign_id, reviewer_ids: [...reviewers].sort(), reviewer_count: reviewers.length,
+    unit_ids: units.map(unit => unit.unit_id), unit_count: units.length, assignment_count: assignments.length,
+    rubric_version: payload.manifest?.input?.role_pack?.rubric?.version ?? 'behavioral-v2',
+    codebook_version: 'codebook-v1',
+    permitted_evidence_fields: ['message_id', 'content', 'workshop_state', 'channel', 'category', 'criterion_id'],
+    excluded_fields: ['condition', 'target_role', 'role_prompt', 'other_reviewer_labels', 'aggregate_effects', 'ballots', 'collective_output'],
+    reviewer_instructions: 'Code only the frozen evidence against the supplied rubric. Submit independently; do not infer latent belief, condition or role identity. Use not_assessable when evidence is inadequate. Original labels are immutable; disagreements are adjudicated after independent submission.',
+  };
+  const content_hash = configHash(base), package_id = `hvp_${content_hash.slice('sha256:'.length, 26)}`;
+  const manifest = { ...base, package_id, content_hash };
+  db.prepare('INSERT INTO phase1_review_packages (package_id, snapshot_id, manifest_json, content_hash, created_at) VALUES (?, ?, ?, ?, ?)')
+    .run(package_id, snapshotId, JSON.stringify(manifest), content_hash, new Date().toISOString());
+  return { package_id, content_hash, manifest };
+}
+
+export function readHumanValidationPackage(db: Db, snapshotId: string) {
+  ensureReviewPackageTable(db);
+  const row = db.prepare('SELECT package_id, snapshot_id, manifest_json, content_hash, created_at FROM phase1_review_packages WHERE snapshot_id = ?').get(snapshotId) as { package_id: string; snapshot_id: string; manifest_json: string; content_hash: string; created_at: string } | undefined;
+  if (!row) return null;
+  const manifest = JSON.parse(row.manifest_json) as Record<string, unknown>;
+  if (configHash(Object.fromEntries(Object.entries(manifest).filter(([key]) => !['package_id', 'content_hash'].includes(key)))) !== row.content_hash) throw new Error('Human-validation package hash mismatch');
+  return { ...row, manifest };
+}
+
 export function blindedReviewProjection(db: Db, assignmentId: string, principal: AuthPrincipal): BlindedUnit {
   const row = db.prepare('SELECT * FROM phase1_review_assignments WHERE assignment_id = ?').get(assignmentId) as { assignment_id: string; snapshot_id: string; reviewer_id: string; unit_id: string; blinded_payload_json: string } | undefined;
   if (!row) throw new Error('Review assignment not found');
   if (row.reviewer_id !== principal.id) throw new Error('Review assignment belongs to another reviewer');
   const evidence = JSON.parse(row.blinded_payload_json) as BlindedUnit['evidence'];
   return { assignment_id: row.assignment_id, snapshot_id: row.snapshot_id, unit_id: row.unit_id, reviewer_id: row.reviewer_id, evidence };
+}
+
+export function adjudicationWorkspace(db: Db, snapshotId: string) {
+  snapshotPayload(db, snapshotId);
+  return listAdjudicationCandidates(db, snapshotId).map(candidateId => {
+    const separator = candidateId.indexOf(':'), unitId = candidateId.slice(separator + 1);
+    const rows = db.prepare(`SELECT s.submission_id, s.reviewer_id, s.label_json, s.submitted_at,
+      a.blinded_payload_json FROM phase1_review_submissions s
+      JOIN phase1_review_assignments a ON a.assignment_id = s.assignment_id
+      WHERE s.snapshot_id = ? AND s.unit_id = ? ORDER BY s.submitted_at, s.submission_id`)
+      .all(snapshotId, unitId) as Array<{ submission_id: string; reviewer_id: string; label_json: string; submitted_at: string; blinded_payload_json: string }>;
+    return { candidate_id: candidateId, evidence: rows[0] ? JSON.parse(rows[0].blinded_payload_json) : null,
+      submissions: rows.map(row => ({ submission_id: row.submission_id, reviewer_id: row.reviewer_id, label: JSON.parse(row.label_json), submitted_at: row.submitted_at })) };
+  });
 }
 
 export function submitIndependentReview(db: Db, assignmentId: string, principal: AuthPrincipal, label: unknown): string {
@@ -96,11 +165,14 @@ export function submitAdjudication(db: Db, candidateId: string, adjudicator: Aut
   const snapshotId = candidateId.slice(0, separator), unitId = candidateId.slice(separator + 1);
   if (!listAdjudicationCandidates(db, snapshotId).includes(candidateId)) throw new Error('Candidate requires two distinct independent labels');
   const submissions = db.prepare('SELECT submission_id FROM phase1_review_submissions WHERE snapshot_id = ? AND unit_id = ? ORDER BY submitted_at').all(snapshotId, unitId) as Array<{ submission_id: string }>;
+  const reviewers = db.prepare('SELECT DISTINCT reviewer_id FROM phase1_review_submissions WHERE snapshot_id = ? AND unit_id = ?').all(snapshotId, unitId) as Array<{ reviewer_id: string }>;
+  if (reviewers.some(row => row.reviewer_id === adjudicator.id)) throw new Error('Adjudicator must be independent of the reviewers');
+  const parsed = ReviewLabelSchema.parse(decision);
   const adjudicationId = `adjudication_${randomUUID()}`;
   db.prepare(`INSERT INTO phase1_adjudications
     (adjudication_id, snapshot_id, unit_id, adjudicator_id, decision_json, rationale, source_submission_ids_json, created_at)
     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`)
-    .run(adjudicationId, snapshotId, unitId, adjudicator.id, JSON.stringify(decision), 'Independent disagreement adjudicated in a separate append-only record.', JSON.stringify(submissions.map(row => row.submission_id)), new Date().toISOString());
+    .run(adjudicationId, snapshotId, unitId, adjudicator.id, JSON.stringify(parsed), 'Independent disagreement adjudicated in a separate append-only record.', JSON.stringify(submissions.map(row => row.submission_id)), new Date().toISOString());
   return adjudicationId;
 }
 

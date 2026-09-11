@@ -38,3 +38,18 @@ export function analysisPlanDraft(): AnalysisPlan {
     reliability: null, precision: null, sample_size_justification: null, calibration_snapshot_hash: null, sensitivity_model: null,
   };
 }
+
+/** Frozen pre-calibration SAP. Precision, N and the calibration snapshot remain
+ * null until live paired data exist; all method choices used by calibration are
+ * explicit rather than hidden in the analysis engine. */
+export function calibrationAnalysisPlan(): AnalysisPlan {
+  return { version: 'agora-analysis-v1', id: 'agora-sap', revision: 'v1-precalibration', purpose: 'calibration', status: 'reviewed', unit: 'paired_block', metric_registry_version: 'agora-metrics-v1',
+    annotation_policy: 'unanimous_independent_or_explicit_adjudication', not_assessable: 'endpoint_unavailable',
+    role_stage_window: ['PUBLIC_DISCUSSION', 'PRIVATE_OR_BREAKOUT', 'PUBLIC_RECONVENING', 'FINAL_DISCUSSION'],
+    bootstrap: { resamples: 10000, seed: 20260911, confidence: 0.95, interval: 'percentile', p_value: 'centered_bootstrap', min_pairs: 2 },
+    multiplicity: 'holm_within_prespecified_families', retain_successful_retries: true,
+    reliability: { reviewers: ['reviewer_a', 'reviewer_b'], thresholds: { role_fidelity: 0.8, interaction_contingency: 0.8 }, min_pairable_units: 30, min_coverage: 1 },
+    precision: null, sample_size_justification: null, calibration_snapshot_hash: null,
+    sensitivity_model: { specification: 'Complete-pair primary estimate with paired-block random-intercept REML as a predeclared sensitivity analysis when the design is sufficient.', implementation_reference: 'src/phase1/scientificAnalysis.ts', method: 'paired_block_random_intercept_reml' },
+  };
+}

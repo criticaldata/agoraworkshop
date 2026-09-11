@@ -4,6 +4,7 @@ import { canonicalize, configHash } from '../config/hash.js';
 import type { RolePack } from './contracts.js';
 import type { Evaluation } from './evaluationContract.js';
 import type { AnalysisPlan } from './scienceContract.js';
+import { calibrationAnalysisPlan } from './scienceContract.js';
 
 export const InstrumentStatusSchema = z.enum(['draft', 'frozen_for_calibration', 'confirmatory_ready']);
 export type InstrumentStatus = z.infer<typeof InstrumentStatusSchema>;
@@ -45,7 +46,7 @@ export function freezeCalibrationInstruments(input: CalibrationInstrumentInput):
   const outcomes = { primary: ['role_fidelity'], key_secondary: ['interaction_contingency'], secondary: ['participation', 'initial_final_change'],
     descriptive: ['voting_alignment', 'vote_unanimity', 'minority_preservation', 'final_output_fidelity'], exploratory: ['relation_subtypes', 'final_output_quality'],
     unit: 'paired_block', message_level: 'nested descriptive evidence only' };
-  const sap = input.analysis_plan ?? { version: 'agora-sap-pending-v1', status: 'draft', unit: 'paired_block', bootstrap: { resamples: 10000, confidence: 0.95, interval: 'percentile' }, multiplicity: 'holm_within_prespecified_families' };
+  const sap = input.analysis_plan ?? calibrationAnalysisPlan();
   const designSources = ['AGORA_Phase1_Scientific_Foundation_and_Experimental_Framework.pdf', 'AGORA_Phase1A_Scientific_Basis_for_Behavioral_Rubric.pdf', 'AGORA_Phase1A_Statistical_Analysis_Plan_v0.1_revised.pdf'];
   return [
     manifest('role_registry', input.role_pack.version, roleRegistry, 'frozen_for_calibration', { kind: 'design', sources: designSources, note: 'Functional treatment registry; not a validated personality measure.' }),

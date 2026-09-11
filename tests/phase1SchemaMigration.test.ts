@@ -16,7 +16,7 @@ it('adds Phase 1 calibration and review fields to an existing database idempoten
   const tables = new Set((db.prepare("SELECT name FROM sqlite_master WHERE type = 'table' AND name LIKE 'phase1_%'").all() as { name: string }[]).map(row => row.name));
   expect([...tables]).toEqual(expect.arrayContaining([
     'phase1_instrument_locks', 'phase1_dataset_snapshots', 'phase1_review_assignments',
-    'phase1_review_submissions', 'phase1_adjudications', 'phase1_archive_handoffs',
+    'phase1_review_submissions', 'phase1_review_packages', 'phase1_adjudications', 'phase1_archive_handoffs',
   ]));
   db.close();
 });

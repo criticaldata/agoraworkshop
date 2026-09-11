@@ -4,6 +4,7 @@ import { campaign } from './campaign.js';
 import { canonicalize, configHash } from '../config/hash.js';
 import { nowIso } from '../core/ids.js';
 import { campaignLock, readScienceSnapshot } from './scienceStore.js';
+import { scientificDataset } from './scientificDataset.js';
 
 const text = z.string().trim().min(1).max(100000);
 export const ClosureEvidenceSchema = z.object({
@@ -62,6 +63,12 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
   const preregistered = ['protocol_approval', 'analysis_plan'].every(kind => evidence.some(e => e.kind === kind && e.before_execution === 1));
   const lock = campaignLock(db, id);
   const coverage = lock ? readScienceSnapshot(db, lock).payload.gates?.annotation_coverage_complete === true : false;
+  const currentDataset = lock ? (() => { try { return scientificDataset(db, id); } catch { return null; } })() : null;
+  const reviewPackage = db.prepare(`SELECT p.manifest_json FROM phase1_review_packages p
+    JOIN phase1_dataset_snapshots s ON s.snapshot_id = p.snapshot_id
+    WHERE s.campaign_id = ? ORDER BY p.created_at DESC LIMIT 1`).get(id) as { manifest_json: string } | undefined;
+  const packageManifest = reviewPackage ? JSON.parse(reviewPackage.manifest_json) as { reviewer_count?: number } : null;
+  const humanValidationComplete = !!currentDataset && currentDataset.gates.annotation_coverage_complete === true && currentDataset.gates.reliability_satisfied === true && currentDataset.annotation_conflicts.length === 0 && (packageManifest?.reviewer_count ?? 0) >= 2;
   return {
     version: 'phase1-closure-gates-v1', scope: 'Machine evidence checks, not a scientific release certificate',
     gates: [
@@ -71,10 +78,10 @@ export function closureGates(db: Db, id: string, checks: { id: string; status: s
         'Requires machine provenance plus a locked dataset with complete outcome-specific annotation coverage. Runtime-only success is not full behavioral observability.'),
       gate('P1-C', 'Experimental comparability', plan.comparisons.every(c => c.valid) && plan.input.blocks % 10 === 0,
         'Role-only paired differences; complete five-role rotation crossed with AB/BA order requires a multiple of ten blocks. This is balance, not a power calculation.'),
-      { id: 'P1-D', title: 'Scientific analysis readiness / closure', status: 'PENDING_HUMAN_VALIDATION',
-        reason: missingEvidence.length ? `Human-validation evidence is pending; currently missing: ${missingEvidence.join(', ')}.` : 'Independent human labels, empirical reliability and required adjudication remain the only scientific blockers; no significance test is required for this state.' },
+      { id: 'P1-D', title: 'Scientific analysis readiness / closure', status: humanValidationComplete ? 'PASS' : 'PENDING_HUMAN_VALIDATION',
+        reason: humanValidationComplete ? 'Independent coverage, empirical reliability, disagreement resolution and the content-addressed validation package are complete; no significance test is required.' : missingEvidence.length ? `Human-validation evidence is pending; currently missing: ${missingEvidence.join(', ')}.` : 'Independent human labels, empirical reliability and required adjudication remain the only scientific blockers; no significance test is required for this state.' },
     ],
-    scientific_pass: false, preregistered_documents_recorded: preregistered,
+    scientific_pass: humanValidationComplete, preregistered_documents_recorded: preregistered,
     missing_evidence: missingEvidence,
     evidence: evidence.map(e => ({ hash: e.evidence_hash, kind: e.kind, author: e.payload.author, title: e.payload.title, recorded_at: e.recorded_at, before_execution: !!e.before_execution, verification: 'recorded_not_independently_validated' })),
     scientific_dataset_id: lock,

@@ -27,6 +27,7 @@ export function campaignBundle(db: Db, id: string) {
     scientific_snapshots: scienceSnapshots(db, id), annotation_lock: campaignLock(db, id),
     dataset_snapshots: db.prepare('SELECT snapshot_id, campaign_id, content_hash, revision, state, lock_event_id, created_at, locked_at FROM phase1_dataset_snapshots WHERE campaign_id = ? ORDER BY created_at').all(id),
     archive_handoffs: db.prepare(`SELECT h.* FROM phase1_archive_handoffs h JOIN phase1_dataset_snapshots s ON s.snapshot_id = h.snapshot_id WHERE s.campaign_id = ? ORDER BY h.created_at`).all(id),
+    human_validation_packages: db.prepare(`SELECT p.package_id, p.snapshot_id, p.content_hash, p.created_at FROM phase1_review_packages p JOIN phase1_dataset_snapshots s ON s.snapshot_id = p.snapshot_id WHERE s.campaign_id = ? ORDER BY p.created_at`).all(id),
     artifact_reviews: artifactReviews(db, id),
     usage_ledger: db.prepare('SELECT * FROM phase1_usage WHERE campaign_id = ? ORDER BY rowid').all(id),
     instrument_manifests: frozen.plan.input.evaluation ? freezeCalibrationInstruments({ role_pack: frozen.plan.input.role_pack, evaluation: frozen.plan.input.evaluation, analysis_plan: frozen.plan.input.analysis_plan ?? null, protocol: frozen.plan.input.canonical ?? null }) : [],

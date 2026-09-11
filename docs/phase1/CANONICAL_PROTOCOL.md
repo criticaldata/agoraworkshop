@@ -1,13 +1,11 @@
-# Canonical Phase 1A: eight-stage engineering increment
+# Canonical Phase 1A: eight-stage protocol v1
 
-Follow-up: [SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) now implements the
-configurable scientific machinery listed as pending in this historical increment.
-The eight-stage execution contract itself remains unchanged.
-
-Status: implemented for review, not scientific closure. Based on Mateo's explicit
-September 10 confirmation of S1–S8 and his Scientific Foundation and Experimental
-Framework. The stage order is confirmed; the concrete voting rule below is a
-proposed operational choice, not an approval attributed to Mateo.
+The eight-stage protocol is frozen for calibration. The implementation and source
+traceability are linked from [SCIENTIFIC_CONTRACT.md](SCIENTIFIC_CONTRACT.md),
+[STATISTICAL_ANALYSIS_PLAN.md](STATISTICAL_ANALYSIS_PLAN.md) and
+[PHASE1A_SOURCE_TRACEABILITY.md](PHASE1A_SOURCE_TRACEABILITY.md). Scientific
+closure still waits only for the explicitly documented live and human evidence
+states; no additional stage or protocol design is implied.
 
 This increment builds on merged PR #6 (`7f0cd4d`). No live campaign, production
 deployment, paid provider call, or Phase 1B capability experiment is part of it.

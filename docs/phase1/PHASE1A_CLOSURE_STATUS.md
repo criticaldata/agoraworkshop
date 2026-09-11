@@ -21,8 +21,8 @@ vLLM endpoint and key are present at execution time.
 - frozen calibration instrument manifests and exact S1/S6 questionnaire reuse;
 - ordinal/nominal reliability contracts, paired-block bootstrap and Holm family
   utilities;
-- authenticated blinded assignment, independent submission and append-only
-  adjudication services;
+- content-addressed human-validation package generation, authenticated blinded
+  assignment, independent submission, reviewer UI and append-only adjudication UI;
 - calibration manifest/readiness/launch contract for NVIDIA vLLM `qwen3-32b`.
 
 ## What is not claimed

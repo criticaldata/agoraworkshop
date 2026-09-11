@@ -1,10 +1,15 @@
 import { expect, it } from 'vitest';
+import express from 'express';
+import type { AddressInfo } from 'node:net';
 import {
   authConfigFromEnv,
   createAuthMiddleware,
   permissionForPath,
   type AuthConfig,
 } from '../src/server/auth.js';
+import { permits } from '../src/server/principal.js';
+import { phase1Router } from '../src/server/phase1.js';
+import { tempDb } from './helpers.js';
 
 const basic = (password: string, user: string): string =>
   `Basic ${Buffer.from(`${user}:${password}`, 'utf8').toString('base64')}`;
@@ -28,6 +33,7 @@ it('classifies every Phase 1 sensitive read before route code runs', () => {
   expect(permissionForPath('/phase1/campaigns/c1/review')).toBe('review');
   expect(permissionForPath('/api/phase1/campaigns/c1/science')).toBe('operate');
   expect(permissionForPath('/api/phase1/campaigns/c1/snapshots/s1')).toBe('operate');
+  expect(permissionForPath('/api/phase1/review/snapshots/s1/assignments')).toBe('operate');
 });
 
 it('requires authentication for sensitive GET routes under default write scope', () => {
@@ -44,4 +50,31 @@ it('enforces named reviewer access separately from operator access', () => {
   expect(requestResult(config, '/phase1/campaigns/c1/review', basic('operator-password', 'operator')).status).toBe(403);
   expect(requestResult(config, '/phase1/campaigns/c1/review', basic('review-password', 'alice')).next).toBe(true);
   expect(requestResult(config, '/phase1/campaigns/c1/review', basic('adjudicate-password', 'bob')).next).toBe(true);
+});
+
+it('keeps review-assignment creation out of reviewer permission', () => {
+  expect(permits('reviewer', 'operate')).toBe(false);
+  expect(permits('adjudicator', 'operate')).toBe(false);
+  expect(permits('operator', 'operate')).toBe(true);
+  expect(permits('admin', 'operate')).toBe(true);
+});
+
+it('rejects reviewer assignment creation before reading the requested snapshot', async () => {
+  const db = tempDb(), app = express();
+  app.use(createAuthMiddleware({ password: 'operator-password', users: new Map([['alice', { role: 'reviewer', password: 'review-password' }]]), scope: 'all', realm: 'test' }));
+  app.use(express.json());
+  app.use(phase1Router(db, 'configs/agora_phase0_1_context_contract.yaml'));
+  const server = app.listen(0, '127.0.0.1');
+  await new Promise<void>((resolve, reject) => { server.once('listening', resolve); server.once('error', reject); });
+  try {
+    const address = server.address() as AddressInfo;
+    const response = await fetch(`http://127.0.0.1:${address.port}/api/phase1/review/snapshots/missing/assignments`, {
+      method: 'POST',
+      headers: { authorization: `Basic ${Buffer.from('alice:review-password', 'utf8').toString('base64')}`, 'content-type': 'application/json' },
+      body: JSON.stringify({ reviewers: ['alice', 'bob'] }),
+    });
+    expect(response.status).toBe(403);
+  } finally {
+    server.closeAllConnections(); await new Promise<void>(resolve => server.close(() => resolve())); db.close();
+  }
 });

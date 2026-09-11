@@ -46,6 +46,16 @@ describe('scientific measurement and analysis lifecycle', () => {
     expect(() => AnalysisPlanSchema.parse({ ...raw.analysis_plan, purpose: 'confirmatory' })).toThrow(/Confirmatory/);
     expect(() => planCampaign({ ...raw, evaluation: { ...raw.evaluation, primary_outcomes: ['role_fidelity', 'participation'] } })).toThrow(/exactly one family/);
   });
+  it('exports the frozen reliability and endpoint-family contract with the dataset', async () => {
+    const { db, id } = await executed();
+    const dataset = scientificDataset(db, id);
+    expect(dataset.reliability_contract.rf_icr_alpha_threshold).toBe(0.8);
+    expect(dataset.reliability_contract.rf_icr_min_pairable_units).toBe(30);
+    expect(dataset.reliability_contract.rf_icr_min_coverage).toBe(1);
+    expect(dataset.reliability_contract.outcome_registry.primary).toEqual(['role_fidelity']);
+    expect(dataset.reliability_contract.outcome_registry.key_secondary).toEqual(['interaction_contingency']);
+    db.close();
+  });
   it('collects complete rankings and concerns without redefining position change', async () => {
     const { db, id } = await executed(), c = campaign(db, id), runId = c.cases[0]!.run_id!;
     const rows = positionRows(db, runId);

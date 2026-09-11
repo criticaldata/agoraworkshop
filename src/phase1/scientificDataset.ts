@@ -9,7 +9,7 @@ import { participantSystemPrompt } from '../prompts/registry.js';
 import { auditPrivacyLeaks } from '../acceptance/privacy.js';
 import { configHash, canonicalize } from '../config/hash.js';
 import { krippendorffAlpha, mean } from './statistics.js';
-import { campaignLock, saveScienceSnapshot } from './scienceStore.js';
+import { campaignLock, saveScienceSnapshot, lockDataset } from './scienceStore.js';
 import { codeProvenance } from '../core/provenance.js';
 import { closureEvidence } from './closure.js';
 import { scienceImplementation } from './scienceProvenance.js';
@@ -17,6 +17,8 @@ import { assembleContext } from '../orchestrator/context.js';
 import { readScienceSnapshot, initializeScience } from './scienceStore.js';
 import type { AgentInvocationRequest, AgentInvocationResult } from '../providers/types.js';
 import { artifactReviews } from './artifactReview.js';
+import { reviewWorkspaceAnnotations } from './reviewWorkspace.js';
+import { calibrationOutcomeRegistry, RF_ICR_ALPHA_THRESHOLD, RF_ICR_MIN_COVERAGE, RF_ICR_MIN_PAIRABLE_UNITS } from './reliability.js';
 
 interface CodingUnit {
   key: string; run_id: string; message_id: string; agent_id: string; group: string;
@@ -37,7 +39,7 @@ export function scientificDataset(db: Db, campaignId: string) {
     category: 'role_criterion', criterion_id: `artifact:${r.data.criterion_id}`, label: r.data.score === null ? 'not_assessable' : 'scored', score: r.data.score,
     quote: r.data.quote, reason: r.data.reason, ...(r.data.supersedes ? { supersedes: r.data.supersedes } : {}), ...(r.data.adjudicates ? { adjudicates: r.data.adjudicates } : {}),
   } }));
-  const annotations = [...allAnnotations(db, campaignId), ...normalizedArtifacts], effective = effectiveAnnotations(annotations);
+  const annotations = [...allAnnotations(db, campaignId), ...reviewWorkspaceAnnotations(db, campaignId), ...normalizedArtifacts], effective = effectiveAnnotations(annotations);
   const instrument = { roles: { ...plan.input.role_pack, status: undefined }, evaluation: { ...plan.input.evaluation, status: undefined }, canonical: plan.input.canonical, artifact_rubric: analysisPlan.artifact_rubric ?? null };
   const instrumentHash = configHash(instrument);
   const calibrationRow = analysisPlan.calibration_snapshot_hash ? db.prepare("SELECT id FROM phase1_science_snapshots WHERE content_hash = ? AND kind = 'dataset'").get(analysisPlan.calibration_snapshot_hash) as { id: string } | undefined : undefined;
@@ -207,6 +209,15 @@ export function scientificDataset(db: Db, campaignId: string) {
     manifest: plan, analysis_plan: analysisPlan, source_provenance: codeProvenance(), implementation: scienceImplementation(),
     instrument_hash: instrumentHash,
     source_runs: sourceRuns, annotations, artifact_reviews: artifactReadings, coding_units: resolved, reviewer_identities: reviewers,
+    reliability_contract: {
+      version: 'agora-reliability-contract-v1',
+      rf_icr_alpha_threshold: RF_ICR_ALPHA_THRESHOLD,
+      rf_icr_min_pairable_units: RF_ICR_MIN_PAIRABLE_UNITS,
+      rf_icr_min_coverage: RF_ICR_MIN_COVERAGE,
+      outcome_registry: calibrationOutcomeRegistry(),
+      adjudication_after_independent_labels: true,
+      reliability_is_not_construct_validity: true,
+    },
     annotation_conflicts: effective.conflicts, reliability, relation_reliability: relationReliability, outcomes,
     gates: {
       annotation_coverage_complete: outcomes.every(o => annotationEndpoints.every(e => o.metrics[e] !== null)),
@@ -227,8 +238,8 @@ export function lockScientificDataset(db: Db, id: string) {
     if (previous) throw new Error(`Dataset already locked: ${previous}`);
     const c = campaign(db, id);
     if (c.row.owner_pid || c.cases.some(c => ['pending', 'running'].includes(c.state))) throw new Error('Finish or explicitly resolve all planned cases before locking');
-    const dataset = scientificDataset(db, id), saved = saveScienceSnapshot(db, id, 'dataset', dataset);
+    const dataset = scientificDataset(db, id), locked = lockDataset(db, id, dataset), saved = saveScienceSnapshot(db, id, 'dataset', dataset);
     db.prepare('INSERT INTO phase1_annotation_locks VALUES (?, ?)').run(id, saved.id);
-    return saved;
+    return { ...saved, snapshot_id: locked.id, canonical_hash: locked.sha256 };
   }).immediate();
 }

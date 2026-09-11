@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { frozen, tempDb } from './helpers.js';
 import { campaign, freezeCampaign, planCampaign, runCampaign, starterInput, usage } from '../src/phase1/campaign.js';
-import { aggregateBallots, auditCollective, ballotRows, collectiveRecords, parseBallot, saveCollectiveOutput, type BallotRow } from '../src/phase1/collective.js';
+import { aggregateBallots, auditCollective, ballotRows, canonicalScientificCompletion, collectiveRecords, parseBallot, saveCollectiveOutput, type BallotRow } from '../src/phase1/collective.js';
 import { campaignAnalysis } from '../src/phase1/analysis.js';
 import { closureEvidence, recordClosureEvidence } from '../src/phase1/closure.js';
 import { campaignBundle } from '../src/phase1/export.js';
@@ -61,10 +61,21 @@ describe('canonical eight-stage protocol', () => {
     expect(usage(db, id).attempts).toBe(70); // 2 × (20 dialogue + 10 positions + 5 ballots)
     const report = campaignAnalysis(db, id);
     expect(report.closure.gates.find(g => g.id === 'P1-A')!.status).toBe('PASS');
-    expect(report.closure.gates.find(g => g.id === 'P1-D')!.status).toBe('BLOCKED');
+    expect(report.closure.gates.find(g => g.id === 'P1-D')!.status).toBe('PENDING_HUMAN_VALIDATION');
     expect(report.closure.scientific_pass).toBe(false);
     expect(campaignBundle(db, id).artifacts.runs[0]!.records.phase1_ballots).toHaveLength(5);
     expect(saveCollectiveOutput(db, config, runId).inserted).toBe(false);
+    db.close();
+  });
+
+  it('does not treat a complete but out-of-order stage set as canonical scientific completion', async () => {
+    const { db, runId } = await executed();
+    db.prepare('DELETE FROM phase1_stages WHERE run_id = ?').run(runId);
+    const now = new Date().toISOString();
+    for (const stage of ['S8', 'S7', 'S6', 'S5', 'S4', 'S3', 'S2', 'S1']) {
+      db.prepare("INSERT INTO phase1_stages (run_id, stage, status, started_at, completed_at) VALUES (?, ?, 'complete', ?, ?)").run(runId, stage, now, now);
+    }
+    expect(canonicalScientificCompletion(db, runId)).toBe('invalid');
     db.close();
   });
 

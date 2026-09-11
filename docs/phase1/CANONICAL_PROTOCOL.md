@@ -99,8 +99,9 @@ every scientific gate in Mateo's framework has passed:
 - P1-B: machine-level behavioral observability and provenance completeness.
 - P1-C: role-only paired comparability and full role/order balance. A multiple of
   ten blocks crosses five rotations with AB/BA; it is not a power calculation.
-- P1-D: scientific closure remains BLOCKED. No automatic upgrade from uploads or
-  mock success. Human measurement validation is still required.
+- P1-D: scientific closure is `PENDING_HUMAN_VALIDATION`. No automatic upgrade
+  from uploads or mock success; independent labels, empirical reliability and
+  adjudication are still required.
 
 These checks allow an observed zero position change, zero reviewed interaction,
 or a fully observed no-majority vote. They do not mistake missing observations for

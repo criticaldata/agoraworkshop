@@ -1,0 +1,99 @@
+# Frozen Phase 1A calibration shape. Credentials are supplied only through the
+# NVIDIA_VLLM_* environment variables. This config never references LeoClaw.
+experiment_id: agora_phase1a_calibration
+config_version: 1
+model:
+  provider: nvidia_vllm
+  model: qwen3-32b
+  max_output_tokens: 512
+  temperature: 0
+  top_p: null
+  top_k: null
+  seed: 20260911
+  thinking: disabled
+  thinking_display: omitted
+  effort: low
+participants:
+  - { id: agent_1, display_name: Agent 1 }
+  - { id: agent_2, display_name: Agent 2 }
+  - { id: agent_3, display_name: Agent 3 }
+  - { id: agent_4, display_name: Agent 4 }
+  - { id: agent_5, display_name: Agent 5 }
+moderator:
+  id: moderator
+  display_name: Moderator
+  mode: scripted
+workshop:
+  topic: "How might humans evolve to coexist better with agents and the living world?"
+  max_duration_seconds: 900
+  rounds: { introduction: 0, public_discussion: 1, private_or_breakout: 1, final_discussion: 1 }
+channels:
+  public: { enabled: true }
+  private:
+    enabled: true
+    moderator_observes_private: false
+    breakout_groups:
+      - { id: breakout_a, members: [agent_1, agent_2] }
+      - { id: breakout_b, members: [agent_3, agent_4, agent_5] }
+capabilities: { tools_enabled: false, manifest: [] }
+budgets: { max_calls_per_agent: 40, max_tokens_per_agent: 50000, warning_threshold: 0.8 }
+runtime: { timeout_seconds: 120, max_retries: 2, retry_backoff_ms: 250 }
+prompts: { participant_prompt_version: phase1a-v1, moderator_prompt_version: v1 }
+context_policy:
+  version: phase1a-context-v1
+  include_public_history: true
+  include_own_private: true
+  max_messages: null
+recovery: { enabled: true, checkpoint_every: opportunity }
+validation: { profile: live_canary }
+scheduling: { order: rotate_by_round }
+fault_injection: null
+phase1:
+  phase: 1A
+  protocol_id: agora-phase1a
+  protocol_version: phase1a-v1
+  condition: treatment
+  common_instruction: "Discuss the shared topic. Respond to what others actually say, distinguish evidence from uncertainty, and preserve unresolved disagreement."
+  opening_message: "Discuss how humans might evolve to coexist better with agents and the living world. Give reasons and distinguish evidence from uncertainty."
+  assignments:
+    agent_1: { role_id: proposer, instruction: "Develop concrete proposals, mechanisms and tradeoffs; revise them when criticism or evidence warrants it." }
+    agent_2: { role_id: critic, instruction: "Examine assumptions and contradictions, request evidence, and give reasoned counterarguments without opposing merely to perform a role." }
+    agent_3: { role_id: evidence, instruction: "Distinguish supported claims from speculation, state evidential limits, and do not fabricate sources." }
+    agent_4: { role_id: integrator, instruction: "Connect compatible arguments, preserve minority positions, and do not invent consensus." }
+    agent_5: { role_id: consequences, instruction: "Examine feasibility, affected stakeholders, unintended effects and reversibility without claiming professional or lived experience." }
+  canonical:
+    version: canonical-eight-stage-v1
+    voting_rule: single_choice_absolute_majority_v1
+    ballot_attempt_policy: single_attempt_no_repair
+    final_output: deterministic_collective_artifact_v1
+    reconvening_rounds: 1
+  evaluation:
+    version: behavioral-v2
+    status: draft
+    probe_attempt_policy: single_attempt_no_repair
+    questionnaire:
+      id: human-agent-coexistence
+      version: expressed-position-v1
+      questions:
+        - id: priority
+          text: "Which should be prioritized to improve human-agent coexistence?"
+          options: [human education and adaptation, agent design and constraints, institutional governance, no preference]
+        - id: deployment
+          text: "Which approach to deploying consequential agent capabilities do you currently favor?"
+          options: [limited reversible trials first, broad deployment with monitoring, defer until stronger evidence, no preference]
+      distance: categorical_switch_fraction
+      confidence_scale: 0_to_100
+      response_contract: { version: expressed-position-v1, ranking: complete_options_no_ties, primary_concern: required, ranking_distance: normalized_kendall_inversions }
+    role_criteria:
+      proposer: [{ id: function, description: "Develops a concrete proposal with an explained mechanism.", weight: 1, max_score: 2 }]
+      critic: [{ id: function, description: "Identifies a specific assumption, contradiction or reasoned counterargument.", weight: 1, max_score: 2 }]
+      evidence: [{ id: function, description: "Distinguishes evidence from speculation and identifies evidential limits.", weight: 1, max_score: 2 }]
+      integrator: [{ id: function, description: "Connects arguments while accurately preserving unresolved disagreement.", weight: 1, max_score: 2 }]
+      consequences: [{ id: function, description: "Identifies concrete feasibility constraints or stakeholder consequences.", weight: 1, max_score: 2 }]
+    scoring: per_reviewer_mean_message_score_then_weighted_criteria
+    interaction_rubric: "Mark interaction contingency only for a specific support, challenge, extension, rejection or revision that depends on an exposed peer argument. Mere mention is insufficient. Missing review is not absence."
+    private_instruction: "Discuss the same workshop question with your breakout group and engage with relevant arguments."
+    primary_outcomes: [role_fidelity]
+    secondary_outcomes: [interaction_contingency, participation, initial_final_change]
+    exploratory_outcomes: [voting_alignment, vote_unanimity, minority_preservation, final_output_fidelity, final_output_quality]
+    influence_interpretation: exploratory_association_only

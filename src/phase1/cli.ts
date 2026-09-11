@@ -13,6 +13,7 @@ import { scienceSnapshots, readScienceSnapshot } from './scienceStore.js';
 import { analysisPlanDraft } from './scienceContract.js';
 import { scientificEvaluationDraft } from './evaluationContract.js';
 import { reviewArtifact } from './artifactReview.js';
+import { calibrationManifest, launchInstructions, providerReadiness } from './calibration.js';
 
 export async function phase1Command(db: Db, args: string[], flags: Record<string, string>): Promise<number> {
   const [command, id] = args;
@@ -20,6 +21,20 @@ export async function phase1Command(db: Db, args: string[], flags: Record<string
   const requiredId = () => { if (!id) throw new Error('Campaign ID required'); return id; };
   let result: unknown;
   switch (command) {
+    case 'calibration-manifest': {
+      const frozen = loadConfigFile(flags.config ?? 'configs/agora_phase1a_calibration.yaml');
+      result = calibrationManifest(frozen.config); break;
+    }
+    case 'calibration-ready': {
+      const frozen = loadConfigFile(flags.config ?? 'configs/agora_phase1a_calibration.yaml');
+      const manifest = calibrationManifest(frozen.config); result = { state: providerReadiness(manifest), manifest_hash: manifest.config_hash, launch: launchInstructions(manifest) }; break;
+    }
+    case 'calibration-launch': {
+      const frozen = loadConfigFile(flags.config ?? 'configs/agora_phase1a_calibration.yaml');
+      const manifest = calibrationManifest(frozen.config), state = providerReadiness(manifest);
+      if (state !== 'AVAILABLE') throw new Error('BLOCKED_EXTERNAL_LIVE_PROVIDER: live calibration launch requires NVIDIA_VLLM_BASE_URL and NVIDIA_VLLM_API_KEY');
+      result = { state, launch: launchInstructions(manifest), note: 'Preflight and the linked baseline/rerun/fault campaign must be executed under this manifest; no results are synthesized by this command.' }; break;
+    }
     case 'science-template': result = { ...starterInput(loadConfigFile(flags.config ?? 'configs/agora_phase0_1_context_contract.yaml').config, true), evaluation: scientificEvaluationDraft(), analysis_plan: analysisPlanDraft() }; break;
     case 'science': result = { preview: scientificDataset(db, requiredId()), snapshots: scienceSnapshots(db, id!) }; break;
     case 'lock-dataset': result = lockScientificDataset(db, requiredId()); break;
@@ -39,7 +54,7 @@ export async function phase1Command(db: Db, args: string[], flags: Record<string
       linkEvidence(db, requiredId(), flags.run, flags.purpose as 'exact_rerun' | 'failure_attribution'); result = { linked: true }; break;
     }
     case 'export': result = { path: exportCampaign(db, requiredId(), flags.out ?? 'exports/phase1') }; break;
-    default: throw new Error('Use phase1 template|science-template|plan|draft|freeze|run|show|annotate|review-artifact|evidence|closure-evidence|science|lock-dataset|analyze|snapshot|export. analyze requires --dataset ID. Plan/draft/freeze/annotate/review-artifact/closure-evidence use --input file.json; run requires explicit --live for non-mock providers and --resume for interrupted cases. Template defaults to canonical; --legacy true retains the earlier protocol.');
+    default: throw new Error('Use phase1 calibration-manifest|calibration-ready|calibration-launch|template|science-template|plan|draft|freeze|run|show|annotate|review-artifact|evidence|closure-evidence|science|lock-dataset|analyze|snapshot|export. analyze requires --dataset ID. Plan/draft/freeze/annotate/review-artifact/closure-evidence use --input file.json; run requires explicit --live for non-mock providers and --resume for interrupted cases. Template defaults to canonical; --legacy true retains the earlier protocol.');
   }
   console.log(JSON.stringify(result, null, 2));
   return command === 'run' && campaign(db, id!).row.state !== 'completed' ? 1 : 0;

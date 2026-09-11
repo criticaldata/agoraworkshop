@@ -16,6 +16,7 @@ import { scienceSnapshots, readScienceSnapshot, campaignLock } from '../phase1/s
 import { reviewArtifact, visibleArtifactReviews } from '../phase1/artifactReview.js';
 import { collectiveRecords } from '../phase1/collective.js';
 import { permissionForPath, requirePermission } from './auth.js';
+import { createReviewAssignments, blindedReviewProjection, submitIndependentReview, listAdjudicationCandidates, submitAdjudication } from '../phase1/reviewWorkspace.js';
 
 const esc = (value: unknown) => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]!);
 const json = (value: unknown) => `<pre style="white-space:pre-wrap;overflow-wrap:anywhere">${esc(JSON.stringify(value, null, 2))}</pre>`;
@@ -116,7 +117,7 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.get('/phase1/campaigns/:id/review', (req, res) => {
     const id = String(req.params.id), c = campaign(db, id), author = req.agoraPrincipal?.id ?? '';
     // Deliberately omit conditions, hidden prompts and role assignments here.
-    const sources = c.cases.flatMap(r => r.run_id ? getMessages(db, r.run_id).filter(m => m.sender_agent_id !== c.plan.input.base_config.moderator.id).map(m => ({ run_id: r.run_id!, ...m, evaluator_target_role: c.plan.cases.find(p => p.id === r.case_id)!.targets[m.sender_agent_id] })) : []);
+    const sources = c.cases.flatMap(r => r.run_id ? getMessages(db, r.run_id).filter(m => m.sender_agent_id !== c.plan.input.base_config.moderator.id).map(m => ({ run_id: r.run_id!, ...m })) : []);
     res.send(page('Human evidence review', `<h1>Human evidence review</h1><p>Labels from colleagues are hidden for each source/category until you submit your own. Identity is self-declared under the existing shared researcher credential; this is workflow blinding, not adversarial access isolation. Avoid the unblinded campaign/export pages while independently reviewing.</p>
     <form><label>Reviewer identity <input name="author" value="${esc(author)}" required></label><button>Open my review</button></form>
     <h2>Frozen rubric</h2>${json(c.plan.input.role_pack.rubric)}${json(c.plan.input.role_pack.roles.map(r => ({ id: r.id, title: r.title, assessment_perspective: r.instruction })))}
@@ -150,8 +151,16 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.post('/api/phase1/freeze', (req, res) => res.status(201).json({ id: freezeCampaign(db, draft(String(req.body.draft_id))) }));
   router.get('/api/phase1/campaigns/:id', (req, res) => res.json({ ...campaign(db, String(req.params.id)), analysis: campaignAnalysis(db, String(req.params.id)), execution_error: errors.get(String(req.params.id)) ?? null }));
   router.post('/api/phase1/campaigns/:id/start', (req, res) => { launch(String(req.params.id), req.body.allow_live === true, req.body.resume_interrupted === true); res.status(202).json({ id: req.params.id, status: 'accepted' }); });
-  router.post('/api/phase1/campaigns/:id/annotations', (req, res) => res.status(201).json({ id: annotate(db, String(req.params.id), req.body) }));
-  router.post('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => res.status(201).json({ id: reviewArtifact(db, String(req.params.id), req.body) }));
+  router.post('/api/phase1/campaigns/:id/annotations', (req, res) => {
+    const principal = req.agoraPrincipal;
+    if (!principal) { res.status(401).json({ error: 'authentication required' }); return; }
+    res.status(201).json({ id: annotate(db, String(req.params.id), { ...req.body, author: principal.id }) });
+  });
+  router.post('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => {
+    const principal = req.agoraPrincipal;
+    if (!principal) { res.status(401).json({ error: 'authentication required' }); return; }
+    res.status(201).json({ id: reviewArtifact(db, String(req.params.id), { ...req.body, author: principal.id }) });
+  });
   router.get('/api/phase1/campaigns/:id/artifact-reviews', (req, res) => res.json(visibleArtifactReviews(db, String(req.params.id), req.agoraPrincipal?.id ?? '')));
   router.post('/api/phase1/campaigns/:id/closure-evidence', (req, res) => res.status(201).json(recordClosureEvidence(db, String(req.params.id), req.body)));
   router.get('/api/phase1/campaigns/:id/science', (req, res) => { const id = String(req.params.id), lock = campaignLock(db, id); res.json({ dataset: lock ? readScienceSnapshot(db, lock).payload : scientificDataset(db, id), lock, snapshots: scienceSnapshots(db, id).map(s => ({ id: s.id, kind: s.kind, hash: s.content_hash })) }); });
@@ -159,6 +168,15 @@ export function phase1Router(db: Db, templatePath: string): Router {
   router.post('/api/phase1/campaigns/:id/analyze', (req, res) => res.status(201).json(executeScientificAnalysis(db, String(req.params.id), String(req.body.dataset_id))));
   router.get('/api/phase1/campaigns/:id/snapshots/:snapshot', (req, res) => { const saved = readScienceSnapshot(db, String(req.params.snapshot)); if (saved.campaign_id !== String(req.params.id)) throw new Error('Snapshot belongs to another campaign'); res.attachment(`${saved.id}.json`).json(saved); });
   router.get('/api/phase1/campaigns/:id/annotations', (req, res) => res.json(reviewerAnnotations(db, String(req.params.id), req.agoraPrincipal?.id ?? '')));
+  router.post('/api/phase1/review/snapshots/:snapshot/assignments', (req, res) => {
+    const principal = req.agoraPrincipal;
+    if (!principal || !['admin', 'operator'].includes(principal.role)) { res.status(403).json({ error: 'operator or admin permission required' }); return; }
+    res.status(201).json(createReviewAssignments(db, String(req.params.snapshot), req.body.reviewers));
+  });
+  router.get('/api/phase1/review/assignments/:assignment', (req, res) => res.json(blindedReviewProjection(db, String(req.params.assignment), req.agoraPrincipal!)));
+  router.post('/api/phase1/review/assignments/:assignment', (req, res) => res.status(201).json({ id: submitIndependentReview(db, String(req.params.assignment), req.agoraPrincipal!, req.body.label) }));
+  router.get('/api/phase1/adjudication/:snapshot', (req, res) => res.json({ candidates: listAdjudicationCandidates(db, String(req.params.snapshot)) }));
+  router.post('/api/phase1/adjudication', (req, res) => res.status(201).json({ id: submitAdjudication(db, String(req.body.candidate_id), req.agoraPrincipal!, req.body.decision) }));
   router.post('/api/phase1/campaigns/:id/evidence', (req, res) => { if (!['exact_rerun', 'failure_attribution'].includes(req.body.purpose)) throw new Error('Invalid evidence purpose'); linkEvidence(db, String(req.params.id), String(req.body.run_id), req.body.purpose); res.json({ linked: true }); });
   router.post('/api/phase1/campaigns/:id/export', (req, res) => res.json(campaignBundle(db, String(req.params.id))));
   router.use((error: Error, req: import('express').Request, res: import('express').Response, _next: import('express').NextFunction) => { if (req.path.startsWith('/api/')) res.status(400).json({ error: error.message }); else res.status(400).send(page('Phase 1A validation error', `<h1>Cannot proceed</h1>${json(error.message)}<p>Use Back to correct the draft; frozen campaigns cannot be edited.</p>`)); });

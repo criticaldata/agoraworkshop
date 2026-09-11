@@ -35,6 +35,7 @@ export function parseUsersFromEnv(env: NodeJS.ProcessEnv = process.env): Map<str
 export function permissionForPath(path: string): Permission | null {
   if (!path.startsWith('/phase1') && !path.startsWith('/api/phase1')) return null;
   if (/\/adjudicat(?:ion|e)/.test(path)) return 'adjudicate';
+  if (/\/review\/snapshots\/[^/]+\/assignments$/.test(path)) return 'operate';
   if (/\/review(?:\/|$)|\/annotations(?:\/|$)|\/artifact-reviews(?:\/|$)/.test(path)) return 'review';
   return 'operate';
 }

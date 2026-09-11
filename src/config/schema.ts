@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { Phase1ConfigSchema } from '../phase1/contracts.js';
+import { validateBreakoutAssignment } from '../phase1/canonicalContract.js';
 
 /**
  * The experiment configuration is scientific data, not just wiring. Everything a
@@ -343,6 +344,8 @@ export const ExperimentConfigSchema = z
           cfg.capabilities.tools_enabled || cfg.capabilities.manifest.length || cfg.tool_probe?.enabled) {
         ctx.addIssue({ code: 'custom', message: 'Canonical Phase 1 requires evaluation, five participants, scripted moderator, no introduction rounds, positive S2/S3/S5 rounds, exactly one breakout per participant, and no tools.' });
       }
+      const topology = validateBreakoutAssignment(cfg.channels.private.breakout_groups, cfg.participants.map(p => p.id), cfg.moderator.id);
+      for (const error of topology.errors) ctx.addIssue({ code: 'custom', message: error, path: ['channels', 'private', 'breakout_groups'] });
     }
   });
 

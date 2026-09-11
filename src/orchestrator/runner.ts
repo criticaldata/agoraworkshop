@@ -324,7 +324,8 @@ export class WorkshopRunner {
         this.beginCanonicalStage('S7');
         await collectBallots({ db: this.db, config: this.config, runId: this.runId, hash: this.frozen.hash,
           history: this.history, provider: this.provider, budgets: this.budgets, stopped: () => this.stopRequested(),
-          onRecord: row => this.emit('phase1_ballot_recorded', { agent_id: row.agent_id, payload: { record_id: row.record_id, status: row.status } }),
+          stopReason: () => this.cancelRequested ? 'cancellation' : this.deadlineHit ? 'deadline' : 'unknown_incomplete',
+          onRecord: row => this.emit('phase1_ballot_recorded', { trace_id: row.trace_id ?? null, agent_id: row.agent_id, payload: { record_id: row.record_id, status: row.status, terminal_status: row.terminal_status ?? null, trace_id: row.trace_id ?? null } }),
         });
         this.endCanonicalStage('S7', ballotRows(this.db, this.runId).filter(r => r.status === 'valid').length === 5);
         this.beginCanonicalStage('S8');

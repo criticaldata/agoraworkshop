@@ -201,7 +201,7 @@ function evaluateTraceCompleteness(
   }
   for (const opportunity of opportunities) {
     const hasInvocation = (invocationsByOpportunity.get(opportunity.opportunity_id) ?? 0) > 0;
-    if (!hasInvocation && opportunity.resolution !== 'infrastructure_failure') {
+    if (!hasInvocation && opportunity.behaviourally_available === 1 && opportunity.resolution !== 'infrastructure_failure') {
       problems.push(`${opportunity.opportunity_id}: resolved behavioural opportunity has no invocation`);
     }
     if (opportunity.message_id && !messageById.has(opportunity.message_id)) {

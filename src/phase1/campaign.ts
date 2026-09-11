@@ -77,6 +77,40 @@ export function initializePhase1(db: Db): void {
       id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL REFERENCES phase1_campaigns(id),
       run_id TEXT NOT NULL REFERENCES runs(run_id), message_id TEXT NOT NULL REFERENCES messages(message_id),
       author TEXT NOT NULL, payload_json TEXT NOT NULL, created_at TEXT NOT NULL);
+    CREATE TABLE IF NOT EXISTS phase1_instrument_locks (
+      lock_id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL REFERENCES phase1_campaigns(id) ON DELETE CASCADE,
+      instrument_id TEXT NOT NULL, version TEXT NOT NULL, content_hash TEXT NOT NULL,
+      payload_json TEXT NOT NULL, status TEXT NOT NULL, locked_at TEXT NOT NULL,
+      UNIQUE(campaign_id, instrument_id, version));
+    CREATE TABLE IF NOT EXISTS phase1_dataset_snapshots (
+      snapshot_id TEXT PRIMARY KEY, campaign_id TEXT NOT NULL REFERENCES phase1_campaigns(id) ON DELETE CASCADE,
+      canonical_bytes BLOB NOT NULL, payload_json TEXT NOT NULL, content_hash TEXT NOT NULL UNIQUE,
+      revision INTEGER NOT NULL DEFAULT 1, state TEXT NOT NULL, lock_event_id TEXT,
+      created_at TEXT NOT NULL, locked_at TEXT);
+    CREATE TABLE IF NOT EXISTS phase1_review_assignments (
+      assignment_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+      reviewer_id TEXT NOT NULL, unit_id TEXT NOT NULL, blinded_payload_json TEXT NOT NULL,
+      status TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(snapshot_id, reviewer_id, unit_id));
+    CREATE INDEX IF NOT EXISTS idx_phase1_review_assignments_reviewer
+      ON phase1_review_assignments(snapshot_id, reviewer_id, status);
+    CREATE TABLE IF NOT EXISTS phase1_review_submissions (
+      submission_id TEXT PRIMARY KEY, assignment_id TEXT NOT NULL REFERENCES phase1_review_assignments(assignment_id) ON DELETE CASCADE,
+      snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+      unit_id TEXT NOT NULL, reviewer_id TEXT NOT NULL, label_json TEXT NOT NULL,
+      label_hash TEXT NOT NULL, submitted_at TEXT NOT NULL,
+      UNIQUE(assignment_id, reviewer_id));
+    CREATE INDEX IF NOT EXISTS idx_phase1_review_submissions_unit
+      ON phase1_review_submissions(snapshot_id, unit_id, reviewer_id);
+    CREATE TABLE IF NOT EXISTS phase1_adjudications (
+      adjudication_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+      unit_id TEXT NOT NULL, adjudicator_id TEXT NOT NULL, decision_json TEXT NOT NULL,
+      rationale TEXT NOT NULL, source_submission_ids_json TEXT NOT NULL, created_at TEXT NOT NULL,
+      UNIQUE(snapshot_id, unit_id));
+    CREATE TABLE IF NOT EXISTS phase1_archive_handoffs (
+      handoff_id TEXT PRIMARY KEY, snapshot_id TEXT NOT NULL REFERENCES phase1_dataset_snapshots(snapshot_id) ON DELETE CASCADE,
+      canonical_hash TEXT NOT NULL, archive_uri TEXT, status TEXT NOT NULL,
+      confirmed_at TEXT, created_at TEXT NOT NULL, UNIQUE(snapshot_id));
   `);
 }
 

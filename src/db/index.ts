@@ -27,6 +27,15 @@ const ADDED_COLUMNS: Record<string, Array<[string, string]>> = {
     ['restore_event_sequence_contiguous', 'restore_event_sequence_contiguous INTEGER NOT NULL DEFAULT 0'],
     ['restore_tables_json', "restore_tables_json TEXT NOT NULL DEFAULT '[]'"],
   ],
+  phase1_ballots: [
+    ['trace_id', 'trace_id TEXT'],
+    ['opportunity_id', 'opportunity_id TEXT'],
+    ['invocation_id', 'invocation_id TEXT'],
+    ['terminal_status', 'terminal_status TEXT'],
+    ['failure_category', 'failure_category TEXT'],
+    ['authorized_context_json', "authorized_context_json TEXT NOT NULL DEFAULT '[]'"],
+    ['usage_json', "usage_json TEXT NOT NULL DEFAULT '{}'"],
+  ],
 };
 
 /**

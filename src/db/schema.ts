@@ -7,6 +7,10 @@ CREATE TABLE IF NOT EXISTS phase1_ballots (
   run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
   agent_id TEXT NOT NULL, status TEXT NOT NULL,
   request_json TEXT, response_json TEXT, value_json TEXT, error TEXT,
+  trace_id TEXT, opportunity_id TEXT, invocation_id TEXT,
+  terminal_status TEXT, failure_category TEXT,
+  authorized_context_json TEXT NOT NULL DEFAULT '[]',
+  usage_json TEXT NOT NULL DEFAULT '{}',
   created_at TEXT NOT NULL, completed_at TEXT,
   UNIQUE(run_id, agent_id)
 );

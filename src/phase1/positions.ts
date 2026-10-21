@@ -7,6 +7,7 @@ import { assembleContext } from '../orchestrator/context.js';
 import type { StoredMessage } from '../orchestrator/visibility.js';
 import type { BudgetLedger } from '../orchestrator/budgets.js';
 import { newInvocationId, newTraceId, nowIso } from '../core/ids.js';
+import { canonicalize } from '../config/hash.js';
 
 export interface PositionRow {
   record_id: string; run_id: string; agent_id: string; phase: 'initial' | 'final';
@@ -16,6 +17,7 @@ export interface PositionRow {
 export const PositionAnswerSchema = z.object({ answers: z.array(z.object({
   question_id: z.string(), choice: z.string(), confidence: z.number().min(0).max(100),
   rationale: z.string().trim().min(1).max(12000),
+  priority_ranking: z.array(z.string()).optional(), primary_concern: z.string().trim().min(1).max(12000).optional(),
 }).strict()) }).strict();
 export type PositionAnswer = z.infer<typeof PositionAnswerSchema>;
 
@@ -24,11 +26,18 @@ export function parsePosition(content: string, config: ExperimentConfig): Positi
   const questions = config.phase1!.evaluation!.questionnaire.questions;
   if (result.answers.length !== questions.length || new Set(result.answers.map(a => a.question_id)).size !== questions.length) throw new Error('Every question must be answered exactly once');
   for (const q of questions) if (!q.options.includes(result.answers.find(a => a.question_id === q.id)?.choice ?? '')) throw new Error(`Invalid or missing choice for ${q.id}`);
+  for (const answer of result.answers) {
+    const q = questions.find(q => q.id === answer.question_id)!;
+    if (config.phase1!.evaluation!.questionnaire.response_contract) {
+      if (!answer.primary_concern || !answer.priority_ranking || answer.priority_ranking.length !== q.options.length || new Set(answer.priority_ranking).size !== q.options.length || answer.priority_ranking.some(o => !q.options.includes(o))) throw new Error('Expressed-position v1 requires a primary concern and a complete ranking without ties');
+    } else if (answer.priority_ranking || answer.primary_concern !== undefined) throw new Error('Extended fields require an expressed-position response contract');
+  }
   return result;
 }
 
 export function positionInstruction(config: ExperimentConfig): string {
   const instrument = config.phase1!.evaluation!.questionnaire;
+  if (instrument.response_contract) return 'AGORA_EXPRESSED_POSITION_V1\n' + canonicalize(instrument) + '\nRecord your expressed position, not a claim about latent beliefs. Return only JSON: {"answers":[{"question_id":"...","choice":"exact option","priority_ranking":["all exact options, highest priority first"],"confidence":50,"rationale":"main reason","primary_concern":"main concern"}]}. Answer every question once. Rank every option exactly once with no ties. Preferred choice and priority ranking are separate responses; they need not agree. Expressed confidence ranges from 0 to 100 and is not a calibrated probability. Responses are not broadcast to participants. Invalid responses are retained without repair.';
   return 'AGORA_POSITION_PROBE_V1\n' + JSON.stringify(instrument) + '\nReport your current position on each question using exactly one listed option. Confidence is your expressed confidence from 0 to 100, not a calibrated probability. Return only JSON: {"answers":[{"question_id":"...","choice":"exact option","confidence":50,"rationale":"reason"}]}. Answer every question once. This assessment is not broadcast to workshop participants.';
 }
 
@@ -95,5 +104,13 @@ export async function collectPositions(input: {
 /** Provider-independent mock fixture: a valid response proves schema plumbing,
  * not deliberation, confidence calibration or role fidelity. */
 export function mockPositionContent(request: AgentInvocationRequest): string | null {
-  return request.positionProbe ? JSON.stringify({ answers: request.positionProbe.questions.map(q => ({ question_id: q.id, choice: q.options[0], confidence: 50, rationale: 'Deterministic measurement fixture; not a behavioral finding.' })) }) : null;
+  if (request.ballotProbe) return JSON.stringify({ ballots: request.ballotProbe.questions.map(q => ({ question_id: q.id, choice: q.options[0] })) });
+  return request.positionProbe ? JSON.stringify({ answers: request.positionProbe.questions.map(q => ({ question_id: q.id, choice: q.options[0], confidence: 50, rationale: 'Deterministic measurement fixture; not a behavioral finding.', ...(request.positionProbe!.response_contract ? { priority_ranking: q.options, primary_concern: 'Synthetic fixture only.' } : {}) })) }) : null;
+}
+
+export function rankingDistance(a: string[], b: string[]): number {
+  if (a.length < 2 || a.length !== b.length || new Set(a).size !== a.length || new Set(b).size !== b.length || a.some(x => !b.includes(x))) throw new Error('Rankings must be permutations of the same options');
+  let inversions = 0;
+  for (let i = 0; i < a.length; i++) for (let j = i + 1; j < a.length; j++) if (b.indexOf(a[i]!) > b.indexOf(a[j]!)) inversions++;
+  return inversions / (a.length * (a.length - 1) / 2);
 }

@@ -7,6 +7,8 @@ import { behavioralMeasures } from './behavioralAnalysis.js';
 import { positionRows } from './positions.js';
 import { isVisibleTo } from '../orchestrator/visibility.js';
 import type { AgentInvocationRequest } from '../providers/types.js';
+import { auditCollective, collectiveRecords } from './collective.js';
+import { closureGates } from './closure.js';
 
 const VERSION = 'phase1a-descriptive-v1';
 function ratio(numerator: number, denominator: number, source_ids: string[], exclusions: string) {
@@ -54,7 +56,10 @@ export function campaignAnalysis(db: Db, id: string) {
     const calls = c.run_id ? getInvocations(db, c.run_id).filter(i => i.agent_id !== planned.config.moderator.id) : [];
     checks.push({ id: `P1A-PROMPTS:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.every(i => i.system_prompt === participantSystemPrompt(planned.config, i.agent_id).text) ? 'PASS' : 'FAIL', note: 'Recorded participant system prompts equal the frozen resolver.' });
     checks.push({ id: `P1A-VISIBILITY:${c.case_id}`, status: !c.run_id || !calls.length ? 'NOT_EXERCISED' : auditPrivacyLeaks(db, c.run_id).violations.length ? 'FAIL' : 'PASS', note: 'Reuse the existing context-visibility audit; not a claim about generated disclosure.' });
-    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : calls.some(i => i.outcome !== 'success') ? 'FAIL' : 'PASS', note: 'Any provider failure is visible; a completed run does not imply every call succeeded.' });
+    const opportunities = c.run_id ? getOpportunities(db, c.run_id) : [];
+    const retainedRetries = plan.input.analysis_plan?.retain_successful_retries === true;
+    const deliveryOkay = calls.every(i => i.outcome === 'success' || (retainedRetries && opportunities.some(o => o.opportunity_id === i.opportunity_id && o.resolution === 'success' && i.attempt < o.attempts)));
+    checks.push({ id: `P1A-DELIVERY:${c.case_id}`, status: !calls.length ? 'NOT_EXERCISED' : deliveryOkay ? 'PASS' : 'FAIL', note: retainedRetries ? 'Frozen analysis policy permits failed attempts only when the same opportunity subsequently succeeded; retry burden is retained.' : 'Any provider failure is visible; a completed run does not imply every call succeeded.' });
     if (planned.config.phase1?.evaluation) {
       const probes = c.run_id ? positionRows(db, c.run_id) : [];
       checks.push({ id: `P1A-POSITIONS:${c.case_id}`, status: probes.length === 10 && probes.every(r => r.status === 'valid') ? 'PASS' : 'NOT_EXERCISED', note: 'Ten schema-valid assessment records required; no requirement for a nonzero position change.' });
@@ -90,7 +95,13 @@ export function campaignAnalysis(db: Db, id: string) {
       contribution_share_differences: treatment.by_agent.map(t => { const controlValue = control.by_agent.find(a => a.agent_id === t.agent_id)!.contribution_share.value; return { agent_id: t.agent_id, treatment_minus_control: complete && t.contribution_share.value !== null && controlValue !== null ? t.contribution_share.value - controlValue : null }; }),
     };
   });
+  const collective = plan.input.canonical ? cases.map(c => ({ case_id: c.case_id, run_id: c.run_id,
+    records: c.run_id ? collectiveRecords(db, c.run_id) : null,
+    audit: c.run_id ? auditCollective(db, plan.cases.find(p => p.id === c.case_id)!.config, c.run_id) : { complete: false, verified: false, issues: ['Not started'] },
+  })) : [];
+  for (const c of collective) checks.push({ id: `P1A-CANONICAL:${c.case_id}`, status: !c.run_id ? 'NOT_EXERCISED' : c.audit.complete && c.audit.verified ? 'PASS' : 'FAIL', note: c.audit.issues.join('; ') || 'Eight stages complete; sealed ballots and deterministic final artifact verified.' });
   return { version: VERSION, campaign_id: id, state: row.state,
+    collective, closure: closureGates(db, id, checks, collective.map(c => c.audit)),
     denominators: { planned: cases.length, executed: cases.filter(c => c.run_id).length, completed: cases.filter(c => c.state === 'completed').length, failed: cases.filter(c => c.state === 'failed').length, interrupted: cases.filter(c => c.state === 'interrupted').length, budget_skipped: cases.filter(c => c.state === 'budget_skipped').length, annotated_runs: new Set(annotations.map(a => a.run_id)).size, annotated_messages: new Set(annotations.map(a => a.message_id)).size, annotation_records: annotations.length },
     status: { engineering_verified: false, runtime_checks_passed: checks.every(c => c.status === 'PASS'), live_executed: cases.some(c => c.run_id && !['mock', 'mock_context_contract'].includes(getRun(db, c.run_id)!.provider) && getInvocations(db, c.run_id).some(i => ['openai', 'anthropic', 'nvidia_vllm'].includes(i.provider))), human_annotated: annotations.length > 0, scientific_analysis_completed: false },
     status_note: 'Runtime checks are not a release certificate. Engineering verification requires the test/build evidence in docs/phase1/REVIEW.md. Scientific outcomes require reviewed labels and a separately specified analysis plan.',

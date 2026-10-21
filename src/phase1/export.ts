@@ -7,9 +7,12 @@ import { campaign, previewPrompts } from './campaign.js';
 import { campaignAnalysis } from './analysis.js';
 import { allAnnotations } from '../semantic/phase1Annotations.js';
 import { getRun } from '../db/queries.js';
+import { closureEvidence } from './closure.js';
+import { scienceSnapshots, campaignLock } from './scienceStore.js';
+import { artifactReviews } from './artifactReview.js';
 
 // Includes partial evidence, recovery records and existing semantic artifacts.
-const TABLES = ['events', 'messages', 'invocations', 'opportunities', 'state_transitions', 'context_summaries', 'tool_calls', 'run_checkpoints', 'semantic_extractions', 'semantic_nodes', 'semantic_edges', 'semantic_evidence', 'phase1_positions'] as const;
+const TABLES = ['events', 'messages', 'invocations', 'opportunities', 'state_transitions', 'context_summaries', 'tool_calls', 'run_checkpoints', 'semantic_extractions', 'semantic_nodes', 'semantic_edges', 'semantic_evidence', 'phase1_positions', 'phase1_stages', 'phase1_ballots', 'phase1_collective_outputs'] as const;
 export function campaignBundle(db: Db, id: string) {
   const frozen = campaign(db, id);
   const evidence = db.prepare('SELECT * FROM phase1_evidence WHERE campaign_id = ?').all(id) as { run_id: string; purpose: string }[];
@@ -19,6 +22,9 @@ export function campaignBundle(db: Db, id: string) {
     manifest: { ...frozen, exporter_provenance: codeProvenance() },
     prompts: previewPrompts(frozen.plan), comparison: campaignAnalysis(db, id),
     annotations: allAnnotations(db, id), evidence_links: evidence, runs,
+    closure_evidence: closureEvidence(db, id),
+    scientific_snapshots: scienceSnapshots(db, id), annotation_lock: campaignLock(db, id),
+    artifact_reviews: artifactReviews(db, id),
     usage_ledger: db.prepare('SELECT * FROM phase1_usage WHERE campaign_id = ? ORDER BY rowid').all(id),
   };
   return { format: 'phase1a-review-bundle-v1', warning: 'Unblinded researcher export: includes private transcripts, hidden role assignments and all human labels. Share only within the approved research access boundary.',

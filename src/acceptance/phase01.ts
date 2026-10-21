@@ -387,7 +387,7 @@ function evaluateModeratorBoundary(
 ): Phase01Metric {
   if (!config || !run || config.moderator.mode !== 'scripted') return { id: 'M29', status: 'NOT_EXERCISED', evidence: 'scripted moderator condition was not configured' };
   const moderatorInvocations = invocations.filter((row) => row.agent_id === config.moderator.id);
-  const expectedScriptVersion = scriptedModeratorVersion(config.phase1?.opening_message);
+  const expectedScriptVersion = scriptedModeratorVersion(config.phase1?.opening_message, !!config.phase1?.canonical);
   if (moderatorInvocations.length === 0) return { id: 'M29', status: 'NOT_EXERCISED', evidence: 'scripted moderator was configured but no moderator turn was recorded' };
   const problems: string[] = [];
   for (const invocation of moderatorInvocations) {

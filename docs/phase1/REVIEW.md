@@ -1,5 +1,34 @@
 # Phase 1A implementation — review guide
 
+## Scientific machinery increment
+
+[SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) documents the new opt-in v2
+questionnaire, endpoint families, coding/adjudication resolution, Krippendorff
+reliability, paired bootstrap/Holm calculations, optional REML sensitivity model,
+human S8 quality review, immutable datasets/analysis snapshots and UI/API/CLI.
+It supersedes the pending-engineering list below; final scientific choices and
+live evidence remain pending. No production deployment or paid experiment ran.
+
+Verification: **466 tests in 45 files passed**, including published reliability
+reference examples, seeded numerical checks, snapshot/locking/tampering tests and
+the scientific UI/API lifecycle. Build and whitespace checks passed. These results
+validate engineering behavior, not the scientific instruments themselves.
+
+## Canonical eight-stage increment
+
+See [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md) for the confirmed stage sequence,
+proposed S7 rule, new UI and test coverage. The new branch builds on merged PR #6.
+S4 reconvening, S6-before-S7 sealing, deterministic S8, durable records, exports and
+closure evidence registration are implemented. Scientific PASS stays blocked;
+rubric-specific calibration/reliability and inferential evaluators remain a separate
+increment after their contracts are agreed. No live experiment or deployment ran.
+
+Verification for this increment (September 10, 2026): `npm test` — **451 tests in
+42 files passed**; `npm run build` passed; `git diff --check` passed. These are
+engineering checks, not live calibration or scientific validation evidence.
+
+The sections below describe the previously merged behavioral foundation.
+
 This branch extends the existing instrument, not the scientific peer-review pipeline
 described in the September PDFs. The controlling proposal is
 [IMPLEMENTATION_SPEC.md](IMPLEMENTATION_SPEC.md). The roles and rubric remain DRAFT.

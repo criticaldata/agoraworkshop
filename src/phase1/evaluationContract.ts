@@ -1,22 +1,30 @@
 import { z } from 'zod';
 
 const text = z.string().trim().min(1).max(12000);
+export const OutcomeIdSchema = z.enum(['role_fidelity', 'interaction_contingency', 'participation', 'initial_final_change', 'voting_alignment', 'vote_unanimity', 'minority_preservation', 'final_output_fidelity', 'final_output_quality']);
 export const EvaluationSchema = z.object({
-  version: z.literal('behavioral-v1'), status: z.enum(['draft', 'reviewed']),
+  version: z.enum(['behavioral-v1', 'behavioral-v2']), status: z.enum(['draft', 'reviewed']),
   probe_attempt_policy: z.literal('single_attempt_no_repair'),
   questionnaire: z.object({
     id: text, version: text,
     questions: z.array(z.object({ id: text, text, options: z.array(text).min(2).max(10) }).strict()).min(1).max(10),
     distance: z.literal('categorical_switch_fraction'),
     confidence_scale: z.literal('0_to_100'),
+    response_contract: z.object({ version: z.literal('expressed-position-v1'), ranking: z.literal('complete_options_no_ties'), primary_concern: z.literal('required'), ranking_distance: z.literal('normalized_kendall_inversions') }).strict().optional(),
   }).strict(),
   role_criteria: z.record(z.string(), z.array(z.object({ id: text, description: text, weight: z.number().positive(), max_score: z.literal(2) }).strict()).min(1).max(10)),
   scoring: z.literal('per_reviewer_mean_message_score_then_weighted_criteria'),
   interaction_rubric: text,
   private_instruction: text,
-  primary_outcomes: z.tuple([z.literal('role_fidelity'), z.literal('interaction_contingency'), z.literal('participation'), z.literal('initial_final_change')]),
+  primary_outcomes: z.array(OutcomeIdSchema).min(1),
+  secondary_outcomes: z.array(OutcomeIdSchema).optional(),
+  exploratory_outcomes: z.array(OutcomeIdSchema).optional(),
   influence_interpretation: z.literal('exploratory_association_only'),
 }).strict().superRefine((e, ctx) => {
+  if (e.version === 'behavioral-v1' && (JSON.stringify(e.primary_outcomes) !== JSON.stringify(['role_fidelity', 'interaction_contingency', 'participation', 'initial_final_change']) || e.secondary_outcomes || e.exploratory_outcomes || e.questionnaire.response_contract)) ctx.addIssue({ code: 'custom', message: 'Legacy behavioral-v1 is unchanged; select behavioral-v2 for new instruments/hierarchy' });
+  if (e.version === 'behavioral-v2' && (!e.secondary_outcomes || !e.exploratory_outcomes)) ctx.addIssue({ code: 'custom', message: 'behavioral-v2 requires explicit secondary and exploratory outcome arrays' });
+  const outcomes = [...e.primary_outcomes, ...(e.secondary_outcomes ?? []), ...(e.exploratory_outcomes ?? [])];
+  if (new Set(outcomes).size !== outcomes.length) ctx.addIssue({ code: 'custom', message: 'Each outcome must belong to exactly one family' });
   const questions = e.questionnaire.questions;
   if (new Set(questions.map(q => q.id)).size !== questions.length || questions.some(q => new Set(q.options).size !== q.options.length)) ctx.addIssue({ code: 'custom', message: 'Question IDs and each question option must be unique' });
   for (const criteria of Object.values(e.role_criteria)) if (new Set(criteria.map(c => c.id)).size !== criteria.length) ctx.addIssue({ code: 'custom', message: 'Criterion IDs must be unique within each role' });
@@ -48,3 +56,12 @@ export const DRAFT_EVALUATION: Evaluation = {
   primary_outcomes: ['role_fidelity', 'interaction_contingency', 'participation', 'initial_final_change'],
   influence_interpretation: 'exploratory_association_only',
 };
+
+/** Explicit draft, never a migration of an existing frozen campaign. */
+export function scientificEvaluationDraft(): Evaluation {
+  return EvaluationSchema.parse({ ...structuredClone(DRAFT_EVALUATION), version: 'behavioral-v2',
+    questionnaire: { ...structuredClone(DRAFT_EVALUATION.questionnaire), version: 'expressed-draft-1', response_contract: { version: 'expressed-position-v1', ranking: 'complete_options_no_ties', primary_concern: 'required', ranking_distance: 'normalized_kendall_inversions' } },
+    primary_outcomes: ['role_fidelity'], secondary_outcomes: ['interaction_contingency', 'participation', 'initial_final_change'],
+    exploratory_outcomes: ['voting_alignment', 'vote_unanimity', 'minority_preservation', 'final_output_fidelity'],
+  });
+}

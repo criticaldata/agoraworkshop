@@ -2,6 +2,25 @@ export const SCHEMA_SQL = `
 PRAGMA journal_mode = WAL;
 PRAGMA foreign_keys = ON;
 
+CREATE TABLE IF NOT EXISTS phase1_ballots (
+  record_id TEXT PRIMARY KEY,
+  run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  agent_id TEXT NOT NULL, status TEXT NOT NULL,
+  request_json TEXT, response_json TEXT, value_json TEXT, error TEXT,
+  created_at TEXT NOT NULL, completed_at TEXT,
+  UNIQUE(run_id, agent_id)
+);
+CREATE TABLE IF NOT EXISTS phase1_stages (
+  run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,
+  stage TEXT NOT NULL, status TEXT NOT NULL,
+  started_at TEXT NOT NULL, completed_at TEXT,
+  PRIMARY KEY(run_id, stage)
+);
+CREATE TABLE IF NOT EXISTS phase1_collective_outputs (
+  run_id TEXT PRIMARY KEY REFERENCES runs(run_id) ON DELETE CASCADE,
+  artifact_json TEXT NOT NULL, artifact_hash TEXT NOT NULL, created_at TEXT NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS phase1_positions (
   record_id TEXT PRIMARY KEY,
   run_id TEXT NOT NULL REFERENCES runs(run_id) ON DELETE CASCADE,

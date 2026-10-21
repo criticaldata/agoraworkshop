@@ -12,6 +12,7 @@ export const WORKSHOP_STATES = [
   'INTRODUCTION',
   'PUBLIC_DISCUSSION',
   'PRIVATE_OR_BREAKOUT',
+  'PUBLIC_RECONVENING',
   'FINAL_DISCUSSION',
   'CLOSING',
   'COMPLETED',
@@ -26,6 +27,7 @@ export const ACTIVE_STATES = [
   'INTRODUCTION',
   'PUBLIC_DISCUSSION',
   'PRIVATE_OR_BREAKOUT',
+  'PUBLIC_RECONVENING',
   'FINAL_DISCUSSION',
   'CLOSING',
 ] as const;
@@ -331,6 +333,16 @@ export const ExperimentConfigSchema = z
         code: 'custom',
         message: 'private channel is enabled but no breakout groups are defined',
       });
+    }
+    if (cfg.phase1?.canonical) {
+      const r = cfg.workshop.rounds;
+      const memberships = cfg.channels.private.breakout_groups.flatMap(g => g.members);
+      if (!cfg.phase1.evaluation || cfg.participants.length !== 5 || cfg.moderator.mode !== 'scripted' ||
+          r.introduction !== 0 || r.public_discussion < 1 || r.private_or_breakout < 1 || r.final_discussion < 1 ||
+          !cfg.channels.private.enabled || cfg.participants.some(p => memberships.filter(id => id === p.id).length !== 1) ||
+          cfg.capabilities.tools_enabled || cfg.capabilities.manifest.length || cfg.tool_probe?.enabled) {
+        ctx.addIssue({ code: 'custom', message: 'Canonical Phase 1 requires evaluation, five participants, scripted moderator, no introduction rounds, positive S2/S3/S5 rounds, exactly one breakout per participant, and no tools.' });
+      }
     }
   });
 

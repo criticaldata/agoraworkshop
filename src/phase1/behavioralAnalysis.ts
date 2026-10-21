@@ -1,7 +1,7 @@
 import type { Db } from '../db/index.js';
 import { getMessages } from '../db/queries.js';
 import { allAnnotations, annotationKey, wasExposed, type AnnotationRecord } from '../semantic/phase1Annotations.js';
-import { positionRows, type PositionAnswer } from './positions.js';
+import { positionRows, rankingDistance, type PositionAnswer } from './positions.js';
 import type { PlannedCase } from './campaign.js';
 
 const VERSION = 'behavioral-outcomes-v1';
@@ -30,7 +30,8 @@ export function behavioralMeasures(db: Db, campaignId: string, planned: PlannedC
     const after = final?.status === 'valid' ? JSON.parse(final.value_json!) as PositionAnswer : null;
     const questions = evaluation.questionnaire.questions.map(q => {
       const a = before?.answers.find(a => a.question_id === q.id), b = after?.answers.find(a => a.question_id === q.id);
-      return { question_id: q.id, initial: a ?? null, final: b ?? null, switched: a && b ? Number(a.choice !== b.choice) : null, confidence_shift: a && b ? b.confidence - a.confidence : null };
+      return { question_id: q.id, initial: a ?? null, final: b ?? null, switched: a && b ? Number(a.choice !== b.choice) : null, confidence_shift: a && b ? b.confidence - a.confidence : null,
+        ...(evaluation.questionnaire.response_contract ? { ranking_change: a?.priority_ranking && b?.priority_ranking ? rankingDistance(a.priority_ranking, b.priority_ranking) : null, ranking_interpretation: 'Separate exploratory distance; does not change categorical-switch endpoint.' } : {}) };
     });
     return { agent_id: p.id, initial_record: initial?.record_id ?? null, final_record: final?.record_id ?? null,
       initial_status: initial?.status ?? 'not_recorded', final_status: final?.status ?? 'not_recorded', questions,

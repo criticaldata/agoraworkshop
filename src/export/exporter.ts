@@ -86,6 +86,13 @@ export function exportRun(options: ExportOptions): ExportResult {
 
   write('canonical_config.yaml', 'config', toYaml(config));
   write('canonical_config.json', 'config', `${run.config_canonical}\n`);
+  if (config.phase1?.canonical) {
+    write('phase1_collective.json', 'phase1_collective', json({
+      warning: 'Researcher-only: includes sealed individual ballots and their authorized private context. Not a public participant artifact.',
+      protocol: config.phase1.canonical,
+      records: Object.fromEntries(['phase1_stages', 'phase1_ballots', 'phase1_collective_outputs'].map(table => [table, db.prepare(`SELECT * FROM ${table} WHERE run_id = ? ORDER BY rowid`).all(runId)])),
+    }));
+  }
   if (config.phase1?.evaluation) {
     write('phase1_positions.json', 'phase1_assessment', json({
       warning: 'Researcher-only assessments, not dialogue. Legacy run analytics exclude these assessment calls; inspect their recorded usage separately.',

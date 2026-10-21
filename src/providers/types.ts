@@ -20,6 +20,7 @@ export interface AgentInvocationRequest {
   workshopState?: WorkshopState;
   /** Assessment-only hint for mock fixtures. Live adapters use the rendered prompt. */
   positionProbe?: import('../phase1/evaluationContract.js').Evaluation['questionnaire'];
+  ballotProbe?: import('../phase1/evaluationContract.js').Evaluation['questionnaire'];
 }
 
 export interface AgentInvocationResult {

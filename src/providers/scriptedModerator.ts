@@ -30,6 +30,7 @@ const LINES: Record<WorkshopState, string> = {
     'Messages sent here are visible only to the members of your group.',
   FINAL_DISCUSSION:
     'The full group is reconvened. Final discussion is now open to all participants.',
+  PUBLIC_RECONVENING: 'Report the points from your breakout that you choose to bring to the public discussion. Distinguish agreement, disagreement and open questions.',
   // No summary. The moderator closes the session and says nothing about its content.
   CLOSING:
     'The session is now closed. This moderator does not summarise the discussion; ' +
@@ -44,15 +45,21 @@ export function scriptedModeratorLine(state: WorkshopState): string {
   return LINES[state];
 }
 
+export function resolvedScriptedModeratorLine(state: WorkshopState, opening?: string, canonical = false): string {
+  if (state === 'INTRODUCTION' && opening) return opening;
+  if (canonical && state === 'PUBLIC_DISCUSSION') return `${opening}\n${LINES.PUBLIC_DISCUSSION}`;
+  return LINES[state];
+}
+
 export class ScriptedModeratorProvider implements AgentProvider {
   readonly name = 'scripted';
-  constructor(private readonly opening?: string) {}
+  constructor(private readonly opening?: string, private readonly canonical = false) {}
 
   async invoke(request: AgentInvocationRequest): Promise<AgentInvocationResult> {
     const ts = new Date().toISOString();
     // No network call, no model, no sampling: the same state always yields the same line.
-    const content = request.workshopState === 'INTRODUCTION' && this.opening ? this.opening : LINES[request.workshopState ?? 'PUBLIC_DISCUSSION'];
-    const version = scriptedModeratorVersion(this.opening);
+    const content = resolvedScriptedModeratorLine(request.workshopState ?? 'PUBLIC_DISCUSSION', this.opening, this.canonical);
+    const version = scriptedModeratorVersion(this.opening, this.canonical);
 
     return {
       ok: true,
@@ -76,6 +83,7 @@ export class ScriptedModeratorProvider implements AgentProvider {
   }
 }
 
-export function scriptedModeratorVersion(opening?: string): string {
-  return opening ? `${SCRIPTED_MODERATOR_VERSION}:${configHash(opening)}` : SCRIPTED_MODERATOR_VERSION;
+export function scriptedModeratorVersion(opening?: string, canonical = false): string {
+  const version = canonical ? 'scripted_moderator_canonical_v1' : SCRIPTED_MODERATOR_VERSION;
+  return opening ? `${version}:${configHash(opening)}` : version;
 }

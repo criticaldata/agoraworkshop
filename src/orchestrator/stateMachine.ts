@@ -14,6 +14,7 @@ const PHASE_ORDER: WorkshopState[] = [
   'INTRODUCTION',
   'PUBLIC_DISCUSSION',
   'PRIVATE_OR_BREAKOUT',
+  'PUBLIC_RECONVENING',
   'FINAL_DISCUSSION',
   'CLOSING',
 ];
@@ -32,6 +33,7 @@ export const ALLOWED_TRANSITIONS: Record<WorkshopState, WorkshopState[]> = {
   INTRODUCTION: forwardTransitions('INTRODUCTION'),
   PUBLIC_DISCUSSION: forwardTransitions('PUBLIC_DISCUSSION'),
   PRIVATE_OR_BREAKOUT: forwardTransitions('PRIVATE_OR_BREAKOUT'),
+  PUBLIC_RECONVENING: forwardTransitions('PUBLIC_RECONVENING'),
   FINAL_DISCUSSION: forwardTransitions('FINAL_DISCUSSION'),
   CLOSING: forwardTransitions('CLOSING'),
   COMPLETED: [],
@@ -63,11 +65,12 @@ export function plannedStates(rounds: {
   public_discussion: number;
   private_or_breakout: number;
   final_discussion: number;
-}): WorkshopState[] {
+}, canonical = false): WorkshopState[] {
   const states: WorkshopState[] = [];
   if (rounds.introduction > 0) states.push('INTRODUCTION');
   if (rounds.public_discussion > 0) states.push('PUBLIC_DISCUSSION');
   if (rounds.private_or_breakout > 0) states.push('PRIVATE_OR_BREAKOUT');
+  if (canonical) states.push('PUBLIC_RECONVENING');
   if (rounds.final_discussion > 0) states.push('FINAL_DISCUSSION');
   states.push('CLOSING');
   return states;

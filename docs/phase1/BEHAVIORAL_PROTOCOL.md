@@ -1,5 +1,13 @@
 # Behavioral evaluation v1 — proposed operational protocol
 
+Optional successor: [SCIENTIFIC_ANALYSIS.md](SCIENTIFIC_ANALYSIS.md) documents
+behavioral-v2, preserving this frozen v1 contract while enabling the proposed SAP
+hierarchy and structured expressed-position responses.
+
+Canonical extension: [CANONICAL_PROTOCOL.md](CANONICAL_PROTOCOL.md) adds distinct
+S4/S5, S7 sealed ballots, deterministic S8 and closure evidence tracking without
+changing this optional behavioral-v1 instrument for legacy frozen campaigns.
+
 Source: Mateo's September 10, 2026 messages and *AGORA Phase 1: Behavioral Evaluation
 Framework*, September 2026, sections 2–6 (pp. 1–9). This document operationalizes the
 first Phase 1A milestone. It does not represent approval of the draft functions,

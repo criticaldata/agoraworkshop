@@ -16,6 +16,12 @@ import { getRun } from '../db/queries.js';
 import { previewInstructions } from './preview.js';
 import { DRAFT_EVALUATION, EvaluationSchema, FUNCTIONAL_ROLES } from './evaluationContract.js';
 import { positionPromptPreview } from './positions.js';
+import { CanonicalProtocolSchema, CANONICAL_PROTOCOL } from './canonicalContract.js';
+import { ballotInstruction } from './collective.js';
+import { resolvedScriptedModeratorLine } from '../providers/scriptedModerator.js';
+import { plannedStates } from '../orchestrator/stateMachine.js';
+import { AnalysisPlanSchema } from './scienceContract.js';
+import { assertCampaignUnlocked } from './scienceStore.js';
 
 export const PlanInputSchema = z.object({
   title: z.string().trim().min(1).max(200),
@@ -24,6 +30,8 @@ export const PlanInputSchema = z.object({
   base_config: ExperimentConfigSchema,
   role_pack: RolePackSchema,
   evaluation: EvaluationSchema.optional(),
+  canonical: CanonicalProtocolSchema.optional(),
+  analysis_plan: AnalysisPlanSchema.optional(),
   blocks: z.number().int().min(1).max(50),
   opening_message: z.string().trim().min(1).max(12000),
   limits: z.object({ max_provider_calls: z.number().int().positive().max(100000), max_reported_tokens: z.number().int().positive() }).strict(),
@@ -40,7 +48,7 @@ export interface Plan {
   version: 'phase1a-campaign-v1'; input: PlanInput;
   cases: PlannedCase[]; comparisons: ReturnType<typeof compareConditions>[];
   role_hashes: Record<string, string>;
-  workload: { planned_cases: number; maximum_attempts: number; position_probe_attempts?: number; token_limit_semantics: string };
+  workload: { planned_cases: number; maximum_attempts: number; position_probe_attempts?: number; ballot_attempts?: number; token_limit_semantics: string };
 }
 export interface CampaignRow {
   id: string; title: string; state: string; manifest_json: string; manifest_hash: string;
@@ -100,6 +108,9 @@ export function compareConditions(control: ExperimentConfig, treatment: Experime
 export function planCampaign(raw: unknown): Plan {
   const input = PlanInputSchema.parse(raw);
   const base = input.base_config;
+  if (input.analysis_plan && (!input.canonical || input.evaluation?.version !== 'behavioral-v2')) throw new Error('Analysis plans require canonical stages and behavioral-v2');
+  if (input.evaluation && [...input.evaluation.primary_outcomes, ...(input.evaluation.secondary_outcomes ?? []), ...(input.evaluation.exploratory_outcomes ?? [])].includes('final_output_quality') && !input.analysis_plan?.artifact_rubric) throw new Error('Human final-output quality requires an explicit frozen artifact rubric');
+  if (input.analysis_plan?.purpose === 'confirmatory' && (input.evaluation?.status !== 'reviewed' || input.role_pack.status !== 'reviewed')) throw new Error('Confirmatory instruments must be reviewed before freezing');
   if (input.evaluation && JSON.stringify(Object.keys(input.evaluation.role_criteria).sort()) !== JSON.stringify(input.role_pack.roles.map(r => r.id).sort())) throw new Error('Evaluation criteria must cover exactly the five role IDs');
   if (base.participants.length !== 5) throw new Error('Phase 1A requires five participants');
   if (base.phase1) throw new Error('Select a base configuration without a phase1 block');
@@ -116,6 +127,7 @@ export function planCampaign(raw: unknown): Plan {
         phase1: { phase: '1A', protocol_id: input.protocol_id, protocol_version: input.protocol_version,
           condition, common_instruction: input.role_pack.common_instruction, opening_message: input.opening_message,
           ...(input.evaluation ? { evaluation: input.evaluation } : {}),
+          ...(input.canonical ? { canonical: input.canonical } : {}),
           assignments: Object.fromEntries(base.participants.map(p => {
             const role = input.role_pack.roles.find(r => r.id === targets[p.id])!;
             return [p.id, condition === 'control' ? { role_id: 'neutral', instruction: input.role_pack.neutral_instruction } : { role_id: role.id, instruction: role.instruction }];
@@ -137,15 +149,18 @@ export function planCampaign(raw: unknown): Plan {
     role_hashes: Object.fromEntries(input.role_pack.roles.map(r => [r.id, configHash(r.instruction)])),
     workload: { planned_cases: cases.length,
       ...(input.evaluation ? { position_probe_attempts: cases.length * 10 } : {}),
+      ...(input.canonical ? { ballot_attempts: cases.length * 5 } : {}),
       maximum_attempts: cases.length * base.budgets.max_calls_per_agent * 6 * (base.runtime.max_retries + 1),
       token_limit_semantics: 'Stop before the next provider call once reported tokens reach the threshold. One in-flight response can cross it. Missing usage stops further calls; this is not a guaranteed monetary ceiling.',
     },
   };
 }
 
-export function starterInput(base: ExperimentConfig): PlanInput {
+export function starterInput(base: ExperimentConfig, canonical = false): PlanInput {
   base = structuredClone(base);
-  return { title: 'Reimagining Humans: role pilot', protocol_id: 'reimagining-humans-1a', protocol_version: 'draft-1', purpose: 'engineering',
+  if (canonical) base.workshop.rounds = { introduction: 0, public_discussion: Math.max(1, base.workshop.rounds.public_discussion), private_or_breakout: Math.max(1, base.workshop.rounds.private_or_breakout), final_discussion: Math.max(1, base.workshop.rounds.final_discussion) };
+  return { title: 'Reimagining Humans: role pilot', protocol_id: 'reimagining-humans-1a', protocol_version: canonical ? 'canonical-draft-1' : 'draft-1', purpose: 'engineering',
+    ...(canonical ? { canonical: structuredClone(CANONICAL_PROTOCOL) } : {}),
     base_config: { ...base, moderator: { ...base.moderator, mode: 'scripted' }, workshop: { ...base.workshop, topic: 'How might humans evolve to coexist better with agents and the living world?' } },
     role_pack: { ...structuredClone(STARTER_ROLES), id: 'reimagining-humans-functional', version: 'functional-draft-1', title: 'Functional roles (proposed)', roles: structuredClone(FUNCTIONAL_ROLES), rubric: { version: 'functional-draft-1', instructions: DRAFT_EVALUATION.interaction_rubric } },
     evaluation: structuredClone(DRAFT_EVALUATION), blocks: 10,
@@ -160,6 +175,9 @@ export function previewPrompts(plan: Plan) {
     moderator: moderatorSystemPrompt(c.config), opening_message: c.config.phase1!.opening_message,
     turn_instructions: previewInstructions(c.config),
     ...(c.config.phase1?.evaluation ? { position_probes: positionPromptPreview(c.config) } : {}),
+    ...(c.config.phase1?.canonical ? { canonical: c.config.phase1.canonical,
+      moderator_script: plannedStates(c.config.workshop.rounds, true).map(state => ({ state, text: resolvedScriptedModeratorLine(state, c.config.phase1!.opening_message, true) })),
+      ballot_instruction: ballotInstruction(c.config), ballot_context: 'Same authorized dialogue snapshot for all ballots; no assessment answers, ballots or collective outcome included. S6 must be fully valid first. S8 makes no provider call.' } : {}),
   }));
 }
 
@@ -177,8 +195,19 @@ export function freezeCampaign(db: Db, raw: unknown): string {
   db.transaction(() => {
     const prior = db.prepare('SELECT manifest_json FROM phase1_campaigns').all() as { manifest_json: string }[];
     for (const row of prior) {
-      const pack = (JSON.parse(row.manifest_json) as Plan).input.role_pack;
+      const previous = (JSON.parse(row.manifest_json) as Plan).input, next = plan.input;
+      const pack = previous.role_pack;
       if (pack.id === plan.input.role_pack.id && pack.version === plan.input.role_pack.version && configHash(pack) !== configHash(plan.input.role_pack)) throw new Error('This role-pack ID/version is already frozen with different text. Increment the version before freezing edits.');
+      if (previous.evaluation?.version === 'behavioral-v2' && next.evaluation?.version === 'behavioral-v2') {
+        const before = previous.evaluation, after = next.evaluation;
+        if (before.questionnaire.id === after.questionnaire.id && before.questionnaire.version === after.questionnaire.version && configHash(before.questionnaire) !== configHash(after.questionnaire)) throw new Error('This questionnaire ID/version is already frozen with different content. Increment the questionnaire version.');
+        if (pack.id === next.role_pack.id && pack.rubric.version === next.role_pack.rubric.version && configHash({ criteria: before.role_criteria, interaction: before.interaction_rubric }) !== configHash({ criteria: after.role_criteria, interaction: after.interaction_rubric })) throw new Error('This behavioral rubric version is already frozen with different content. Increment the rubric and role-pack versions.');
+      }
+      if (previous.analysis_plan && next.analysis_plan && previous.analysis_plan.id === next.analysis_plan.id) {
+        if (previous.analysis_plan.revision === next.analysis_plan.revision && configHash(previous.analysis_plan) !== configHash(next.analysis_plan)) throw new Error('This analysis-plan ID/revision is already frozen with different content. Increment the analysis-plan revision.');
+        const before = previous.analysis_plan.artifact_rubric, after = next.analysis_plan.artifact_rubric;
+        if (before && after && before.version === after.version && configHash(before) !== configHash(after)) throw new Error('This artifact rubric version is already frozen with different content. Increment the artifact rubric version.');
+      }
     }
     db.prepare('INSERT INTO phase1_campaigns VALUES (?, ?, ?, ?, ?, ?, NULL, NULL)').run(id, plan.input.title, 'frozen', canonicalize(plan), configHash(plan), new Date().toISOString());
     for (const c of plan.cases) db.prepare('INSERT INTO phase1_cases VALUES (?, ?, ?, ?, NULL, NULL)').run(id, c.id, c.order, 'pending');
@@ -198,6 +227,7 @@ export function campaign(db: Db, id: string): { row: CampaignRow; plan: Plan; ca
 const active = new Set<string>();
 function claim(db: Db, id: string): void {
   db.transaction(() => {
+    assertCampaignUnlocked(db, id);
     const { row } = campaign(db, id);
     if (active.has(id)) throw new Error('Campaign is already running');
     if (row.owner_pid !== null) {
@@ -218,6 +248,7 @@ export function usage(db: Db, id: string) {
 }
 
 export async function runCampaign(db: Db, id: string, options: { allowLive?: boolean; resumeInterrupted?: boolean } = {}): Promise<void> {
+  assertCampaignUnlocked(db, id);
   const initial = campaign(db, id);
   const mock = ['mock', 'mock_context_contract'].includes(initial.plan.input.base_config.model.provider);
   if (!mock && !options.allowLive) throw new Error('Live execution requires explicit --live / allow_live=true');

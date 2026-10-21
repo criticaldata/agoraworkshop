@@ -16,12 +16,13 @@ No legacy `phase1a-v1` prompt or Phase 0 configuration hash is replaced.
 
 ## Verification
 
-The preimplementation baseline on this checkout was 45 test files and 466
-passing tests, with `npx tsc --noEmit -p tsconfig.json` passing. The final
-implementation verification is complete: the focused WP01 suite passed 19/19,
-the full repository passed 46 files and 485/485 tests, `npm run build` passed,
-and `git diff --check` passed. Reviewers can distinguish this regression
-evidence from the 466-test baseline.
+The clean `origin/master` baseline was 41 test files and 439 passing tests,
+with `npx tsc --noEmit -p tsconfig.json` passing. The final implementation
+verification is complete: the focused WP01 suite passed 23/23, the full
+repository passed 42 files and 462/462 tests, the Phase 0/historical Phase 1
+regression subset passed 5 files and 100/100 tests, `npm run build` passed, and
+`git diff --check` passed. Reviewers can distinguish this evidence from the
+baseline suite.
 
 ## Limitations
 

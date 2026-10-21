@@ -2,12 +2,14 @@ import { z } from 'zod';
 import { configHash } from '../../../config/hash.js';
 import { CONDITION_MATRIX, ConditionIdSchema, ModelFamilySchema, type ConditionId } from '../conditions/matrix.js';
 import { createDefaultDecisionRegister, DecisionRegisterSchema, type DecisionRegister } from '../contracts/decisions.js';
-import { StudyContractSchema, createStudyContract, expectedPlanningCounts, type ReportNoticeTiming, type StudyContract } from '../contracts/study.js';
+import { SELECTED_REPORT_NOTICE_TIMING, StudyContractSchema, createStudyContract, expectedPlanningCounts, type ReportNoticeTiming, type StudyContract } from '../contracts/study.js';
 import { createSyntheticDeploymentBinding, DeploymentBindingSchema, validateDeploymentBinding, type DeploymentBinding } from '../deployments/bindings.js';
 import { buildRunAgenda, RunStageSchema, validateRunAgenda, type RunStage } from '../scheduling/agenda.js';
 import { createPromptRegistry, PromptRegistrySchema, validatePromptRegistry, type PromptRegistry } from '../prompts/registry.js';
 
 const TimingSchema = z.enum(['BEFORE_T0', 'AFTER_T0_BEFORE_PUBLIC']);
+export const TimingDispositionSchema = z.enum(['SELECTED_METHOD', 'HISTORICAL_NONCANONICAL']);
+export type TimingDisposition = z.infer<typeof TimingDispositionSchema>;
 
 const BoundDeploymentSchema = DeploymentBindingSchema.extend({ participant_slot: z.enum(['P1', 'P2', 'P3']) }).strict();
 export type BoundDeployment = z.infer<typeof BoundDeploymentSchema>;
@@ -46,6 +48,7 @@ export const CampaignManifestSchema = z.object({
   schema_version: z.literal('wp01-campaign-manifest-v1'),
   campaign_id: z.string().min(1),
   profile: z.enum(['draft', 'synthetic', 'scientific']),
+  timing_disposition: TimingDispositionSchema,
   lifecycle: z.enum(['DRAFT', 'IMPLEMENTATION_READY', 'SCIENTIFIC_FREEZE_PENDING', 'FROZEN']),
   freeze_status: z.enum(['SCIENTIFIC_FREEZE_PENDING', 'FROZEN']),
   study_contract: StudyContractSchema,
@@ -101,10 +104,18 @@ function runExpectedCounts(report_required: boolean): RunExpectedCounts {
 
 export interface SyntheticCampaignOptions {
   report_notice_timing: z.infer<typeof TimingSchema>;
+  timing_disposition?: TimingDisposition;
 }
 
 export function buildSyntheticCampaign(options: SyntheticCampaignOptions): CampaignManifest {
   TimingSchema.parse(options.report_notice_timing);
+  const timing_disposition = options.timing_disposition ?? (options.report_notice_timing === SELECTED_REPORT_NOTICE_TIMING ? 'SELECTED_METHOD' : 'HISTORICAL_NONCANONICAL');
+  if (timing_disposition === 'SELECTED_METHOD' && options.report_notice_timing !== SELECTED_REPORT_NOTICE_TIMING) {
+    throw new Error(`selected timing disposition requires ${SELECTED_REPORT_NOTICE_TIMING}`);
+  }
+  if (timing_disposition === 'HISTORICAL_NONCANONICAL' && options.report_notice_timing === SELECTED_REPORT_NOTICE_TIMING) {
+    throw new Error('selected report notice timing cannot be marked historical noncanonical');
+  }
   const study_contract = createStudyContract();
   const decision_register = createDefaultDecisionRegister();
   const prompt_registry = createPromptRegistry();
@@ -164,6 +175,7 @@ export function buildSyntheticCampaign(options: SyntheticCampaignOptions): Campa
     schema_version: 'wp01-campaign-manifest-v1',
     campaign_id,
     profile: 'synthetic',
+    timing_disposition,
     lifecycle: 'IMPLEMENTATION_READY',
     freeze_status: 'SCIENTIFIC_FREEZE_PENDING',
     study_contract,
@@ -175,6 +187,9 @@ export function buildSyntheticCampaign(options: SyntheticCampaignOptions): Campa
     planning_counts: counts,
     runs,
     source_references: [
+      timing_disposition === 'SELECTED_METHOD'
+        ? 'Selected method fixture: Simon Option A places the report notice after t0 and before public discussion'
+        : 'Historical noncanonical fixture retained for traceability; BEFORE_T0 was superseded by Simon Option A',
       'WP01 synthetic fixture: no provider calls or runtime records are generated',
       'AGORA Phase 1A revised October pilot',
     ],
@@ -195,6 +210,15 @@ export function validateCampaignManifest(value: unknown): { valid: boolean; issu
   if (campaign.decision_register_ref !== configHash(campaign.decision_register)) issues.push('decision register hash mismatch');
   if (campaign.prompt_registry_hash !== campaign.prompt_registry.registry_hash) issues.push('prompt registry reference mismatch');
   if (campaign.campaign_hash !== configHash(campaignHashPayload(campaign))) issues.push('campaign hash mismatch');
+  const d13 = campaign.decision_register.decisions.find(decision => decision.id === 'D13');
+  const reportRuns = campaign.runs.filter(run => run.report_notice_timing !== 'NONE');
+  if (campaign.timing_disposition === 'SELECTED_METHOD') {
+    if (campaign.study_contract.report_policy.notice_timing !== SELECTED_REPORT_NOTICE_TIMING) issues.push(`selected campaign requires study contract timing ${SELECTED_REPORT_NOTICE_TIMING}`);
+    if (d13?.status !== 'CONFIRMED') issues.push('selected campaign requires confirmed D13');
+    if (reportRuns.some(run => run.report_notice_timing !== SELECTED_REPORT_NOTICE_TIMING)) issues.push('selected campaign report runs must use the selected timing');
+  } else if (reportRuns.some(run => run.report_notice_timing !== 'BEFORE_T0')) {
+    issues.push('historical noncanonical campaign must use the preserved BEFORE_T0 candidate');
+  }
   const expectedCounts = expectedPlanningCounts(campaign.study_contract);
   if (JSON.stringify(expectedCounts) !== JSON.stringify(campaign.planning_counts)) issues.push('planning counts do not match the study contract');
   const expectedIds = new Set<string>();

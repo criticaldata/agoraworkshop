@@ -26,9 +26,11 @@ planning counts, not model results.
 
 The exact deployments, Model X, prompt approval, speaking order, budgets,
 private probes, replay policy, codebook, and scientific freeze authority remain
-explicit decisions. The report-notice/t0 order is represented by both
-synthetic candidate sequences and remains `D13 = OPEN`; the redundant D17 label
-is retired in the register's consolidation note without resolving the question.
+explicit decisions. Simon confirmed D13 Option A: the report notice occurs
+after all three private `t0` checkpoints and before public discussion in report
+arms (`AFTER_T0_BEFORE_PUBLIC`). The prior `BEFORE_T0` sequence remains only as
+`HISTORICAL_NONCANONICAL` evidence; D17 is retired in the register's
+consolidation note. The overall scientific freeze remains pending.
 
 ## Deliverables
 

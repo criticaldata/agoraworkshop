@@ -2,31 +2,33 @@
 
 ## Executed offline tests
 
-The focused test file is `tests/phase1aWp01.test.ts`. The original WP01
-contract had 17 assertions. This consistency review retains those 17 and adds
-two focused negative assertions: a retired decision ID cannot re-enter the
-register, and a prompt text mutation fails its content and registry hashes.
-The final focused suite therefore contains 19 assertions:
+The focused test file is `tests/phase1aWp01.test.ts`. The WP01 consistency
+baseline had 19 executed test cases, including the two negative assertions for
+retired decision IDs and prompt-hash mutation. This Option A update adds four
+focused cases for selected timing, t0 prompt isolation, noncanonical fixture
+status and manifest timing consistency. The focused suite therefore contains
+23 executed test cases:
 
 | Area | Assertions |
 |---|---:|
 | Study contract and invalid boundaries | 3 |
-| Report timing and deterministic agenda | 3 |
+| Report timing and deterministic agenda | 4 |
 | Decision register D01–D16 plus D17 consolidation trace | 2 |
 | Deployment binding separation and freeze rejection | 1 |
-| Prompt registry, hashes, leakage and rendering | 4 |
-| Synthetic campaign, timing candidates, tamper rejection and linkage | 4 |
+| Prompt registry, hashes, leakage and t0 isolation | 5 |
+| Synthetic campaign, selected/historical timing, tamper rejection and linkage | 7 |
 | Provider-adapter and tool-fault boundary fixtures | 1 |
 | WP02–WP06 scaffolding boundary | 1 |
-| **Total** | **19** |
+| **Total** | **23** |
 
 The tests do not call a model provider. They check planning, schema, hashes,
 negative paths, and privacy contracts.
 
 Final verification on this checkout:
 
-- focused WP01: 19/19 passed;
-- full repository: 46 files, 485/485 tests passed;
+- focused WP01: 23/23 passed;
+- full repository: 42 files, 462/462 tests passed;
+- Phase 0 / historical Phase 1 regression subset: 5 files, 100/100 passed;
 - `npx tsc --noEmit -p tsconfig.json`: PASS;
 - `npm run build`: PASS;
 - `git diff --check`: PASS;
@@ -52,11 +54,12 @@ npm run phase1a:fixtures
 
 ## Executed versus runtime integration coverage
 
-The 19 focused tests are executed offline in this checkout. They cover the
-WP01 contract, schemas, planning counts, candidate prompts, hashes, negative
-boundaries, synthetic manifests, source linkage, provider-neutral descriptors,
-fault fixtures and ownership scaffolds. They do not call a model provider or
-execute a workshop.
+The 23 focused tests are executed offline in this checkout. They cover the
+WP01 contract, Simon's selected timing, schemas, planning counts, candidate
+prompts, t0 isolation, hashes, negative boundaries, canonical and historical
+synthetic manifests, source linkage, provider-neutral descriptors, fault
+fixtures and ownership scaffolds. They do not call a model provider or execute
+a workshop.
 
 The following tests are intentionally not claimed as executed because their
 runtime owners are not implemented in WP01:
@@ -64,7 +67,7 @@ runtime owners are not implemented in WP01:
 | Runtime dependency | Required integration evidence | Owner | Status |
 |---|---|---|---|
 | Core orchestration and model-provider integration | Run lifecycle, adapter invocation, retries, provenance and fault classification against approved deployments | WP02 | AWAITING_INTEGRATION |
-| Workshop and report workflow | Six-round execution, t0/t6/tR sequencing, report draft/reviews/revision and report/no-report stage behavior | WP03 | AWAITING_INTEGRATION |
+| Workshop and report workflow | Six-round execution, `t0(P1,P2,P3) -> report/no-report notice -> public round 1`, `t6`/`tR`, report draft/reviews/revision and report/no-report stage behavior | WP03 | AWAITING_INTEGRATION |
 | Context, visibility and evidence persistence | Runtime public/private isolation, context assembly, source-message links and persisted evidence | WP04 | AWAITING_INTEGRATION |
 | Replay and reconstruction | Replay from immutable manifests, event reconstruction and hash parity | WP05 | AWAITING_INTEGRATION |
 | Analysis and scientific claims | Approved codebook, calibration, report analysis and claim gating | WP06 | AWAITING_INTEGRATION / PENDING_SCIENTIFIC_APPROVAL |
@@ -76,9 +79,10 @@ those implementations exist.
 ## Acceptance boundary
 
 Passing WP01 tests proves that the contract is internally consistent and that
-mechanically testable boundaries fail closed. It does not prove model behavior,
-provider equivalence, semantic prompt neutrality, or a scientific protocol
-freeze.
+mechanically testable boundaries fail closed. It confirms the selected
+methodological timing in the contract, but does not prove model behavior,
+provider equivalence, semantic prompt neutrality, runtime integration, or a
+scientific protocol freeze.
 
 The four offline fault fixtures cover timeout, unavailable, invalid response and
 permission denied at the contract boundary. They deliberately mark

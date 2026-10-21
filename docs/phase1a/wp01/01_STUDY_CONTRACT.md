@@ -13,6 +13,7 @@ The machine-validatable contract is `StudyContractSchema` in
 | Participants | P1, P2, P3; exactly three per run |
 | Repetitions | three independent runs per condition; 12 planned runs |
 | Agenda | private `T0`, six public rounds, private `T6`; report arms add draft, two reviews, revision, `TR` |
+| Report notice | `AFTER_T0_BEFORE_PUBLIC`: all three `T0` checkpoints precede the report/no-report notice and public discussion |
 | Host | deterministic procedural host; no autonomous LLM moderator |
 | Interaction | no tools, web, voting, external actions, mandatory breakouts, role personas or early stopping |
 | Privacy | private outputs do not re-enter public context |
@@ -48,15 +49,25 @@ events, messages, invocation results, or evidence of model behavior.
 
 ## Report-notice/t0 boundary
 
-The contract stores `report_policy.notice_timing = UNRESOLVED`. The scheduler
-can represent both approved candidates:
+The active contract stores `report_policy.notice_timing = AFTER_T0_BEFORE_PUBLIC`,
+the selected Option A from Simon Heilles. The scheduler represents the selected
+sequence explicitly:
 
-1. report notice before `T0`;
-2. `T0`, then report notice before the first public contribution.
+- `T0` for P1, P2 and P3;
+- report-arm notice (or the corresponding no-report procedural notice);
+- the first public contribution, followed by the remaining five rounds.
 
-The synthetic campaign generator requires the candidate timing explicitly and
-keeps `freeze_status = SCIENTIFIC_FREEZE_PENDING`. No sequence is silently
-promoted to scientific approval.
+The `BEFORE_T0` sequence remains available only as a
+`HISTORICAL_NONCANONICAL` synthetic fixture for traceability. It is not the
+active revised-pilot sequence. Synthetic manifests keep
+`freeze_status = SCIENTIFIC_FREEZE_PENDING`: resolving this methodological
+timing decision does not freeze the scientific campaign.
+
+The `t0` prompt is the same candidate instrument in every condition. It does
+not mention the joint report, report anticipation, other agents' private
+responses or backend condition metadata. WP02 must treat a scheduled private
+opportunity as a request to attempt collection, not as proof of a successful
+provider response; missing or failed responses must remain explicit.
 
 ## Scientific claim boundary
 

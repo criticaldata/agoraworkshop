@@ -17,8 +17,10 @@ Model X, a provider, endpoint, credentials, or GPU deployment.
 ## Required before a real canary
 
 1. Scientific approval of D02 and D07, including exact deployment provenance.
-2. Approval of prompt candidates (D06), probes (D14), order (D05), budgets
-   (D09), and notice/t0 order (D13; D17 is its retired duplicate label).
+2. Approval of prompt candidates (D06), probes (D14), order (D05), and budgets
+   (D09). D13 is methodologically confirmed by Simon as
+   `AFTER_T0_BEFORE_PUBLIC`; the freeze authority must still accept the complete
+   campaign package. D17 is its retired duplicate label.
 3. A WP02 provider integration that implements the WP01 binding contract, plus
    a WP03 workshop/report workflow that consumes the approved agenda.
 4. Authorized access, credentials and an execution budget.

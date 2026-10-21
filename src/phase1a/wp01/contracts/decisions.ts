@@ -58,6 +58,8 @@ const source = [
   'WP01 implementation mandate, section 5.2',
 ];
 
+export const SIMON_D13_QUOTE = "Here I'd say option A: the purpose of the baseline is to see what happens with the smallest amount of information possible.";
+
 function decision(
   id: string,
   question: string,
@@ -70,8 +72,10 @@ function decision(
   associated_fields: string[],
   current_evidence = 'Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.',
   approval_level: DecisionRecord['approval_level'] = status === 'CONFIRMED' ? 'meeting_direction' : 'none',
+  approved_wording: string | null = null,
+  source_references = source,
 ): DecisionRecord {
-  return { id, question, alternatives, current_evidence, status, required_approver, approval_level, scientific_impact, engineering_impact, blocking_effect, decision_date: null, approved_wording: null, source_references: source, associated_fields };
+  return { id, question, alternatives, current_evidence, status, required_approver, approval_level, scientific_impact, engineering_impact, blocking_effect, decision_date: null, approved_wording, source_references, associated_fields };
 }
 
 export function createDefaultDecisionRegister(): DecisionRegister {
@@ -81,7 +85,7 @@ export function createDefaultDecisionRegister(): DecisionRegister {
     consolidation_notes: [{
       retired_id: 'D17',
       canonical_id: 'D13',
-      reason: 'D17 duplicated D13; D13 is the canonical unresolved report-notice/t0 timing question.',
+      reason: 'D17 duplicated D13; D13 is the canonical report-notice/t0 timing question.',
     }],
     decisions: [
       decision('D01', 'Does revised Phase 1A preserve Phase 0 as a closed technical milestone?', ['PRESERVE_PHASE0', 'REOPEN_PHASE0'], 'CONFIRMED', 'research team', 'Prevents historical evidence from being invalidated.', 'Requires additive, versioned contracts.', 'none', ['compatibility.phase0'], 'The mandate explicitly preserves Phase 0 evidence, hashes and semantics.'),
@@ -96,7 +100,21 @@ export function createDefaultDecisionRegister(): DecisionRegister {
       decision('D10', 'Is the Wild West condition part of the core campaign?', ['EXCLUDE_CORE', 'INCLUDE_CORE'], 'OPEN', 'research team', 'Changes the estimand and campaign size.', 'Requires a separate condition and analysis contract.', 'scientific_freeze', ['wild_west']),
       decision('D11', 'What behavioral codebook and calibration process are approved?', ['CODEBOOK_PENDING', 'APPROVE_CODEBOOK'], 'PROPOSED', 'research and analysis owners', 'Controls construct interpretation.', 'WP06 consumes the codebook contract.', 'scientific_freeze', ['behavioral_codebook']),
       decision('D12', 'Which replay trials and replay-selection policy are used?', ['NO_REPLAY', 'PREDECLARED_REPLAY'], 'OPEN', 'research and engineering owners', 'Can affect sensitivity analyses and multiplicity.', 'Requires replay inputs from WP03/WP05.', 'scientific_freeze', ['replay_policy']),
-      decision('D13', 'Is a report notice delivered before or after t0?', ['REPORT_NOTICE_BEFORE_T0', 'T0_BEFORE_REPORT_NOTICE'], 'OPEN', 'research team', 'Changes what the private baseline measures.', 'Changes agenda manifests and prompt exposure.', 'scientific_freeze', ['report_policy.notice_timing']),
+      decision(
+        'D13',
+        'Is a report notice delivered before or after t0?',
+        ['REPORT_NOTICE_BEFORE_T0', 'T0_BEFORE_REPORT_NOTICE'],
+        'CONFIRMED',
+        'research team',
+        'Changes what the private baseline measures.',
+        'Changes agenda manifests and prompt exposure.',
+        'scientific_freeze',
+        ['report_policy.notice_timing'],
+        `Simon Heilles methodological clarification: "${SIMON_D13_QUOTE}" This confirms Option A: collect t0 before any report notice; overall scientific freeze remains pending.`,
+        'meeting_direction',
+        'Option A: collect t0 before the report notice; manifest timing is AFTER_T0_BEFORE_PUBLIC.',
+        [...source, `Simon Heilles methodological clarification: "${SIMON_D13_QUOTE}"`],
+      ),
       decision('D14', 'What private-probe contents are approved at t0, t6 and tR?', ['CANDIDATE_PROBES', 'APPROVED_PROBES'], 'OPEN', 'research and analysis owners', 'Defines observability and construct validity.', 'WP04/WP06 require stable probe schemas.', 'scientific_freeze', ['private_probes']),
       decision('D15', 'What authorization constitutes scientific protocol freeze?', ['RESEARCH_SIGNOFF', 'GOVERNANCE_SIGNOFF'], 'OPEN', 'research governance', 'Determines whether claims may be made.', 'Controls transition from draft to frozen manifest.', 'scientific_freeze', ['lifecycle']),
       decision('D16', 'What cross-team reconstruction and replication evidence is required?', ['G8_RECONSTRUCTION', 'MINIMAL_EXPORT'], 'OPEN', 'research and engineering owners', 'Determines auditability of the study.', 'Defines WP05/WP06 handoff and archive.', 'scientific_freeze', ['replication_evidence']),

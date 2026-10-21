@@ -12,11 +12,12 @@
 | Provider neutrality | Mandate §4 | deployment bindings | provider-leakage checks | WP02/WP03 | IMPLEMENTED |
 | Model X unresolved | Mandate §4 | deployment validator, D07 | scientific-profile negative test | WP02 | IMPLEMENTED |
 | Candidate prompt registry | Mandate §5.3 | `prompts/registry.ts` | hash/render/leakage tests | WP02/WP03/WP04 | IMPLEMENTED |
-| t0 notice timing | Mandate §5.2 | D13, agenda builder | both timing tests | WP02/WP03/WP06 | IMPLEMENTED / OPEN |
+| t0 notice timing | Mandate §5.2; Simon Option A | D13, `SELECTED_REPORT_NOTICE_TIMING`, agenda builder | selected-order, isolation and historical-fixture tests | WP02/WP03/WP06 | IMPLEMENTED / CONFIRMED, freeze pending |
 | Source-message linkage | Mandate §5.5 | `contracts/interfaces.ts` | schema test | WP04/WP05 | IMPLEMENTED |
 | Provider adapter boundary | Mandate §4 | `contracts/interfaces.ts` | descriptor test | WP02 | CONTRACT ONLY |
 | Fault taxonomy boundary | Mandate §7 | `fixtures/faults.ts` | four fixture test | WP02 | AWAITING_INTEGRATION |
-| Phase 0 compatibility | Mandate §4.1 | reuse `src/config/hash.ts`; no old files changed | 46 files / 483 tests | all | VERIFIED REGRESSION |
+| Phase 0 compatibility | Mandate §4.1 | reuse `src/config/hash.ts`; no old files changed | clean branch: 42 files / 462 tests; historical subset 5 files / 100 tests | all | VERIFIED REGRESSION |
+| t0 baseline isolation | Simon Option A clarification | `private-t0`, selected agenda, timing disposition | no report wording/metadata in t0 contract; three t0 stages precede notice | WP02/WP03/WP04 | IMPLEMENTED CONTRACT |
 | G0 freeze readiness | Protocol §8 | lifecycle/status/decision register | validation | governance | PENDING_APPROVAL |
 | G1 execution contract | Protocol §8 | public WP01 index and manifests | interface docs | WP02 | AWAITING_INTEGRATION |
 | G2 visibility | Protocol §8 | scope/link contract and renderer boundary | privacy negative test | WP04 | AWAITING_INTEGRATION |

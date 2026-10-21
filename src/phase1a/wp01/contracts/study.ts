@@ -5,6 +5,7 @@ export const DEFAULT_PROTOCOL_REVISION = 'phase1a-reimagining-humans-october-dra
 
 export const ReportNoticeTimingSchema = z.enum(['BEFORE_T0', 'AFTER_T0_BEFORE_PUBLIC', 'NONE', 'UNRESOLVED']);
 export type ReportNoticeTiming = z.infer<typeof ReportNoticeTimingSchema>;
+export const SELECTED_REPORT_NOTICE_TIMING = 'AFTER_T0_BEFORE_PUBLIC' as const;
 
 const LifecycleSchema = z.enum(['DRAFT', 'REVIEW', 'IMPLEMENTATION_READY', 'SCIENTIFIC_FREEZE_PENDING', 'FROZEN', 'AMENDED']);
 export type ProtocolLifecycle = z.infer<typeof LifecycleSchema>;
@@ -77,8 +78,8 @@ export const StudyContractSchema = z.object({
       ctx.addIssue({ code: 'custom', path: ['conditions'], message: `${left}/${right} must differ only by report_required` });
     }
   }
-  if (contract.report_policy.notice_timing !== 'UNRESOLVED' && contract.lifecycle === 'SCIENTIFIC_FREEZE_PENDING') {
-    ctx.addIssue({ code: 'custom', path: ['report_policy', 'notice_timing'], message: 'a selected timing remains a candidate until the scientific decision is approved' });
+  if (contract.lifecycle === 'FROZEN' && contract.report_policy.notice_timing === 'UNRESOLVED') {
+    ctx.addIssue({ code: 'custom', path: ['report_policy', 'notice_timing'], message: 'a frozen contract requires a resolved report notice timing' });
   }
 });
 export type StudyContract = z.infer<typeof StudyContractSchema>;
@@ -106,7 +107,7 @@ export function createStudyContract(): StudyContract {
       independent_reviews: 2,
       revisions: 1,
       no_early_stopping: true,
-      notice_timing: 'UNRESOLVED',
+      notice_timing: SELECTED_REPORT_NOTICE_TIMING,
     },
     moderator_policy: { mode: 'deterministic_host', autonomous_llm: false },
     interaction_policy: {
@@ -172,7 +173,7 @@ export function validateStudyContract(value: unknown): { valid: boolean; issues:
   const parsed = StudyContractSchema.safeParse(value);
   if (!parsed.success) return { valid: false, issues: parsed.error.issues.map(issue => `${issue.path.join('.') || 'contract'}: ${issue.message}`) };
   const issues: string[] = [];
-  if (parsed.data.report_policy.notice_timing !== 'UNRESOLVED' && parsed.data.lifecycle !== 'FROZEN') issues.push('selected report notice timing requires an approved frozen contract');
+  if (parsed.data.lifecycle === 'FROZEN' && parsed.data.report_policy.notice_timing === 'UNRESOLVED') issues.push('a frozen contract requires a resolved report notice timing');
   return { valid: issues.length === 0, issues };
 }
 

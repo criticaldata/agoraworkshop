@@ -37,9 +37,10 @@ manipulation:
 - `private-tR` is available only after the report branch.
 
 The report/no-report distinction is therefore represented by both the notice
-candidate and the agenda's stage presence. The timing of the report notice
-relative to `t0` remains unresolved in D13; this document does not choose an
-ordering.
+candidate and the agenda's stage presence. Simon's confirmed Option A places
+the notice after the private `t0` checkpoints and before public round 1 in
+report arms. The report/no-report wording itself remains a candidate pending
+scientific prompt approval.
 
 ## Complete candidate inventory
 
@@ -60,7 +61,7 @@ the source file remains authoritative if this document and code ever diverge.
 | `public-round-4` | `candidate-1` | Public round instruction; same text contract with a distinct stage ID. | Constant | `sha256:298131dadf2c330aa9678247d9657544377d7aaf8399c999a1daa678e359e988` |
 | `public-round-5` | `candidate-1` | Public round instruction; same text contract with a distinct stage ID. | Constant | `sha256:d3449829c6f02bebf9f4c5afed80f0eeca6d6be62e6ba3d390ef194a25f4efaf` |
 | `public-round-6` | `candidate-1` | Public round instruction; same text contract with a distinct stage ID. | Constant | `sha256:1e41fb96be1f0a44a2aca049c48215fc8796bf2db76a5ebea6967315b0dbd5e7` |
-| `private-t0` | `candidate-1` | Initial private position and evidence-change elicitation. | Constant | `sha256:5487ae7912c4d904124840d69418bb0ce1b51542344da7b081ff6e0c6bfb9b1e` |
+| `private-t0` | `candidate-1` | Initial private position and evidence-change elicitation under the minimum baseline information; no report anticipation. | Constant | `sha256:5487ae7912c4d904124840d69418bb0ce1b51542344da7b081ff6e0c6bfb9b1e` |
 | `private-t6` | `candidate-1` | Post-discussion private position and change elicitation. | Constant | `sha256:7ed286758b74ac4cf55b72475cf36386527817ebe6c1d79d748e15dfc74aac60` |
 | `private-tR` | `candidate-1` | Post-report private position and change elicitation. | Report arms | `sha256:dce0106667ef4c673077d5751da8d3e19cfe4d2a26e6c1a0c4a3872cdf388b06` |
 | `report-draft` | `candidate-1` | Drafts a report from public discussion while preserving disagreement. | Report branch | `sha256:e4531d6272010ec80e5333ecb437af0f61d7d72895a419f1872d7ae80b2532dc` |
@@ -114,6 +115,19 @@ The registry records risks; it does not claim that the wording is unbiased.
 
 These are candidate-level concerns for D06 and human scientific review. They are
 not post-hoc claims about model behavior.
+
+### t0 baseline rule
+
+`private-t0` is the same candidate instrument in all four conditions. Its exact
+text contains no reference to a joint report, report anticipation, expected
+findings, assigned persona, authority cue or another participant's private
+response. The backend may retain `report_required` and
+`timing_disposition` in the manifest, but those fields must not be injected into
+the model-visible t0 system prompt, user prompt, context history or metadata.
+
+The timing decision changes stage order, not the baseline wording. The current
+candidate hash remains `sha256:5487ae7912c4d904124840d69418bb0ce1b51542344da7b081ff6e0c6bfb9b1e`;
+a substantive instrument change would require a new candidate version and hash.
 
 ## Automated boundary checks
 

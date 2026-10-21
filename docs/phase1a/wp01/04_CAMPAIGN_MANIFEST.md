@@ -23,6 +23,8 @@ Synthetic profiles may contain explicit synthetic bindings for GEMMA, GEMINI and
 the unresolved logical MODEL_X reference. They are not real provider evidence.
 Report-stage participant allocation is explicitly `UNRESOLVED`; D08 remains
 open rather than assigning a writer or reviewer in the synthetic fixture.
+The campaign field `timing_disposition` distinguishes the selected method from a
+historical noncanonical timing candidate.
 
 ## Generated fixture paths
 
@@ -35,14 +37,18 @@ npm run phase1a:fixtures
 Outputs (ignored local artifacts):
 
 ```text
-exports/phase1a_wp01_synthetic/before_t0.campaign.json
 exports/phase1a_wp01_synthetic/after_t0_before_public.campaign.json
+exports/phase1a_wp01_synthetic/before_t0.campaign.json
 exports/phase1a_wp01_synthetic/README.txt
 ```
 
-Each JSON contains 12 planned run manifests. The two files differ only in the
-candidate placement of the report notice relative to `T0`; neither is frozen.
-No messages, provider outputs, event rows, or scientific results are generated.
+Each JSON contains 12 planned run manifests. The
+`after_t0_before_public.campaign.json` file is the selected Option A sequence:
+the report notice occurs after all three `t0` checkpoints and before public
+discussion. The `before_t0.campaign.json` file is retained as
+`HISTORICAL_NONCANONICAL` design-decision evidence and is not an approved
+campaign. No messages, provider outputs, event rows, or scientific results are
+generated.
 
 ## Consumer boundary
 

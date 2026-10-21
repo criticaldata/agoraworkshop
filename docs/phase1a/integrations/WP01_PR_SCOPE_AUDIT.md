@@ -178,7 +178,8 @@ The replacement branch is acceptable only if all of the following remain true:
 
 1. The changed-path allowlist contains only the 37 paths listed above.
 2. `git diff --exit-code origin/master...HEAD` is clean for all historical Phase 0 and Phase 1 paths.
-3. The WP01 focused suite passes, including the D17-retirement and prompt-hash negative tests.
+3. The WP01 focused suite passes, including the D13 Option A, t0-isolation,
+   D17-retirement and prompt-hash negative tests.
 4. The full repository suite and TypeScript/build checks pass.
 5. Both synthetic 12-run manifest fixtures validate with recomputed hashes.
 6. No provider API, GPU, credential, or experimental call is made by WP01.
@@ -198,15 +199,15 @@ The checks below were executed after reconstructing the branch from `origin/mast
 | Check | Result |
 |---|---|
 | `origin/master` baseline full suite | 41 files, 439 tests passed |
-| WP01 focused suite | 1 file, 19 tests passed |
-| Full suite after WP01 isolation | 42 files, 458 tests passed |
+| WP01 focused suite | 1 file, 23 tests passed |
+| Full suite after WP01 isolation | 42 files, 462 tests passed |
 | Phase 0 / historical Phase 1 regression subset | 5 files, 100 tests passed |
 | TypeScript (`npx tsc --noEmit -p tsconfig.json`) | PASS |
 | Build (`npm run build`) | PASS |
 | Changed-path allowlist | 37 staged paths, 0 forbidden paths |
 | `git diff --cached --check` | PASS |
-| Synthetic manifest `before_t0` | Valid; 12 runs; campaign hash `sha256:cba93514e624f2f61a0d8000c371f307c0ed4244987e9645a7096f12b0981332` |
-| Synthetic manifest `after_t0_before_public` | Valid; 12 runs; campaign hash `sha256:8120109d087ef110f7c1ca691c185a97ad1c4267fdcb49b9a00004bb6dd5d9d4` |
+| Synthetic manifest `after_t0_before_public` | Valid; 12 runs; `SELECTED_METHOD`; campaign hash `sha256:012db7156d2f60c8e358fa8d8d443c6cffe70108f1769741dda49468dcc7e63b` |
+| Synthetic manifest `before_t0` | Valid; 12 runs; `HISTORICAL_NONCANONICAL`; campaign hash `sha256:f8a27ccc1b0d9db9c121f904f7f437fbbc4745dcc3f1b3572732fd74035fce4d` |
 | Provider/GPU/credential calls | None |
 
 The manifest validator recomputed the campaign, run, configuration, study-contract, decision-register, and prompt-registry relationships and returned `valid=true` with no issues for both synthetic candidates.

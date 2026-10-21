@@ -6,7 +6,9 @@ import {
   DecisionRegisterSchema,
   ModelFamilyReferenceSchema,
   ProviderAdapterDescriptorSchema,
+  SELECTED_REPORT_NOTICE_TIMING,
   StudyContractSchema,
+  TimingDispositionSchema,
   buildRunAgenda,
   buildSyntheticCampaign,
   createDefaultDecisionRegister,
@@ -31,6 +33,7 @@ describe('WP01 study contract', () => {
     expect(contract.rounds).toBe(6);
     expect(contract.conditions).toEqual(CONDITION_MATRIX);
     expect(contract.moderator_policy).toEqual({ mode: 'deterministic_host', autonomous_llm: false });
+    expect(contract.report_policy.notice_timing).toBe(SELECTED_REPORT_NOTICE_TIMING);
     expect(contract.interaction_policy).toMatchObject({
       tools_enabled: false,
       web_access: false,
@@ -40,6 +43,7 @@ describe('WP01 study contract', () => {
     });
     expect(validateStudyContract(contract)).toEqual({ valid: true, issues: [] });
     expect(StudyContractSchema.parse(contract)).toEqual(contract);
+    expect(validateStudyContract({ ...contract, lifecycle: 'SCIENTIFIC_FREEZE_PENDING' })).toEqual({ valid: true, issues: [] });
   });
 
   it('derives the declared planning counts without creating event records', () => {
@@ -84,26 +88,42 @@ describe('WP01 report timing and scheduling', () => {
     expect(agenda.filter(stage => stage.model_invocation).length).toBe(24);
     expect(agenda.filter(stage => stage.kind === 'private_probe').length).toBe(6);
   });
+
+  it('places all t0 checkpoints before the selected report notice and preserves t6/tR order', () => {
+    const agenda = buildRunAgenda('B', SELECTED_REPORT_NOTICE_TIMING);
+    const noticeIndex = agenda.findIndex(stage => stage.id === 'REPORT_NOTICE');
+    const t0Stages = agenda.filter(stage => stage.id === 'T0');
+    expect(t0Stages.map(stage => stage.participant_slot)).toEqual(['P1', 'P2', 'P3']);
+    expect(t0Stages.every(stage => agenda.indexOf(stage) < noticeIndex)).toBe(true);
+    expect(noticeIndex).toBeLessThan(agenda.findIndex(stage => stage.id === 'PUBLIC_ROUND_1'));
+    expect(agenda.findIndex(stage => stage.id === 'PUBLIC_ROUND_6')).toBeLessThan(agenda.findIndex(stage => stage.id === 'T6'));
+    expect(agenda.findIndex(stage => stage.id === 'REPORT_REVISION')).toBeLessThan(agenda.findIndex(stage => stage.id === 'TR'));
+    expect(agenda.find(stage => stage.id === 'REPORT_NOTICE')?.model_invocation).toBe(false);
+  });
 });
 
 describe('WP01 decision register', () => {
-  it('keeps D01-D16 explicit and preserves the unresolved report timing decision', () => {
+  it('records Simon Option A as confirmed while retaining the scientific freeze boundary', () => {
     const register = createDefaultDecisionRegister();
     expect(DecisionRegisterSchema.parse(register)).toEqual(register);
     expect(register.decisions.map(decision => decision.id)).toEqual([
       'D01', 'D02', 'D03', 'D04', 'D05', 'D06', 'D07', 'D08', 'D09', 'D10', 'D11', 'D12', 'D13', 'D14', 'D15', 'D16',
     ]);
-    expect(register.decisions.find(decision => decision.id === 'D13')?.status).toBe('OPEN');
-    expect(register.decisions.find(decision => decision.id === 'D13')?.alternatives).toEqual([
+    const d13 = register.decisions.find(decision => decision.id === 'D13')!;
+    expect(d13.status).toBe('CONFIRMED');
+    expect(d13.approved_wording).toBe('Option A: collect t0 before the report notice; manifest timing is AFTER_T0_BEFORE_PUBLIC.');
+    expect(d13.current_evidence).toContain('Here I\'d say option A: the purpose of the baseline is to see what happens with the smallest amount of information possible.');
+    expect(d13.source_references.some(reference => reference.includes('Simon Heilles'))).toBe(true);
+    expect(d13.alternatives).toEqual([
       'REPORT_NOTICE_BEFORE_T0',
       'T0_BEFORE_REPORT_NOTICE',
     ]);
     expect(register.consolidation_notes).toEqual([{
       retired_id: 'D17',
       canonical_id: 'D13',
-      reason: 'D17 duplicated D13; D13 is the canonical unresolved report-notice/t0 timing question.',
+      reason: 'D17 duplicated D13; D13 is the canonical report-notice/t0 timing question.',
     }]);
-    for (const id of ['D02', 'D06', 'D07', 'D09', 'D10', 'D12', 'D13', 'D14', 'D15', 'D16']) {
+    for (const id of ['D02', 'D06', 'D07', 'D09', 'D10', 'D12', 'D14', 'D15', 'D16']) {
       expect(register.decisions.find(decision => decision.id === id)?.status).toBe('OPEN');
     }
   });
@@ -174,6 +194,17 @@ describe('WP01 candidate prompt registry', () => {
     expect(() => renderPrompt(privatePrompt, { participant_slot: 'P1', round: 't0', topic: 'topic', scope: 'public', private_probe_output: 'secret' })).toThrow(/private|scope/i);
   });
 
+  it('keeps the t0 instrument identical across arms and free of report anticipation', () => {
+    const registry = createPromptRegistry();
+    const t0 = registry.prompts.find(prompt => prompt.id === 'private-t0')!;
+    const rendered = renderPrompt(t0, { participant_slot: 'P1', round: 't0', topic: 'topic' });
+    expect(t0.intended_constant_across_arms).toBe(true);
+    expect(t0.factor_specific).toBe('none');
+    expect(rendered).not.toMatch(/report|joint|prepare/i);
+    expect(rendered).toBe('Privately state your current position on topic, the reasons supporting it, and what evidence would change it. This answer is not part of the public context.');
+    expect(t0.hash).toBe(registry.prompts.find(prompt => prompt.id === 'private-t0')?.hash);
+  });
+
   it('rejects a candidate whose text no longer matches its declared hash', () => {
     const registry = createPromptRegistry();
     const tampered = structuredClone(registry);
@@ -186,13 +217,16 @@ describe('WP01 candidate prompt registry', () => {
 });
 
 describe('WP01 synthetic manifests and public interface', () => {
-  it('generates twelve planned run manifests with visible unresolved freeze state', () => {
-    const campaign = buildSyntheticCampaign({ report_notice_timing: 'BEFORE_T0' });
+  it('generates the selected twelve-run manifest without freezing the overall campaign', () => {
+    const campaign = buildSyntheticCampaign({ report_notice_timing: SELECTED_REPORT_NOTICE_TIMING });
     expect(campaign.runs).toHaveLength(12);
     expect(campaign.runs.map(run => run.condition_id)).toEqual(['A', 'A', 'A', 'B', 'B', 'B', 'C', 'C', 'C', 'D', 'D', 'D']);
     expect(new Set(campaign.runs.map(run => run.replicate))).toEqual(new Set([1, 2, 3]));
     expect(campaign.lifecycle).toBe('IMPLEMENTATION_READY');
     expect(campaign.freeze_status).toBe('SCIENTIFIC_FREEZE_PENDING');
+    expect(campaign.timing_disposition).toBe('SELECTED_METHOD');
+    expect(campaign.study_contract.report_policy.notice_timing).toBe(SELECTED_REPORT_NOTICE_TIMING);
+    expect(campaign.decision_register.decisions.find(decision => decision.id === 'D13')?.status).toBe('CONFIRMED');
     expect(validateCampaignManifest(campaign)).toEqual({ valid: true, issues: [] });
     expect(campaign.runs.every(run => run.bindings.every(binding => binding.source === 'synthetic'))).toBe(true);
     expect(campaign.runs.some(run => run.bindings.some(binding => binding.logical_family === 'MODEL_X'))).toBe(true);
@@ -201,24 +235,47 @@ describe('WP01 synthetic manifests and public interface', () => {
     expect(JSON.stringify(campaign)).not.toMatch(/"(message_id|provider_result|events)"\s*:/);
   });
 
-  it('generates both t0 timing candidates without silently freezing either', () => {
+  it('preserves the alternate sequence only as historical noncanonical evidence', () => {
     const before = buildSyntheticCampaign({ report_notice_timing: 'BEFORE_T0' });
-    const after = buildSyntheticCampaign({ report_notice_timing: 'AFTER_T0_BEFORE_PUBLIC' });
+    const after = buildSyntheticCampaign({ report_notice_timing: SELECTED_REPORT_NOTICE_TIMING });
     expect(before.decision_register_ref).toBe(after.decision_register_ref);
     expect(before.runs[3]?.report_notice_timing).toBe('BEFORE_T0');
-    expect(after.runs[3]?.report_notice_timing).toBe('AFTER_T0_BEFORE_PUBLIC');
+    expect(before.timing_disposition).toBe('HISTORICAL_NONCANONICAL');
+    expect(after.runs[3]?.report_notice_timing).toBe(SELECTED_REPORT_NOTICE_TIMING);
+    expect(after.timing_disposition).toBe('SELECTED_METHOD');
     expect(before.freeze_status).toBe('SCIENTIFIC_FREEZE_PENDING');
     expect(after.freeze_status).toBe('SCIENTIFIC_FREEZE_PENDING');
+    expect(validateCampaignManifest(before)).toEqual({ valid: true, issues: [] });
+    expect(validateCampaignManifest(after)).toEqual({ valid: true, issues: [] });
   });
 
   it('rejects tampered manifests and unresolved real freeze bindings', () => {
-    const campaign = buildSyntheticCampaign({ report_notice_timing: 'BEFORE_T0' });
+    const campaign = buildSyntheticCampaign({ report_notice_timing: SELECTED_REPORT_NOTICE_TIMING });
     const tampered = structuredClone(campaign);
     tampered.runs[0]!.condition_id = 'D';
     expect(validateCampaignManifest(tampered).valid).toBe(false);
     const scientific = structuredClone(campaign);
     scientific.profile = 'scientific';
     expect(validateCampaignManifest(scientific).valid).toBe(false);
+  });
+
+  it('does not expose backend report metadata or private t0 responses in the public planning contract', () => {
+    const campaign = buildSyntheticCampaign({ report_notice_timing: SELECTED_REPORT_NOTICE_TIMING });
+    const reportRun = campaign.runs.find(run => run.condition_id === 'B')!;
+    const t0Prompt = createPromptRegistry().prompts.find(prompt => prompt.id === 'private-t0')!;
+    expect(reportRun.agenda.filter(stage => stage.id === 'T0')).toHaveLength(3);
+    expect(reportRun.agenda.findIndex(stage => stage.id === 'T0')).toBeLessThan(reportRun.agenda.findIndex(stage => stage.id === 'REPORT_NOTICE'));
+    expect(JSON.stringify(t0Prompt).toLowerCase()).not.toMatch(/report|joint/);
+    expect(JSON.stringify(campaign).toLowerCase()).not.toMatch(/"(provider_result|message_id|events)"\s*:/);
+  });
+
+  it('requires timing disposition consistency and retains the selected sequence in each report run', () => {
+    const selected = buildSyntheticCampaign({ report_notice_timing: SELECTED_REPORT_NOTICE_TIMING });
+    expect(TimingDispositionSchema.parse(selected.timing_disposition)).toBe('SELECTED_METHOD');
+    expect(selected.runs.filter(run => run.report_notice_timing !== 'NONE').every(run => run.report_notice_timing === SELECTED_REPORT_NOTICE_TIMING)).toBe(true);
+    const historical = buildSyntheticCampaign({ report_notice_timing: 'BEFORE_T0' });
+    expect(TimingDispositionSchema.parse(historical.timing_disposition)).toBe('HISTORICAL_NONCANONICAL');
+    expect(historical.runs.filter(run => run.report_notice_timing !== 'NONE').every(run => run.report_notice_timing === 'BEFORE_T0')).toBe(true);
   });
 
   it('publishes the source-to-opportunity-to-context linkage contract', async () => {

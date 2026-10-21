@@ -25,14 +25,33 @@ The machine-readable register is `createDefaultDecisionRegister()` in
 | D10 | Wild West scope | OPEN | Scientific freeze |
 | D11 | Behavioral codebook and calibration | PROPOSED | Scientific freeze |
 | D12 | Replay trials and selection | OPEN | Scientific freeze |
-| D13 | Notice before/after t0 | OPEN | Scientific freeze |
+| D13 | Notice before/after t0 | CONFIRMED by Simon (meeting direction) | Scientific freeze |
 | D14 | Private probe contents | OPEN | Scientific freeze |
 | D15 | Freeze authorization | OPEN | Scientific freeze |
 | D16 | Reconstruction/replication evidence | OPEN | Scientific freeze |
 
 D17 was a redundant label for the same report-notice/t0 question. It is retired
-and preserved in `consolidation_notes` as `D17 -> D13`; D13 remains `OPEN`, and
-the scientific question is intentionally not resolved.
+and preserved in `consolidation_notes` as `D17 -> D13`.
+
+## D13 — confirmed methodological timing
+
+Simon Heilles selected Option A:
+
+> "Here I'd say option A: the purpose of the baseline is to see what happens with the smallest amount of information possible."
+
+The machine-readable decision records this as:
+
+- selected alternative: `T0_BEFORE_REPORT_NOTICE`;
+- manifest timing: `AFTER_T0_BEFORE_PUBLIC`;
+- stage order: all three private `t0` opportunities, then the report/no-report
+  notice, then the first public contribution in report arms;
+- decision status: `CONFIRMED` at meeting-direction level;
+- `decision_date`: not fabricated;
+- overall scientific freeze: still pending.
+
+This confirms the methodological baseline rule without resolving Model X,
+deployments, prompt approval, budgets, writer allocation, probes, codebook,
+replication evidence or freeze authorization.
 
 Every record also contains alternatives, current evidence, approver,
 scientific/engineering impact, source references and associated configuration

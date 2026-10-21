@@ -21,7 +21,8 @@ WP03 consumes the workflow portions of the WP01 contract:
 
 - six public rounds and the fixed `t0`, `t6` and `tR` checkpoints;
 - report draft, two independent reviews and revision stages;
-- report/no-report stage semantics and the unresolved notice/t0 decision;
+- the confirmed `AFTER_T0_BEFORE_PUBLIC` notice timing: P1/P2/P3 `t0`, then
+  the report/no-report notice, then public round 1;
 - candidate prompt references and the deterministic host agenda.
 
 WP03 owns workshop and report workflow semantics, but does not own provider
@@ -43,6 +44,14 @@ Changing a provider or deployment requires a new provenance/config identity. No
 provider, endpoint, SDK, credential, or GPU assumption is embedded in the study
 matrix or WP03 workflow.
 
+For the selected baseline sequence, WP02 must preserve the distinction between a
+scheduled opportunity and a successful response. It must not fabricate, silently
+repair or silently repeat a missing `t0` response. The first public opportunity
+must not be dispatched until all three `t0` opportunities have been scheduled in
+the declared order and the report/no-report notice has been delivered at its
+declared stage. Failure handling remains the approved WP02 policy; WP01 does not
+invent retries.
+
 ## WP04 — context and visibility
 
 The minimum linkage is:
@@ -54,6 +63,10 @@ source_message_id -> recipient_opportunity_id -> context_snapshot_id
 It is represented by `SourceMessageLinkSchema`, with an explicit
 `visibility_scope`. Private probe output cannot be rendered into public prompt
 context by the WP01 renderer; WP04 must enforce the same boundary at runtime.
+The `t0` source IDs and outputs are private and cannot be used to construct the
+report notice or any other participant's public context. Backend fields such as
+`report_required` and `timing_disposition` are experiment metadata, not model-
+visible prompt content.
 
 ## WP05 — replay
 

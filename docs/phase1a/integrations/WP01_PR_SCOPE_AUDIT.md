@@ -194,20 +194,27 @@ The scientific lifecycle remains:
 
 ## 8. Verification evidence on the clean branch
 
-The checks below were executed after reconstructing the branch from `origin/master` and before preparing the replacement PR:
+The isolated-scope record and the D13/t0 follow-up are reported separately so
+the clean 439/458 comparison is not confused with the four new D13 tests.
 
 | Check | Result |
 |---|---|
 | `origin/master` baseline full suite | 41 files, 439 tests passed |
-| WP01 focused suite | 1 file, 23 tests passed |
-| Full suite after WP01 isolation | 42 files, 462 tests passed |
+| Isolated WP01 postintegration snapshot before D13 follow-up | 42 files, 458 tests passed |
+| D13/t0 focused follow-up | 1 file, 23 tests passed |
+| Full suite after D13 follow-up | 42 files, 462 tests passed |
 | Phase 0 / historical Phase 1 regression subset | 5 files, 100 tests passed |
 | TypeScript (`npx tsc --noEmit -p tsconfig.json`) | PASS |
 | Build (`npm run build`) | PASS |
 | Changed-path allowlist | 37 staged paths, 0 forbidden paths |
 | `git diff --cached --check` | PASS |
+| GitHub Actions `AGORA Phase 0 #34` tests/build/whitespace | PASS |
+| GitHub Actions production dependency audit | FAIL — separate security-maintenance blocker (`proxy-addr` critical; `qs` moderate) |
 | Synthetic manifest `after_t0_before_public` | Valid; 12 runs; `SELECTED_METHOD`; campaign hash `sha256:012db7156d2f60c8e358fa8d8d443c6cffe70108f1769741dda49468dcc7e63b` |
 | Synthetic manifest `before_t0` | Valid; 12 runs; `HISTORICAL_NONCANONICAL`; campaign hash `sha256:f8a27ccc1b0d9db9c121f904f7f437fbbc4745dcc3f1b3572732fd74035fce4d` |
 | Provider/GPU/credential calls | None |
 
 The manifest validator recomputed the campaign, run, configuration, study-contract, decision-register, and prompt-registry relationships and returned `valid=true` with no issues for both synthetic candidates.
+
+The earlier 466/485 results are historical broader-worktree evidence only; they
+are not used to validate this clean replacement branch.

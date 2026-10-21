@@ -16,13 +16,36 @@ No legacy `phase1a-v1` prompt or Phase 0 configuration hash is replaced.
 
 ## Verification
 
-The clean `origin/master` baseline was 41 test files and 439 passing tests,
-with `npx tsc --noEmit -p tsconfig.json` passing. The final implementation
-verification is complete: the focused WP01 suite passed 23/23, the full
-repository passed 42 files and 462/462 tests, the Phase 0/historical Phase 1
-regression subset passed 5 files and 100/100 tests, `npm run build` passed, and
-`git diff --check` passed. Reviewers can distinguish this evidence from the
-baseline suite.
+The clean `origin/master` baseline was 41 test files and **439 passing tests**.
+The isolated WP01 integration snapshot before the Simon D13 follow-up was
+verified at 42 test files and **458 passing tests**. Those are the baseline and
+postintegration counts for the clean replacement scope.
+
+The D13/t0 follow-up adds four focused contract tests. Its fresh local result is
+42 test files and **462/462 passing tests**, with the Phase 0/historical Phase 1
+regression subset at 5 files and 100/100 tests. TypeScript, `npm run build`,
+and `git diff --check` pass locally. This current follow-up result is reported
+separately so it does not overwrite the verified 439/458 isolated-branch
+record.
+
+The earlier **466-test baseline and 485-test postimplementation result** came
+from a broader historical worktree and are retained only as labeled historical
+evidence in `WP01_PREIMPLEMENTATION_BASELINE.md`; they are not compatibility
+evidence for the clean WP01 branch.
+
+## Separate security-maintenance blocker
+
+GitHub Actions run `AGORA Phase 0 #34` for the current PR merge ref passed
+`npm test` (42 files, 462 tests), `npm run build`, and `git diff --check`. The
+separate production dependency audit failed and must remain visible:
+
+- `proxy-addr` — critical, IP-spoofing advisory `GHSA-jqcg-44mw-7w3h`;
+- `qs` — moderate, array-limit / `isBuffer` advisories
+  `GHSA-x5fp-wj9c-mxmx` and `GHSA-4mjr-xmp4-gh2g`.
+
+This is a repository security-maintenance blocker, not a WP01 contract failure.
+This PR does not disable the audit or introduce unrelated dependency upgrades.
+It must be handled in a separate security-maintenance change.
 
 ## Limitations
 

@@ -4,6 +4,39 @@ Phase 1A role-experiment extension: [specification](docs/phase1/IMPLEMENTATION_S
 [operator guide and review notes](docs/phase1/REVIEW.md). Open `/phase1` for the
 draft/preview/freeze/mock/compare/annotate/export workflow. Phase 1B remains out of scope.
 
+## Phase 1A workshop runtime and WP05 replay
+
+The repository now also contains the executable Phase 1A workshop contract and the
+first WP05 context-locked replay milestone. The implementation is backed by a
+machine-checked requirement matrix covering all 79 normative requirements.
+
+The workshop uses a deterministic three-agent, six-round protocol with private
+checkpoints at `t0`, `t1`, and `t2`. Its four experimental conditions are:
+
+| Condition | Identity | Joint-report requirement |
+| --- | --- | --- |
+| A | Named | No |
+| B | Named | Yes |
+| C | Anonymous | No |
+| D | Anonymous | Yes |
+
+For B and D, every agent commits its private `t0` response before the joint-report
+requirement is disclosed. The disclosure then occurs before the first public turn.
+This preserves `t0` as a pre-treatment baseline while keeping the public discussion
+under the assigned report condition.
+
+WP05 replays one frozen parent invocation across the four cells formed by
+identity cue present/absent and endorsement cue present/absent. Each cell has an
+independent trial record, deterministic context hash, explicit retry policy, and
+complete success or failure evidence.
+
+- [Phase 1A specification pack](specs/README.md)
+- [WP05 context-locked replay contract](specs/phase1a/context-locked-replay.md)
+- [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
+
+Run `npm test` for the full validation suite and `npm run build` for the production
+build check.
+
 A small, controlled, replayable multi-agent workshop, plus enough instrumentation to
 trust it as a research instrument.
 

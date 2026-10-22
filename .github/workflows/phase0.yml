@@ -18,7 +18,18 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npm test
+      - name: Run tests and write machine-readable results
+        run: |
+          mkdir -p artifacts
+          npm test -- --reporter=default --reporter=json --outputFile.json=artifacts/vitest-results.json
+      - name: Publish test results for the acceptance dashboard
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agora-test-results
+          path: artifacts/vitest-results.json
+          if-no-files-found: warn
+          retention-days: 30
       - run: npm run build
       - name: Check patch whitespace
         run: git diff --check

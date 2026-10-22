@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { campaign, freezeCampaign, planCampaign, runCampaign, starterInput, usage } from '../src/phase1/campaign.js';
 import { campaignAnalysis } from '../src/phase1/analysis.js';
 import { campaignBundle } from '../src/phase1/export.js';
-import { positionRows, parsePosition } from '../src/phase1/positions.js';
+import { positionProbeStatus, positionRows, parsePosition } from '../src/phase1/positions.js';
 import { behavioralMeasures } from '../src/phase1/behavioralAnalysis.js';
 import { annotate, reviewerAnnotations, wasExposed } from '../src/semantic/phase1Annotations.js';
 import { getMessages, getInvocations, getRun } from '../src/db/queries.js';
@@ -40,6 +40,7 @@ describe('independent positions', () => {
     const analysis = campaignAnalysis(db, id);
     expect(analysis.status.runtime_checks_passed).toBe(true);
     expect(analysis.behavioral[0]).toMatchObject({ initial_final_change: { value: 0, valid_agent_pairs: 5 }, reviewers: [] });
+    expect(analysis.checks.find(check => check.id === `P1A-POSITIONS:${c.plan.cases[0]!.id}`)).toMatchObject({ status: 'PASS', probe_status: 'VALID' });
     expect(usage(db, id).attempts).toBe(2 * (getInvocations(db, runId).filter(i => i.provider !== 'scripted').length + 10));
     expect(campaignBundle(db, id).artifacts.runs[0]!.records.phase1_positions).toHaveLength(10);
     expect(exportRun({ db, runId, outDir: tempDir() }).files.some(f => f.name === 'phase1_positions.json')).toBe(true);
@@ -79,7 +80,46 @@ describe('independent positions', () => {
     const { db, id, runId } = await executed();
     expect(positionRows(db, runId).every(r => r.status === 'invalid')).toBe(true);
     expect(campaignAnalysis(db, id).behavioral[0]).toMatchObject({ initial_final_change: { value: null, valid_agent_pairs: 0 } });
+    expect(campaignAnalysis(db, id).checks.find(check => check.id === `P1A-POSITIONS:${campaign(db, id).plan.cases[0]!.id}`)).toMatchObject({ status: 'FAIL', probe_status: 'EXECUTED_BUT_INVALID' });
     expect(campaignAnalysis(db, id).status.runtime_checks_passed).toBe(false);
+    db.close();
+  });
+  it('keeps explicit abstention and no-op as valid behavioral delivery outcomes', async () => {
+    const invoke = MockProvider.prototype.invoke;
+    vi.spyOn(MockProvider.prototype, 'invoke').mockImplementation(async function(req) {
+      const result = await invoke.call(this, req);
+      return req.positionProbe ? result : { ...result, content: req.agentId === 'agent_1' ? '[ABSTAIN]' : '[PASS]' };
+    });
+    const { db, id, c, runId } = await executed();
+    const calls = getInvocations(db, runId).filter(i => i.agent_id !== c.plan.input.base_config.moderator.id);
+    expect(new Set(calls.map(i => i.outcome))).toEqual(new Set(['explicit_abstention', 'no_op']));
+    expect(campaignAnalysis(db, id).checks.find(check => check.id === `P1A-DELIVERY:${c.plan.cases[0]!.id}`)).toMatchObject({ status: 'PASS' });
+    db.close();
+  });
+  it('still fails delivery for a genuine provider failure', async () => {
+    const invoke = MockProvider.prototype.invoke;
+    vi.spyOn(MockProvider.prototype, 'invoke').mockImplementation(async function(req) {
+      const result = await invoke.call(this, req);
+      return req.positionProbe ? result : { ...result, ok: false, content: null, failure: { category: 'provider_error', message: 'provider unavailable' } };
+    });
+    const { db, id, c, runId } = await executed();
+    const calls = getInvocations(db, runId).filter(i => i.agent_id !== c.plan.input.base_config.moderator.id);
+    expect(calls.every(i => i.outcome === 'infra_failure')).toBe(true);
+    expect(campaignAnalysis(db, id).checks.find(check => check.id === `P1A-DELIVERY:${c.plan.cases[0]!.id}`)).toMatchObject({ status: 'FAIL' });
+    db.close();
+  });
+  it('distinguishes executed provider failures from probes that were never exercised', async () => {
+    expect(positionProbeStatus([])).toBe('NOT_EXERCISED');
+    const invoke = MockProvider.prototype.invoke;
+    vi.spyOn(MockProvider.prototype, 'invoke').mockImplementation(async function(req) {
+      const result = await invoke.call(this, req);
+      return req.positionProbe
+        ? { ...result, ok: false, content: null, failure: { category: 'provider_error', message: 'position probe unavailable' } }
+        : result;
+    });
+    const { db, id, c, runId } = await executed();
+    expect(positionRows(db, runId).every(r => r.status === 'missing')).toBe(true);
+    expect(campaignAnalysis(db, id).checks.find(check => check.id === `P1A-POSITIONS:${c.plan.cases[0]!.id}`)).toMatchObject({ status: 'FAIL', probe_status: 'EXECUTED_BUT_MISSING' });
     db.close();
   });
   it('charges probes against campaign ceilings and retains all planned cases', async () => {
@@ -173,6 +213,22 @@ describe('prespecified behavioral readings', () => {
     const privateSource = messages.find(m => m.channel === 'private' && m.sender_agent_id === 'agent_3')!;
     const inaccessible = messages.find(m => m.channel === 'private' && m.sender_agent_id === 'agent_1')!;
     expect(() => annotate(db, id, { ...a, message_id: privateSource.message_id, quote: privateSource.content, target_message_id: inaccessible.message_id, target_quote: inaccessible.content })).toThrow(/exposed/);
+    db.close();
+  });
+  it('does not count moderator-only prior context in the peer interaction denominator', async () => {
+    const { db, id, c, runId } = await executed();
+    const allMessages = getMessages(db, runId);
+    const participants = allMessages.filter(m => m.sender_agent_id !== c.plan.input.base_config.moderator.id);
+    const moderator = allMessages.find(m => m.sender_agent_id === c.plan.input.base_config.moderator.id && m.workshop_state === 'PUBLIC_DISCUSSION')!;
+    const moderatorOnly = participants.find(m => m.workshop_state !== 'INTRODUCTION' && m.sequence > moderator.sequence && m.source_invocation_id)!;
+    db.prepare('UPDATE invocations SET context_message_ids = ? WHERE invocation_id = ?').run(JSON.stringify([moderator.message_id]), moderatorOnly.source_invocation_id);
+    const peerEligible = participants.filter(m => m.workshop_state !== 'INTRODUCTION' && participants.some(prior => prior.sender_agent_id !== m.sender_agent_id && wasExposed(db, m, prior)));
+    expect(peerEligible).not.toContainEqual(expect.objectContaining({ message_id: moderatorOnly.message_id }));
+    const source = peerEligible[0]!;
+    annotate(db, id, { run_id: runId, message_id: source.message_id, author: 'alice', annotator_type: 'human', rubric_version: c.plan.input.role_pack.rubric.version, category: 'interaction_contingency', label: 'absent', quote: source.content, reason: 'Only peer-exposed messages belong in the interaction denominator.' });
+    const result = behavioralMeasures(db, id, c.plan.cases[0]!, runId);
+    if (result.availability !== 'configured') throw new Error('missing protocol');
+    expect(result.reviewers[0]!.interaction_contingency.denominator).toBe(peerEligible.length);
     db.close();
   });
   it('counts introduced-idea uptake only after a separate source-linked fate assessment', async () => {

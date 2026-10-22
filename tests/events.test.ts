@@ -10,7 +10,7 @@ import { getMessages, getRun } from '../src/db/queries.js';
 import { frozen, tempDb, tempDir } from './helpers.js';
 
 describe('event log', () => {
-  it('assigns a contiguous, strictly increasing sequence', async () => {
+  it('[EVD-06] assigns a contiguous, strictly increasing sequence', async () => {
     const db = tempDb();
     const runner = new WorkshopRunner({ db, frozen: frozen() });
     await runner.execute();

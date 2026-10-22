@@ -14,7 +14,8 @@
     "agora": "tsx src/cli.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "validate": "tsx src/scripts/validate.ts"
+    "validate": "tsx src/scripts/validate.ts",
+    "phase1a:fixtures": "tsx src/phase1a/wp01/fixtures/generate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

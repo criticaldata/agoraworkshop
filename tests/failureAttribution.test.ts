@@ -142,7 +142,7 @@ describe('infrastructure failures are never labelled as abstention', () => {
 });
 
 describe('retries', () => {
-  it('records the failed attempt even when a retry succeeds', async () => {
+  it('[ORCH-07] records the failed attempt even when a retry succeeds', async () => {
     const { db, runId } = await runWith([
       { kind: 'fail', category: 'timeout', message: 'simulated timeout' },
       { kind: 'ok', text: 'recovered on the second attempt' },

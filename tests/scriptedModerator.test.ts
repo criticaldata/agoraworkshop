@@ -12,7 +12,7 @@ const scripted = () =>
   frozen({ moderator: { id: 'moderator', display_name: 'Moderator', mode: 'scripted' } });
 
 describe('scripted moderator', () => {
-  it('produces the fixed line for each phase, not model output', async () => {
+  it('[CTX-01] produces the fixed line for each phase, not model output', async () => {
     const db = tempDb();
     const runner = new WorkshopRunner({ db, frozen: scripted() });
     await runner.execute();

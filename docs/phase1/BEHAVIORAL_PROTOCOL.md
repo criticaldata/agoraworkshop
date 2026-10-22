@@ -67,10 +67,15 @@ They are separate assessment records, not dialogue messages or participation
 opportunities. Campaign exports include them; legacy dialogue metrics intentionally
 do not include assessment calls. The campaign usage ledger includes both.
 
-Statuses distinguish valid, invalid schema, missing budget/provider opportunity, and
-an interrupted pending reservation. No persisted assessment is repeated on resume.
-Unknown in-flight usage blocks further calls. Initial assessments that were not made
-before dialogue cannot be retroactively collected as independent baselines.
+Persisted rows retain the internal lifecycle statuses `pending`, `valid`, `invalid` and
+`missing`. The exported Phase 1 probe status uses four distinct values: `NOT_EXERCISED`
+when no reservation exists, `EXECUTED_BUT_INVALID` when a provider response was recorded
+but failed schema validation, `EXECUTED_BUT_MISSING` when an exercised reservation has no
+usable response (including provider failure, budget, deadline or interruption), and
+`VALID` when the complete expected set is schema-valid. No persisted assessment is
+repeated on resume. Unknown in-flight usage blocks further calls. Initial assessments
+that were not made before dialogue cannot be retroactively collected as independent
+baselines.
 
 ## Outcomes and denominators
 

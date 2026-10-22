@@ -222,6 +222,19 @@ describe('credential configured', () => {
   });
 });
 
+describe('private Phase 1 review reads', () => {
+  it('requires credentials under the default write scope', () => {
+    expect(run(configured, { method: 'GET', path: '/phase1/campaigns/campaign_1/review' }).status).toBe(401);
+    expect(run(configured, { method: 'GET', path: '/api/phase1/campaigns/campaign_1/annotations' }).status).toBe(401);
+  });
+
+  it('allows an authenticated researcher to read private review material', () => {
+    const headers = { authorization: basic('correct horse') };
+    expect(run(configured, { method: 'GET', path: '/phase1/campaigns/campaign_1/review', headers }).nextCalled).toBe(true);
+    expect(run(configured, { method: 'GET', path: '/api/phase1/campaigns/campaign_1/annotations', headers }).nextCalled).toBe(true);
+  });
+});
+
 describe('configuration from the environment', () => {
   it('treats an unset or empty password as not configured', () => {
     expect(authConfigFromEnv({}).password).toBeNull();

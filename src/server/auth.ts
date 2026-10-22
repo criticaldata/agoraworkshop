@@ -49,6 +49,21 @@ const OPEN_PATHS = new Set(['/healthz']);
  */
 const PREFERENCE_PATHS = new Set(['/view-mode']);
 
+/**
+ * Phase 1 review pages contain private campaign transcripts and reviewer evidence.
+ * They therefore require the shared researcher credential even when the instance keeps
+ * ordinary read-only pages public under `scope: 'write'`. The route checks here are
+ * intentionally independent of the UI and of operator documentation.
+ */
+const PRIVATE_REVIEW_PATHS = [
+  /^\/phase1\/campaigns\/[^/]+\/review\/?$/,
+  /^\/api\/phase1\/campaigns\/[^/]+\/annotations\/?$/,
+];
+
+export function isPrivateReviewPath(path: string): boolean {
+  return PRIVATE_REVIEW_PATHS.some((pattern) => pattern.test(path));
+}
+
 export function authConfigFromEnv(env: NodeJS.ProcessEnv = process.env): AuthConfig {
   const raw = env['AGORA_AUTH_PASSWORD'];
   const password = raw && raw.length > 0 ? raw : null;
@@ -133,7 +148,7 @@ export function createAuthMiddleware(config: AuthConfig): RequestHandler {
     }
 
     const writing = changing && !PREFERENCE_PATHS.has(req.path);
-    const mustAuthenticate = writing || config.scope === 'all';
+    const mustAuthenticate = writing || config.scope === 'all' || isPrivateReviewPath(req.path);
     if (!mustAuthenticate) {
       next();
       return;

@@ -1,5 +1,7 @@
 # WP01 integration records
 
+- [Consolidated contract/runtime/replay audit and dry-run handoff](CONSOLIDATED_READINESS_2026-10-22.md)
+
 - [Phase 0 compatibility](WP01_PHASE0_COMPATIBILITY.md)
 - [Preimplementation baseline](WP01_PREIMPLEMENTATION_BASELINE.md)
 - [WP02–WP06 handoff](WP01_WP02_WP06_HANDOFF.md)

@@ -30,17 +30,19 @@ manipulation:
   prompts, `private-t0`, `private-t6`, and `abstention` are intended to remain
   constant across arms.
 - `report-anticipation` is the report-arm notice.
-- `no-report-condition` is the no-report-arm notice.
+- `no-report-condition` is a retained candidate only. `DEC-09` / `EXP-14`
+  specify no condition notice in A/C, so this candidate is not scheduled by
+  the active agenda. Its text, candidate hash and registry hash are preserved.
 - `report-draft`, `report-review-1`, `report-review-2`, and `report-revision`
   are stage prompts for the report branch; they are absent from no-report
   agendas and are not themselves an additional experimental factor.
 - `private-tR` is available only after the report branch.
 
-The report/no-report distinction is therefore represented by both the notice
-candidate and the agenda's stage presence. Simon's confirmed Option A places
-the notice after the private `t0` checkpoints and before public round 1 in
-report arms. The report/no-report wording itself remains a candidate pending
-scientific prompt approval.
+The active contrast is a report notice and report stages in B/D versus no
+condition disclosure and no report stages in A/C. Simon's confirmed Option A
+places the notice after all private `t0` checkpoints and before public round 1
+in report arms. The final report-notice wording remains pending scientific
+prompt approval. Retaining a candidate does not approve or schedule it.
 
 ## Complete candidate inventory
 

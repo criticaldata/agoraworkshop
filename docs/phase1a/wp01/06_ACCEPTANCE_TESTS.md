@@ -67,7 +67,7 @@ runtime owners are not implemented in WP01:
 | Runtime dependency | Required integration evidence | Owner | Status |
 |---|---|---|---|
 | Core orchestration and model-provider integration | Run lifecycle, adapter invocation, retries, provenance and fault classification against approved deployments | WP02 | AWAITING_INTEGRATION |
-| Workshop and report workflow | Six-round execution, `t0(P1,P2,P3) -> report/no-report notice -> public round 1`, `t6`/`tR`, report draft/reviews/revision and report/no-report stage behavior | WP03 | AWAITING_INTEGRATION |
+| Workshop and report workflow | Six-round execution, `t0(P1,P2,P3) -> report notice (B/D only) -> public round 1`, `t6`/`tR`, report draft/reviews/revision; A/C receive no condition notice | WP03 | See consolidated integration audit for executed mock coverage and remaining live dependencies |
 | Context, visibility and evidence persistence | Runtime public/private isolation, context assembly, source-message links and persisted evidence | WP04 | AWAITING_INTEGRATION |
 | Replay and reconstruction | Replay from immutable manifests, event reconstruction and hash parity | WP05 | AWAITING_INTEGRATION |
 | Analysis and scientific claims | Approved codebook, calibration, report analysis and claim gating | WP06 | AWAITING_INTEGRATION / PENDING_SCIENTIFIC_APPROVAL |

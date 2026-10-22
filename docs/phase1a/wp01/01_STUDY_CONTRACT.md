@@ -13,7 +13,7 @@ The machine-validatable contract is `StudyContractSchema` in
 | Participants | P1, P2, P3; exactly three per run |
 | Repetitions | three independent runs per condition; 12 planned runs |
 | Agenda | private `T0`, six public rounds, private `T6`; report arms add draft, two reviews, revision, `TR` |
-| Report notice | `AFTER_T0_BEFORE_PUBLIC`: all three `T0` checkpoints precede the report/no-report notice and public discussion |
+| Report notice | B/D: `AFTER_T0_BEFORE_PUBLIC`; all three `T0` checkpoints precede report disclosure and public discussion. A/C: no disclosure (`NONE`). |
 | Host | deterministic procedural host; no autonomous LLM moderator |
 | Interaction | no tools, web, voting, external actions, mandatory breakouts, role personas or early stopping |
 | Privacy | private outputs do not re-enter public context |
@@ -54,7 +54,7 @@ the selected Option A from Simon Heilles. The scheduler represents the selected
 sequence explicitly:
 
 - `T0` for P1, P2 and P3;
-- report-arm notice (or the corresponding no-report procedural notice);
+- report-arm notice in B/D; no condition notice in A/C, per `DEC-09` / `EXP-14`;
 - the first public contribution, followed by the remaining five rounds.
 
 The `BEFORE_T0` sequence remains available only as a

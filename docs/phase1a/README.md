@@ -1,5 +1,10 @@
 # AGORA Phase 1A — Reimagining Humans
 
+Post-consolidation review: see the [2026-10-22 integration audit and scientific
+handoff](integrations/CONSOLIDATED_READINESS_2026-10-22.md) for current mock
+runtime/replay evidence, schema boundaries, live blockers and approval inputs.
+The WP01 implementation records below describe the original package scope.
+
 ## WP01 implementation status
 
 **Implementation status:** `IMPLEMENTATION_READY — SCIENTIFIC_FREEZE_PENDING`

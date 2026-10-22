@@ -22,7 +22,7 @@ WP03 consumes the workflow portions of the WP01 contract:
 - six public rounds and the fixed `t0`, `t6` and `tR` checkpoints;
 - report draft, two independent reviews and revision stages;
 - the confirmed `AFTER_T0_BEFORE_PUBLIC` notice timing: P1/P2/P3 `t0`, then
-  the report/no-report notice, then public round 1;
+  the report notice in B/D, then public round 1; A/C receive no condition notice;
 - candidate prompt references and the deterministic host agenda.
 
 WP03 owns workshop and report workflow semantics, but does not own provider
@@ -48,7 +48,7 @@ For the selected baseline sequence, WP02 must preserve the distinction between a
 scheduled opportunity and a successful response. It must not fabricate, silently
 repair or silently repeat a missing `t0` response. The first public opportunity
 must not be dispatched until all three `t0` opportunities have been scheduled in
-the declared order and the report/no-report notice has been delivered at its
+the declared order and the report notice, where required in B/D, has been delivered at its
 declared stage. Failure handling remains the approved WP02 policy; WP01 does not
 invent retries.
 

@@ -16,7 +16,7 @@ function normativeRequirementIds(): string[] {
 
 function matrixRows() {
   return readFileSync(matrixPath, 'utf8')
-    .split('\n')
+    .split(/\r?\n/)
     .map((line) => {
       const match = line.match(/^\| `((?:CTX|EXP|ORCH|VIS|RPT|EVD|DRY|RPL|TST)-\d{2})` \| `([^`]+)`(?: plus [^|]+)? \| ([^|]+) \| (GREEN|PARTIAL|RED|BLOCKED) \|$/);
       return match

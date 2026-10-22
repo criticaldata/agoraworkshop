@@ -43,8 +43,9 @@ The machine-readable decision records this as:
 
 - selected alternative: `T0_BEFORE_REPORT_NOTICE`;
 - manifest timing: `AFTER_T0_BEFORE_PUBLIC`;
-- stage order: all three private `t0` opportunities, then the report/no-report
-  notice, then the first public contribution in report arms;
+- stage order: all three private `t0` opportunities, then the report notice,
+  then the first public contribution in B/D; A/C receive no condition notice
+  (`DEC-09` / `EXP-14` in the consolidated runtime specification);
 - decision status: `CONFIRMED` at meeting-direction level;
 - `decision_date`: not fabricated;
 - overall scientific freeze: still pending.

@@ -6,31 +6,37 @@ draft/preview/freeze/mock/compare/annotate/export workflow. Phase 1B remains out
 
 ## Phase 1A workshop runtime and WP05 replay
 
-The repository now also contains the executable Phase 1A workshop contract and the
-first WP05 context-locked replay milestone. The implementation is backed by a
-machine-checked requirement matrix covering all 79 normative requirements.
+The repository now also contains Mateo's WP01 study contract, an executable Phase 1A
+workshop runtime, and the first WP05 context-locked replay milestone. The
+implementation is backed by a machine-checked requirement matrix. The scientific
+freeze remains pending for every item still marked `OPEN` or `PROPOSED` in the WP01
+decision register.
 
-The workshop uses a deterministic three-agent, six-round protocol with private
-checkpoints at `t0`, `t1`, and `t2`. Its four experimental conditions are:
+The workshop uses a deterministic three-participant, six-round protocol with private
+checkpoints at `T0`, `T6`, and, in report conditions, `TR`. The runtime currently uses
+the equivalent internal aliases `t0`, `t1`, and `t2`. Its four experimental
+conditions are:
 
-| Condition | Identity | Joint-report requirement |
+| Condition | Model composition | Joint-report requirement |
 | --- | --- | --- |
-| A | Named | No |
-| B | Named | Yes |
-| C | Anonymous | No |
-| D | Anonymous | Yes |
+| A | Gemma / Gemma / Gemma | No |
+| B | Gemma / Gemma / Gemma | Yes |
+| C | Gemma / Gemini / Model X | No |
+| D | Gemma / Gemini / Model X | Yes |
 
 For B and D, every agent commits its private `t0` response before the joint-report
 requirement is disclosed. The disclosure then occurs before the first public turn.
 This preserves `t0` as a pre-treatment baseline while keeping the public discussion
 under the assigned report condition.
 
-WP05 replays one frozen parent invocation across the four cells formed by
-identity cue present/absent and endorsement cue present/absent. Each cell has an
-independent trial record, deterministic context hash, explicit retry policy, and
-complete success or failure evidence.
+The WP05 replay grid is a separate four-cell test, not the A–D workshop condition
+matrix. It replays one frozen parent invocation across identity cue present/absent
+and endorsement cue present/absent. Each replay cell has an independent trial
+record, deterministic context hash, explicit retry policy, and complete success or
+failure evidence.
 
 - [Phase 1A specification pack](specs/README.md)
+- [WP01 study contract and decision register](docs/phase1a/wp01/README.md)
 - [WP05 context-locked replay contract](specs/phase1a/context-locked-replay.md)
 - [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
 

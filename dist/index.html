@@ -3,196 +3,146 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Interactive acceptance test book for the AGORA Phase 1A requirements and evidence.">
-  <title>AGORA Phase 1A · Acceptance Test Book</title>
+  <meta name="description" content="A durable acceptance workbook and GitHub-backed project assistant for AGORA.">
+  <title>AGORA Acceptance Review</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <a class="skip-link" href="#main">Skip to content</a>
-  <header class="topbar">
-    <a class="brand" href="#overview" aria-label="AGORA acceptance review home">
-      <span class="brand-mark">A</span>
-      <span><strong>AGORA</strong><small>Acceptance test book · Phase 1A</small></span>
+  <header class="site-header">
+    <a class="brand" href="#overview" aria-label="AGORA acceptance workbook home">
+      <span class="brand-mark" aria-hidden="true">A</span>
+      <span><strong>AGORA</strong><small>Acceptance workbook</small></span>
     </a>
-    <nav class="deck-nav" aria-label="Acceptance review sections">
-      <a href="#overview" data-section-link="overview">Overview</a>
-      <a href="#gap" data-section-link="gap">Scope</a>
-      <a href="#evidence" data-section-link="evidence">Evidence</a>
-      <a href="#coverage" data-section-link="coverage">Coverage</a>
-      <a href="#explorer" data-section-link="explorer">Review</a>
-      <a href="#decisions" data-section-link="decisions">Decisions</a>
+    <nav aria-label="Main navigation">
+      <a href="#overview">Overview</a>
+      <a href="#workbook">Test book</a>
+      <a href="#decisions">Decisions</a>
+      <a href="#assistant">Ask AGORA</a>
     </nav>
-    <div class="slide-counter" aria-live="polite"><span id="currentSlide">1</span> / <span id="totalSlides">5</span></div>
+    <button class="button quiet" id="refreshRepository" type="button">Refresh GitHub</button>
   </header>
 
+  <div class="source-bar" id="sourceBar" role="status" aria-live="polite">
+    <span class="source-dot" aria-hidden="true"></span>
+    <span id="sourceStatus">Connecting to the project repository…</span>
+  </div>
+
   <main id="main">
-    <section class="panel hero" id="overview" data-section>
-      <div class="eyebrow">Specification-led acceptance · verified status</div>
-      <div class="hero-grid">
+    <section class="section intro" id="overview">
+      <div class="intro-copy">
+        <p class="eyebrow">Requirements · Decisions · Evidence</p>
+        <h1>AGORA Acceptance Review</h1>
+        <p class="lede">Validate the project against its specifications, record stakeholder decisions, and trace every review back to the repository.</p>
+        <div class="actions">
+          <a class="button primary" href="#workbook">Open the test book</a>
+          <a class="button secondary" href="#assistant">Ask about the project</a>
+        </div>
+      </div>
+      <aside class="principles" aria-label="How this workbook stays trustworthy">
+        <h2>How it stays useful</h2>
+        <ul>
+          <li><strong>GitHub is the source.</strong><span>Requirements and references are loaded from the repository.</span></li>
+          <li><strong>Results are separate.</strong><span>A linked test is not presented as a passing test.</span></li>
+          <li><strong>Reviews are portable.</strong><span>Business verdicts can be exported and imported as JSON.</span></li>
+          <li><strong>New requirements appear naturally.</strong><span>Add them to the specification and refresh this page.</span></li>
+        </ul>
+      </aside>
+    </section>
+
+    <section class="section" id="workbook">
+      <div class="section-heading">
         <div>
-          <h1><em>480 tests pass.</em><br>79 requirements are proven.</h1>
-          <p class="lede">The Phase 1A runtime, evidence ledger, visibility boundaries, joint-report workflow, and four-cell WP05 replay now have direct behavioral proof. Use this test book to inspect every requirement, its executable test, and the evidence that excludes the most likely incorrect implementation.</p>
-          <div class="hero-actions">
-            <a class="button primary" href="#explorer">Start acceptance review</a>
-            <button class="button ghost" id="focusGreen">Browse all 79 proofs</button>
-          </div>
+          <p class="eyebrow">Acceptance test book</p>
+          <h2>Review behaviour, not implementation jargon.</h2>
+          <p>Each item explains what stakeholders should observe. Technical evidence is available when needed, without becoming the main interface.</p>
         </div>
-        <div class="score-card" aria-label="Current conformance summary">
-          <div class="score-ring" style="--score: 100"><span>79</span><small>proven</small></div>
-          <div class="score-copy">
-            <strong>79 / 79</strong>
-            <span>requirements have direct executable proof</span>
-          </div>
-          <div class="mini-bars" aria-hidden="true">
-            <span class="bar green" style="--size:100%"></span>
-          </div>
-          <div class="legend compact">
-            <span><i class="green"></i>79 proven</span>
-            <span><i class="partial"></i>0 partial</span>
-            <span><i class="red"></i>0 missing</span>
-            <span><i class="blocked"></i>0 blocked</span>
-          </div>
-          <div class="truth-note"><strong>Git</strong><span><a href="https://github.com/criticaldata/agoraworkshop/pull/13" target="_blank" rel="noreferrer">MIT Critical Data PR #13</a> · mergeable · checks passing</span></div>
+        <div class="review-actions">
+          <button class="button secondary" id="addManualCase" type="button">Add a manual check</button>
+          <button class="button secondary" id="importReview" type="button">Import review</button>
+          <button class="button secondary" id="exportReview" type="button">Export review</button>
+          <input id="importFile" type="file" accept="application/json" hidden>
         </div>
       </div>
-      <footer class="panel-foot"><span>Use ← → to navigate</span><a href="#gap">Inspect implementation scope ↓</a></footer>
-    </section>
 
-    <section class="panel" id="gap" data-section>
-      <div class="section-head">
-        <div><div class="eyebrow">Core finding</div><h2>Phase 0 is preserved.<br>Phase 1A is now executable.</h2></div>
-        <span class="chapter">01</span>
-      </div>
-      <div class="contrast-grid">
-        <article class="contrast-card current">
-          <span class="card-label">Inherited implementation</span>
-          <h3>Five-participant role experiment</h3>
-          <ul>
-            <li>Control / treatment assignment</li>
-            <li>Phase 0 state model and evidence primitives</li>
-            <li>Established retry, provenance, and routing coverage</li>
-            <li>Historical baseline retained without regression</li>
-          </ul>
-        </article>
-        <div class="bridge" aria-label="migration direction"><span>reuse</span><b>→</b><span>extend</span></div>
-        <article class="contrast-card target">
-          <span class="card-label">Implemented Phase 1A extension</span>
-          <h3>Three-participant 2 × 2 pilot</h3>
-          <ul>
-            <li>Six fixed thematic rounds</li>
-            <li>Private t0 and t1 checkpoints; t2 for report arms</li>
-            <li>Draft → two isolated reviews → revision</li>
-            <li>Hash-chained evidence and replayable export</li>
-            <li>79 cited requirements with direct test scenarios</li>
-            <li>WP05 replay: four cells with independent trials</li>
-          </ul>
-        </article>
-      </div>
-      <aside class="callout"><strong>Acceptance principle</strong><span>A similar Phase 0 test only counts when it proves the Phase 1A participant count, state order, visibility boundaries, and artifact contract.</span></aside>
-      <footer class="panel-foot"><a href="#overview">↑ Overview</a><a href="#evidence">Next: execution evidence ↓</a></footer>
-    </section>
-
-    <section class="panel" id="evidence" data-section>
-      <div class="section-head">
-        <div><div class="eyebrow">Reproducible execution evidence</div><h2>The suite ran.<br>The artifacts agree.</h2></div>
-        <span class="chapter">02</span>
-      </div>
-      <div class="decision-grid">
-        <article><span>Automated suite</span><h3>480 / 480 passing</h3><p>Vitest completed all 480 tests across 44 files. No test was skipped or left failing in the verified run.</p></article>
-        <article><span>Production build</span><h3>TypeScript passes</h3><p><code>npm run build</code> completed successfully against the same source revision.</p></article>
-        <article><span>Dependency safety</span><h3>0 vulnerabilities</h3><p><code>npm audit --omit=dev --audit-level=high</code> reported no production dependency vulnerabilities.</p></article>
-        <article><span>GitHub verification</span><h3>2 / 2 checks green</h3><p>Both AGORA Phase 0 verification workflows completed successfully on PR #13.</p></article>
-      </div>
-      <div class="sequence">
-        <div class="sequence-title"><span>Verified source</span><strong>criticaldata/agoraworkshop · PR #13</strong></div>
-        <ol>
-          <li><b>01</b><span><strong>Implementation commit</strong><small>1140b1418f867cfd84cc2acb54d3a929aecef534</small></span></li>
-          <li><b>02</b><span><strong>Audited lockfile commit</strong><small>5f5a4af8212515b5f3ee690b5414de55a356315e</small></span></li>
-          <li><b>03</b><span><strong>Requirement traceability</strong><small>79 normative requirements mapped to direct behavioral tests</small></span></li>
-          <li><b>04</b><span><strong>Failure-path proof</strong><small>Damaged fixtures must be rejected, including all WP05 RPL/TST families</small></span></li>
-        </ol>
-      </div>
-      <aside class="callout"><strong>Evidence boundary</strong><span>This proves the engineering and deterministic mock milestone. It does not claim that paid cross-provider trials or the scientific pilot have been completed.</span></aside>
-      <footer class="panel-foot"><a href="#gap">↑ Scope</a><a href="#coverage">Next: coverage map ↓</a></footer>
-    </section>
-
-    <section class="panel" id="coverage" data-section>
-      <div class="section-head">
-        <div><div class="eyebrow">Requirement coverage</div><h2>Eight contracts.<br>One acceptance queue.</h2></div>
-        <span class="chapter">03</span>
-      </div>
-      <div class="coverage-layout">
-        <div id="domainChart" class="domain-chart" aria-label="Coverage by specification domain"></div>
-        <div class="review-rules">
-          <h3>When is it conformant?</h3>
-          <ol>
-            <li><span>Preconditions</span> reproduce the specified boundary.</li>
-            <li><span>Action</span> exercises the real behavior.</li>
-            <li><span>Assertions</span> exclude the dangerous counterexample.</li>
-            <li><span>Evidence</span> remains inspectable and replayable.</li>
-          </ol>
-          <p>Line coverage and similar Phase 0 behavior are supporting signals, not sufficient proof of conformance by themselves.</p>
+      <div class="workspace">
+        <aside class="filters" aria-label="Test filters">
+          <label class="search-label" for="searchInput">Search</label>
+          <input id="searchInput" type="search" placeholder="Requirement, behaviour, source…">
+          <fieldset>
+            <legend>Review status</legend>
+            <div id="statusFilters" class="filter-stack"></div>
+          </fieldset>
+          <fieldset>
+            <legend>Area</legend>
+            <select id="domainFilter"><option value="all">All areas</option></select>
+          </fieldset>
+          <div class="review-summary" id="reviewSummary"></div>
+        </aside>
+        <div class="case-column">
+          <div class="list-meta"><strong id="resultCount">Loading test book…</strong><span id="listContext">Current GitHub specification</span></div>
+          <div class="case-list" id="caseList" aria-live="polite"></div>
         </div>
-      </div>
-      <footer class="panel-foot"><a href="#gap">↑ The gap</a><a href="#explorer">Next: inspect every test ↓</a></footer>
-    </section>
-
-    <section class="panel explorer-panel" id="explorer" data-section>
-      <div class="section-head explorer-head">
-        <div><div class="eyebrow">Interactive acceptance review</div><h2>Read the contract.<br>Record your verdict.</h2></div>
-        <span class="chapter">04</span>
-      </div>
-      <div class="acceptance-summary" aria-live="polite">
-        <div><span>Requirements reviewed</span><strong id="acceptanceProgress">0 / 79</strong></div>
-        <div class="acceptance-meter"><i id="acceptanceMeter"></i></div>
-        <div class="acceptance-counts"><span class="ok">0 accepted</span><span class="ko">0 rejected</span><span class="question">0 questions</span></div>
-        <button class="button ghost compact-button" id="exportAcceptance">Export review record (.json)</button>
-      </div>
-      <div class="toolbar" role="search">
-        <label class="search"><span class="sr-only">Search requirements</span><input id="searchInput" type="search" placeholder="Search by ID, requirement, test, or evidence…"><kbd>/</kbd></label>
-        <div class="filter-group" aria-label="Filter by evidence level" id="statusFilters"></div>
-        <label class="select-label">Domain<select id="domainFilter"><option value="all">All domains</option></select></label>
-      </div>
-      <div class="result-meta"><strong id="resultCount">79 requirements</strong><span id="activeSummary">Full audit displayed</span></div>
-      <div class="requirement-layout">
-        <div class="requirement-list" id="requirementList" aria-live="polite"></div>
-        <aside class="detail-pane" id="detailPane" aria-live="polite">
-          <div class="empty-detail"><span>↳</span><p>Select a requirement to inspect its acceptance evidence.</p></div>
+        <aside class="case-detail" id="caseDetail" aria-live="polite">
+          <div class="empty-state"><span aria-hidden="true">↳</span><p>Select a test-book item to review it.</p></div>
         </aside>
       </div>
-      <footer class="panel-foot"><a href="#coverage">↑ Coverage</a><a href="#decisions">Next: decisions and sequence ↓</a></footer>
     </section>
 
-    <section class="panel" id="decisions" data-section>
-      <div class="section-head">
-        <div><div class="eyebrow">Live-pilot decisions</div><h2>The mock is proven.<br>The live study must be frozen.</h2></div>
-        <span class="chapter">05</span>
+    <section class="section muted-section" id="decisions">
+      <div class="section-heading">
+        <div>
+          <p class="eyebrow">Decision register</p>
+          <h2>Keep open choices visible.</h2>
+          <p>Decisions are read from the project documentation. Open items should remain open until the named owners approve them.</p>
+        </div>
       </div>
-      <div class="decision-grid">
-        <article><span>DEC-03 · required input</span><h3>Speaking order</h3><p>The runtime rejects a manifest without an explicit schedule. The fixture proves the mechanism; the live-pilot order still requires approval.</p></article>
-        <article><span>DEC-06 · required input</span><h3>Replay policy</h3><p>The fixture proves exact, independent replay. Tolerances for the real-provider pilot still require approval.</p></article>
-        <article><span>WP05 · scientific owner</span><h3>Cue and measure</h3><p>Freeze the neutral label, endorsement text and provenance, then select the behavioral measure before the paid dry run.</p></article>
-        <article><span>WP05 · preregistration</span><h3>Sampling</h3><p>Freeze the parent-selection rule, trial count, seed, and retry policy. The runtime rejects implicit values.</p></article>
+      <div class="decision-list" id="decisionList" aria-live="polite"><div class="empty-state"><p>Loading repository decisions…</p></div></div>
+    </section>
+
+    <section class="section assistant-section" id="assistant">
+      <div class="assistant-intro">
+        <p class="eyebrow">GitHub-backed project guide</p>
+        <h2>Ask about AGORA in plain English.</h2>
+        <p>This assistant is designed for non-technical stakeholders. Every question triggers a fresh GitHub lookup. Each answer names the commit and files used, so you can verify where the explanation came from.</p>
+        <div class="suggestions" aria-label="Suggested questions">
+          <button type="button">What is this project trying to prove?</button>
+          <button type="button">Explain conditions A, B, C and D.</button>
+          <button type="button">What happens when a model call fails?</button>
+          <button type="button">Which decisions are still open?</button>
+        </div>
       </div>
-      <div class="sequence">
-        <div class="sequence-title"><span>Recommended build order</span><strong>Thin slice → privacy → report → integrity</strong></div>
-        <ol>
-          <li><b>01</b><span><strong>Manifest + six rounds</strong><small>EXP-01–10 · DRY-01–02</small></span></li>
-          <li><b>02</b><span><strong>Checkpoint isolation</strong><small>ORCH-03–04 · VIS-01 · DRY-04–05</small></span></li>
-          <li><b>03</b><span><strong>Report workflow</strong><small>RPT-01–09 · VIS-02–03 · DRY-09</small></span></li>
-          <li><b>04</b><span><strong>Ledger + evidence replay</strong><small>EVD-01–09 · DRY-06–11</small></span></li>
-          <li><b>05</b><span><strong>Counterfactual replay</strong><small>RPL-01–06 · TST-01–07</small></span></li>
-        </ol>
+      <div class="chat-card">
+        <div class="chat-header">
+          <div><strong>Ask AGORA</strong><span>Answers only after checking GitHub</span></div>
+          <button id="clearChat" class="text-button" type="button">Clear</button>
+        </div>
+        <div class="messages" id="messages" aria-live="polite">
+          <div class="message assistant-message"><div class="avatar" aria-hidden="true">A</div><div><p>Ask me about the purpose, specifications, tests, decisions, pull requests, or code. I will explain what GitHub currently contains in non-technical language.</p></div></div>
+        </div>
+        <form class="chat-form" id="chatForm">
+          <label class="sr-only" for="chatInput">Question about the AGORA project</label>
+          <textarea id="chatInput" rows="2" placeholder="Ask a question about the project or its code…" required></textarea>
+          <button class="button primary" type="submit">Ask</button>
+        </form>
+        <p class="chat-policy">No answer is produced when the repository cannot be verified.</p>
       </div>
-      <div class="finish-card">
-        <span>First review prompt</span>
-        <h3>Is the replay context truly identical except for the two registered cue edits?</h3>
-        <a class="button primary" href="#explorer" data-filter-red>Open the WP05 review</a>
-      </div>
-      <footer class="panel-foot"><a href="#explorer">↑ Review explorer</a><a href="#overview">Back to start ↺</a></footer>
     </section>
   </main>
 
+  <dialog id="manualCaseDialog">
+    <form method="dialog" id="manualCaseForm">
+      <div class="dialog-head"><h2>Add a manual acceptance check</h2><button class="text-button" value="cancel" formnovalidate>Close</button></div>
+      <p>Use this for an observation that is not yet written into the repository. Export the review to share it. Durable project requirements should still be added to GitHub.</p>
+      <label>Short ID<input name="id" placeholder="MANUAL-01" required></label>
+      <label>Area<input name="domain" placeholder="Operator workflow" required></label>
+      <label>Expected behaviour<textarea name="requirement" rows="3" required></textarea></label>
+      <label>How to check it<textarea name="check" rows="3" required></textarea></label>
+      <div class="dialog-actions"><button class="button secondary" value="cancel" formnovalidate>Cancel</button><button class="button primary" value="default">Add check</button></div>
+    </form>
+  </dialog>
+
+  <footer class="site-footer"><span>AGORA acceptance workbook</span><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">Open repository</a></footer>
   <script src="app.js"></script>
 </body>
 </html>

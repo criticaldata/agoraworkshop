@@ -1,0 +1,12 @@
+{
+  "name": "agora-acceptance-workbook",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "node server.mjs",
+    "dev": "node --watch server.mjs"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

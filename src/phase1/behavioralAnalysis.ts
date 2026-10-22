@@ -1,7 +1,7 @@
 import type { Db } from '../db/index.js';
 import { getMessages } from '../db/queries.js';
 import { allAnnotations, annotationKey, wasExposed, type AnnotationRecord } from '../semantic/phase1Annotations.js';
-import { positionRows, type PositionAnswer } from './positions.js';
+import { positionRecordStatus, positionRows, type PositionAnswer } from './positions.js';
 import type { PlannedCase } from './campaign.js';
 
 const VERSION = 'behavioral-outcomes-v1';
@@ -33,12 +33,14 @@ export function behavioralMeasures(db: Db, campaignId: string, planned: PlannedC
       return { question_id: q.id, initial: a ?? null, final: b ?? null, switched: a && b ? Number(a.choice !== b.choice) : null, confidence_shift: a && b ? b.confidence - a.confidence : null };
     });
     return { agent_id: p.id, initial_record: initial?.record_id ?? null, final_record: final?.record_id ?? null,
-      initial_status: initial?.status ?? 'not_recorded', final_status: final?.status ?? 'not_recorded', questions,
+      initial_status: initial?.status ?? 'not_recorded', final_status: final?.status ?? 'not_recorded',
+      initial_probe_status: positionRecordStatus(initial), final_probe_status: positionRecordStatus(final), questions,
       position_change: before && after ? questions.reduce((n, q) => n + q.switched!, 0) / questions.length : null,
       distance: evaluation.questionnaire.distance };
   });
   const messages = runId ? getMessages(db, runId).filter(m => planned.config.participants.some(p => p.id === m.sender_agent_id)) : [];
-  const eligible = messages.filter(m => m.workshop_state !== 'INTRODUCTION' && messages.some(prior => prior.sender_agent_id !== m.sender_agent_id && wasExposed(db, m, prior)));
+  const participantIds = new Set(planned.config.participants.map(p => p.id));
+  const eligible = messages.filter(m => m.workshop_state !== 'INTRODUCTION' && messages.some(prior => participantIds.has(prior.sender_agent_id) && prior.sender_agent_id !== m.sender_agent_id && wasExposed(db, m, prior)));
   const all = runId ? allAnnotations(db, campaignId).filter(r => r.data.run_id === runId) : [];
   const effective = effectiveAnnotations(all);
   const reviewers = [...new Set(all.map(r => r.data.author))].map(author => {

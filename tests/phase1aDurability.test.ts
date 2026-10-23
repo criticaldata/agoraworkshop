@@ -2,6 +2,7 @@ import { mkdtempSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { spawn } from 'node:child_process';
+import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { DeterministicMockProvider, Phase1aRuntime, createFixtureManifest, verifyEvidenceBundle } from '../src/phase1a/index.js';
 import { Phase1aSqliteStore } from '../src/phase1a/sqliteStore.js';
@@ -66,6 +67,59 @@ describe('Phase 1A durable append-only evidence store', () => {
     const provider = new DeterministicMockProvider();
     expect(await runtime.run(runId, provider)).toBe('COMPLETE');
     expect(provider.calls).toHaveLength(27);
+    store.close();
+  });
+
+  it('rejects a durable snapshot whose row metadata disagrees with the verified evidence', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'agora-phase1a-metadata-')), 'phase1a.sqlite');
+    const firstStore = new Phase1aSqliteStore(path);
+    const runtime = new Phase1aRuntime(() => new Date().toISOString(), firstStore);
+    const runId = runtime.createRun(createFixtureManifest());
+    await runtime.run(runId, new DeterministicMockProvider(), { stopAfterOperations: 1 });
+    firstStore.close();
+
+    const db = new Database(path);
+    db.prepare('UPDATE phase1a_snapshots SET state = ? WHERE run_id = ? AND revision = (SELECT MAX(revision) FROM phase1a_snapshots WHERE run_id = ?)').run('COMPLETE', runId, runId);
+    db.close();
+
+    const reopened = new Phase1aSqliteStore(path);
+    expect(() => reopened.latestSnapshot(runId)).toThrow(/state does not match its evidence/);
+    reopened.close();
+  });
+
+  it('refuses to append evidence that fails independent bundle verification', () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'agora-phase1a-invalid-')), 'phase1a.sqlite');
+    const runtime = new Phase1aRuntime();
+    const runId = runtime.createRun(createFixtureManifest());
+    const bundle = runtime.evidence(runId);
+    bundle.manifest_hash = 'sha256:tampered';
+    const store = new Phase1aSqliteStore(path);
+
+    expect(() => store.appendSnapshot({ runId, state: 'CREATED', callsUsed: 0, tokensUsed: 0, bundle })).toThrow(/Cannot persist invalid Phase 1A evidence/);
+    expect(store.revisions(runId)).toBe(0);
+    store.close();
+  });
+
+  it('persists and restores the conservative token charge when provider usage is unavailable', async () => {
+    const path = join(mkdtempSync(join(tmpdir(), 'agora-phase1a-unknown-usage-')), 'phase1a.sqlite');
+    const store = new Phase1aSqliteStore(path);
+    const runtime = new Phase1aRuntime(() => new Date().toISOString(), store);
+    const runId = runtime.createRun(createFixtureManifest({ limits: { maxCalls: 40, maxTokens: 2, maxRetries: 0 } }));
+    const provider = {
+      invoke: async (spec: Parameters<InstanceType<typeof DeterministicMockProvider>['invoke']>[0]) => ({
+        outcome: 'success' as const,
+        provider: spec.provider,
+        model: spec.model,
+        content: 'answer',
+        usage: null,
+        finishReason: 'stop',
+        raw: {},
+      }),
+    };
+
+    expect(await runtime.run(runId, provider)).toBe('FAILED');
+    const snapshot = store.latestSnapshot(runId);
+    expect(snapshot).toMatchObject({ state: 'FAILED', callsUsed: 2, tokensUsed: 2 });
     store.close();
   });
 });

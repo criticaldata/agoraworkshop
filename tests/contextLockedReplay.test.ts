@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  DeterministicMockProvider,
   Phase1aRuntime,
   createFixtureManifest,
   type Phase1aProvider,
@@ -69,6 +70,29 @@ function approve(plan: ReplayPlan): ReplayPlan {
   return approveReplayPlan(plan, { reviewerId: 'reviewer_wp05', meaningPreserved: true, notes: 'Argument bytes verified.' }, '2026-10-20T01:31:00.000Z');
 }
 
+const approvalAttackCases: Array<{ id: string; source: 'draft' | 'approved'; mutate: (plan: ReplayPlan) => void }> = [
+  { id: 'P19', source: 'draft', mutate: (plan) => {
+    plan.status = 'CONFIRMED';
+    plan.review = { ...plan.review, status: 'APPROVED', reviewerId: 'AUDIT_SYNTHETIC_FLAG' };
+    plan.snapshot.model = 'unregistered-model';
+    plan.snapshot.systemPrompt = 'unregistered-system';
+    plan.cells[0]!.context[0]!.content = 'UNAUTHORIZED_PRIVATE_CANARY';
+  } },
+  { id: 'X01-model', source: 'approved', mutate: (plan) => { plan.snapshot.model = 'tampered'; } },
+  { id: 'X01-configuration', source: 'approved', mutate: (plan) => { plan.snapshot.configuration = { temperature: 99 }; } },
+  { id: 'X01-system_prompt', source: 'approved', mutate: (plan) => { plan.snapshot.systemPrompt = 'tampered'; } },
+  { id: 'X01-context_canary', source: 'approved', mutate: (plan) => { plan.cells[0]!.context[0]!.content = 'AUDIT_PRIVATE_CANARY'; } },
+  { id: 'X01-snapshot_hash', source: 'approved', mutate: (plan) => { plan.snapshot.snapshotHash = `sha256:${'0'.repeat(64)}`; } },
+  { id: 'S06-trial_count', source: 'approved', mutate: (plan) => { plan.trialCount = 2; } },
+  { id: 'S06-retry_policy', source: 'approved', mutate: (plan) => { plan.retryPolicy = { ...plan.retryPolicy, maxAttempts: plan.retryPolicy.maxAttempts + 1 }; } },
+  { id: 'S06-parent_reference', source: 'approved', mutate: (plan) => { plan.snapshot.parentRunId = 'different-parent'; } },
+  { id: 'S06-cue_edit', source: 'approved', mutate: (plan) => { plan.cells[0]!.diffs = []; } },
+  { id: 'S06-approval_flags', source: 'draft', mutate: (plan) => {
+    plan.status = 'CONFIRMED';
+    plan.review = { ...plan.review, status: 'APPROVED', reviewerId: 'FORGED_FLAG' };
+  } },
+];
+
 describe('WP05 context-locked replay planning', () => {
   it('[RPL-01] keeps Repeat and Replay separate, gates unfinished parents, and requires confirmation before a call', async () => {
     const { runtime, bundle } = await completedParent();
@@ -86,6 +110,34 @@ describe('WP05 context-locked replay planning', () => {
     const replayProvider = new ScriptedReplayProvider();
     await expect(executeReplayPlan(draftPlan(bundle), bundle, replayProvider)).rejects.toThrow(/confirmed after human review/);
     expect(replayProvider.calls).toHaveLength(0);
+  });
+
+  it.each(approvalAttackCases)('[$id] invalidates approval before any provider call', async ({ source, mutate }) => {
+    const { bundle } = await completedParent();
+    const draft = draftPlan(bundle, { trialCount: 1 });
+    const approved = approve(draft);
+    expect(approved.approvalFingerprint).toMatch(/^sha256:/);
+    const tampered = structuredClone(source === 'approved' ? approved : draft) as ReplayPlan;
+    mutate(tampered);
+    const provider = new ScriptedReplayProvider();
+    await expect(executeReplayPlan(tampered, bundle, provider)).rejects.toThrow(/changed after approval.*re-review/i);
+    expect(provider.calls).toHaveLength(0);
+  });
+
+  it('[RPL-01] aborts if an approved plan changes while replay is running', async () => {
+    const { bundle } = await completedParent();
+    const mutablePlan = structuredClone(approve(draftPlan(bundle, { trialCount: 1 }))) as ReplayPlan;
+    const calls: unknown[] = [];
+    const provider = {
+      invoke: async (invocation: unknown) => {
+        calls.push(structuredClone(invocation));
+        mutablePlan.orderSeed = 'changed-during-provider-call';
+        return { outcome: 'success' as const, content: 'uncommitted output', usage: null, raw: {} };
+      },
+    };
+
+    await expect(executeReplayPlan(mutablePlan, bundle, provider)).rejects.toThrow(/changed after approval.*re-review/i);
+    expect(calls).toHaveLength(1);
   });
 
   it('[RPL-02] locks the exact parent request and refuses missing source evidence before provider invocation', async () => {
@@ -113,6 +165,17 @@ describe('WP05 context-locked replay planning', () => {
     const damaged = structuredClone(plan.cells[0]!);
     damaged.context[0]!.content = 'unregistered rewrite';
     expect(verifyReplayCell(plan.snapshot, damaged).errors).toContain(`unregistered_change:${damaged.context[0]!.messageId}`);
+  });
+
+  it('[P18] preserves the exact archived bytes for the parent-equivalent replay cell', async () => {
+    const { bundle } = await completedParent();
+    const plan = draftPlan(bundle);
+    const baseline = plan.cells.find((cell) => cell.cell === 'R3')!;
+    const target = baseline.context.find((message) => message.messageId === plan.snapshot.targetMessageId)!;
+    expect(baseline.diffs).toEqual([]);
+    expect(baseline.renderedTarget).toBe(plan.snapshot.targetArgument);
+    expect(target.content).toBe(plan.snapshot.targetArgument);
+    expect(verifyReplayCell(plan.snapshot, baseline)).toEqual({ valid: true, errors: [] });
   });
 
   it('[TST-03] hides registered speaker identifiers and flags residual identity in the unchanged argument for review', async () => {
@@ -208,6 +271,25 @@ describe('WP05 replay execution and fault visibility', () => {
     expect(attempts[1]!.retryParentAttemptId).toBe(attempts[0]!.attemptId);
   });
 
+  it('[X03/S07] retains inspectable attempts when a provider returns malformed replay envelopes', async () => {
+    const { bundle } = await completedParent();
+    const plan = approve(draftPlan(bundle, { trialCount: 1 }));
+    let calls = 0;
+    const set = await executeReplayPlan(plan, bundle, {
+      invoke: async () => {
+        calls += 1;
+        return { outcome: 'success', content: null, usage: null, raw: { fixture: 'malformed' } };
+      },
+    });
+
+    expect(calls).toBe(4);
+    expect(set.attempts).toHaveLength(4);
+    expect(set.attempts.every((attempt) => attempt.outcome === 'malformed_response' && attempt.content === null)).toBe(true);
+    expect(set.attempts.every((attempt) => attempt.failureReason === 'success requires archived text')).toBe(true);
+    expect(set.trials.every((trial) => trial.outcome === 'malformed_response' && trial.output === null)).toBe(true);
+    expect(set.checks.find((check) => check.id === 'trace_complete')?.status).toBe('PASS');
+  });
+
   it('[TST-05] validates outcome-specific trace chains and names a damaged trial-to-attempt gap', async () => {
     const { bundle } = await completedParent();
     const plan = approve(draftPlan(bundle, { trialCount: 1 }));
@@ -221,6 +303,28 @@ describe('WP05 replay execution and fault visibility', () => {
     expect(trace.detail).toContain(damaged.trials[0]!.trialId);
   });
 
+  it('[B04] rejects empty, cross-trial, orphaned, and final-outcome-mismatched attempt chains', async () => {
+    const { bundle } = await completedParent();
+    const plan = approve(draftPlan(bundle, { trialCount: 1 }));
+    const set = await executeReplayPlan(plan, bundle, new ScriptedReplayProvider());
+
+    const empty = structuredClone(set) as ReplaySet;
+    empty.trials[0]!.attemptIds = [];
+    expect(auditReplaySet(empty, plan, bundle).find((check) => check.id === 'trace_complete')).toMatchObject({ status: 'FAIL' });
+
+    const crossTrial = structuredClone(set) as ReplaySet;
+    crossTrial.trials[0]!.attemptIds = [crossTrial.trials[1]!.attemptIds[0]!];
+    const crossTrace = auditReplaySet(crossTrial, plan, bundle).find((check) => check.id === 'trace_complete')!;
+    expect(crossTrace.status).toBe('FAIL');
+    expect(crossTrace.detail).toContain('cross_trial_attempt');
+
+    const finalMismatch = structuredClone(set) as ReplaySet;
+    finalMismatch.trials[0]!.outcome = 'provider_error';
+    const finalTrace = auditReplaySet(finalMismatch, plan, bundle).find((check) => check.id === 'trace_complete')!;
+    expect(finalTrace.status).toBe('FAIL');
+    expect(finalTrace.detail).toContain('final_outcome');
+  });
+
   it('[TST-06] derives six round results with settings, evidence and unavailable rather than zero token usage', async () => {
     const { bundle } = await completedParent();
     bundle.provider_calls.find((call) => call.operation_key === 'round:1:agent_1')!.usage = null;
@@ -230,6 +334,33 @@ describe('WP05 replay execution and fault visibility', () => {
     expect(report.rounds[0]!.tokenUsage.find((usage) => usage.agentId === 'agent_1')).toMatchObject({ inputTokens: 'unavailable', outputTokens: 'unavailable' });
     expect(report.rounds[0]!.evidence.callIds).toHaveLength(3);
     expect(report.workshopChecks.map((check) => check.status)).toEqual(['PASS', 'PASS']);
+  });
+
+  it('[P21] evaluates round completion from final participant outcomes rather than raw attempts', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest());
+    await runtime.run(runId, new DeterministicMockProvider({ 'round:1:agent_1': ['timeout', 'success'] }));
+    const bundle = runtime.evidence(runId);
+    const report = buildPhase1aResults(bundle);
+    expect(bundle.provider_calls.filter((call) => call.operation_key.startsWith('round:1:'))).toHaveLength(4);
+    expect(report.rounds[0]!.outcomes).toHaveLength(3);
+    expect(report.rounds[0]!.outcomes.find((outcome) => outcome.agentId === 'agent_1')?.outcome).toBe('success');
+    expect(report.rounds[0]!.checks[0]!.status).toBe('PASS');
+
+    const missing = structuredClone(bundle);
+    missing.provider_calls = missing.provider_calls.filter((call) => call.operation_key !== 'round:1:agent_1');
+    expect(buildPhase1aResults(missing).rounds[0]!.checks[0]!.status).toBe('FAIL');
+
+    const duplicateParticipant = structuredClone(bundle);
+    duplicateParticipant.provider_calls.find((call) => call.operation_key === 'round:1:agent_3')!.participant_id = 'agent_2';
+    expect(buildPhase1aResults(duplicateParticipant).rounds[0]!.checks[0]!.status).toBe('FAIL');
+
+    const refusalRuntime = new Phase1aRuntime(fixedClock());
+    const refusalId = refusalRuntime.createRun(createFixtureManifest());
+    await refusalRuntime.run(refusalId, new DeterministicMockProvider({ 'round:1:agent_1': ['refused'] }));
+    const refusalRound = buildPhase1aResults(refusalRuntime.evidence(refusalId)).rounds[0]!;
+    expect(refusalRound.outcomes.find((outcome) => outcome.agentId === 'agent_1')?.outcome).toBe('refused');
+    expect(refusalRound.checks[0]!.status).toBe('PASS');
   });
 
   it('[TST-07] proves every WP05 requirement rejects a deliberately damaged or invalid fixture', async () => {

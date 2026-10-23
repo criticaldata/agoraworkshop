@@ -3,14 +3,17 @@ import { canonicalize, configHash, deepFreeze } from '../config/hash.js';
 import {
   buildWorkshopPlan,
   contextForOperation,
+  reportRoleEvidence,
   reportDisclosureBoundary,
   type Wp03Operation,
 } from './wp03/workflow.js';
+import { isRetriableProviderOutcome, validateProviderResponseAtBoundary } from './wp02/responseBoundary.js';
+import { hasCanonicalWp01Admission, markCanonicalWp01Admission } from './wp02/admission.js';
 
-export const PHASE1A_SCHEMA_VERSION = 'phase1a-0.1';
+export const PHASE1A_SCHEMA_VERSION = 'phase1a-0.2';
 export type Visibility = 'public' | 'private-agent' | 'reviewer-isolated' | 'operator';
 export type Cell = 'A' | 'B' | 'C' | 'D';
-export type Outcome = 'success' | 'abstained' | 'refused' | 'timeout' | 'provider_error' | 'invalid_response' | 'rate_limit';
+export type Outcome = 'success' | 'abstained' | 'refused' | 'timeout' | 'provider_error' | 'invalid_response' | 'rate_limit' | 'permission_denied';
 export type RunState = 'CREATED' | 'T0' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' | 'ROUND_4' | 'ROUND_5' | 'ROUND_6' | 'T1' | 'REPORT_DRAFT' | 'REVIEW_1' | 'REVIEW_2' | 'REPORT_REVISED' | 'T2' | 'COMPLETE' | 'FAILED' | 'CANCELLED';
 
 export interface Participant {
@@ -132,7 +135,15 @@ export interface EvidenceBundle {
   provider_calls: ProviderCallRecord[];
   metrics: DerivedMetric[];
   artifacts_index: Array<{ artifact_id: string; kind: string; visibility: Visibility; content_hash: string }>;
-  integrity: { valid: boolean; errors: string[]; verified_at: string };
+  integrity: {
+    valid: boolean;
+    errors: string[];
+    verified_at: string;
+    event_count: number;
+    event_head_hash: string | null;
+    artifact_count: number;
+    provider_call_count: number;
+  };
 }
 
 export interface Phase1aPersistedSnapshot {
@@ -148,15 +159,31 @@ export interface Phase1aStore {
   latestSnapshot(runId: string): Phase1aPersistedSnapshot | null;
 }
 
-const secretPattern = /(authorization\s*:\s*bearer|api[_-]?key|secret[_-]?key|sk-[a-z0-9_-]{8,})/i;
+const secretPattern = /(authorization\s*:\s*bearer|api[_-]?key|secret[_-]?key|password\s*[:=]|passwd\s*[:=]|sk-[a-z0-9_-]{8,})/i;
 
 function clone<T>(value: T): T { return structuredClone(value); }
 function id(prefix: string): string { return `${prefix}_${randomUUID()}`; }
 function hash(value: unknown): string { return configHash(value); }
-function isTechnical(outcome: Outcome): boolean { return ['timeout', 'provider_error', 'invalid_response', 'rate_limit'].includes(outcome); }
+function isTechnical(outcome: Outcome): boolean { return ['timeout', 'provider_error', 'invalid_response', 'rate_limit', 'permission_denied'].includes(outcome); }
+
+export function providerCallTokenCharge(usage: ProviderResponse['usage']): number {
+  if (usage === null) return 1;
+  return Math.max(1, (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0));
+}
+
+function assertSafeFixtureManifest(manifest: Phase1aManifest): void {
+  if (manifest.source.adapterVersion !== 'fixture-v1') throw new Error('Fixture runs require the explicit fixture adapter identity');
+  if (manifest.contractVersion !== '1A-0.1' || !manifest.approvedAt.trim()) throw new Error('Fixture runs require the approved fixture contract marker');
+  const models = manifest.participants.map((participant) => participant.model);
+  const expected = manifest.cell === 'A' || manifest.cell === 'B'
+    ? ['gemma-fixture', 'gemma-fixture', 'gemma-fixture']
+    : ['gemma-fixture', 'gemini-fixture', 'model-x-fixture'];
+  if (canonicalize(models) !== canonicalize(expected)) throw new Error(`Fixture cell ${manifest.cell} does not match its declared model composition`);
+}
 
 export function createManifest(input: Phase1aManifest): Phase1aManifest {
   const copy = clone(input);
+  if (!['A', 'B', 'C', 'D'].includes(copy.cell)) throw new Error('Phase 1A cell must be A, B, C, or D');
   if (!Number.isInteger(copy.replication) || copy.replication < 1 || copy.replication > 3) throw new Error('Phase 1A replication must be 1, 2, or 3');
   if (copy.participants.length !== 3 || new Set(copy.participants.map((p) => p.id)).size !== 3) throw new Error('Phase 1A requires exactly three unique participants');
   if (copy.rounds.length !== 6 || copy.rounds.some((round, index) => round.number !== index + 1)) throw new Error('Phase 1A requires exactly six ordered rounds');
@@ -165,14 +192,21 @@ export function createManifest(input: Phase1aManifest): Phase1aManifest {
   if ((copy.cell === 'B' || copy.cell === 'D') !== copy.reportEnabled) throw new Error('Report condition must match the 2×2 cell');
   const uniqueModels = new Set(copy.participants.map((participant) => participant.model)).size;
   if ((copy.cell === 'A' || copy.cell === 'B') && uniqueModels !== 1) throw new Error('Cells A and B require a homogeneous three-model composition');
-  if ((copy.cell === 'C' || copy.cell === 'D') && uniqueModels < 2) throw new Error('Cells C and D require a heterogeneous model composition');
+  if ((copy.cell === 'C' || copy.cell === 'D') && uniqueModels !== 3) throw new Error('Cells C and D require three heterogeneous model assignments');
   if (copy.speakingOrder.length !== 6) throw new Error('An approved speaking order is required for every round');
   const ids = copy.participants.map((p) => p.id).sort().join('|');
   for (const order of copy.speakingOrder) if (order.length !== 3 || [...order].sort().join('|') !== ids) throw new Error('Each speaking order must contain every participant exactly once');
   if (!copy.speakingOrderDecision || !copy.replayPolicy.decisionId) throw new Error('Open protocol choices must be supplied explicitly');
   if (Object.values(copy.reportPrompts).some((prompt) => !prompt.trim())) throw new Error('Report disclosure and workflow prompts must be supplied explicitly');
-  if (copy.limits.maxCalls < 1 || copy.limits.maxRetries < 0 || copy.limits.maxTokens < 1) throw new Error('Explicit positive limits are required');
+  if (!Number.isInteger(copy.limits.maxCalls) || copy.limits.maxCalls < 1
+    || !Number.isInteger(copy.limits.maxRetries) || copy.limits.maxRetries < 0
+    || !Number.isInteger(copy.limits.maxTokens) || copy.limits.maxTokens < 1) {
+    throw new Error('Explicit finite integer limits are required');
+  }
+  if (!copy.approvedAt.trim()) throw new Error('An explicit approval marker is required');
+  if (/\breport\b|\bjoint\b/i.test(copy.checkpoints.t0)) throw new Error('The t0 prompt must not anticipate the report condition');
   if (secretPattern.test(canonicalize(copy))) throw new Error('Secrets are forbidden in manifests and prompts');
+  if (copy.source.admissionClass === 'fixture') assertSafeFixtureManifest(copy);
   return deepFreeze(copy);
 }
 
@@ -211,7 +245,7 @@ export function createFixtureManifest(overrides: Partial<Phase1aManifest> = {}):
 function redactSecrets(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(redactSecrets);
   if (!value || typeof value !== 'object') return typeof value === 'string' && secretPattern.test(value) ? '[REDACTED]' : value;
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /secret|token|authorization|api.?key/i.test(key) ? '[REDACTED]' : redactSecrets(entry)]));
+  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /^(authorization|api[_-]?key|secret[_-]?key|access[_-]?token|refresh[_-]?token|bearer[_-]?token|session[_-]?token|token|password|passwd|pwd)$/i.test(key) ? '[REDACTED]' : redactSecrets(entry)]));
 }
 
 export class EvidenceLedger {
@@ -275,7 +309,14 @@ export class EvidenceLedger {
       schema_version: PHASE1A_SCHEMA_VERSION, manifest: this.manifest, manifest_hash: hash(this.manifest), events: this.events,
       artifacts: this.artifacts, provider_calls: this.calls, metrics: this.metrics,
       artifacts_index: this.artifacts.map(({ artifact_id, kind, visibility, content_hash }) => ({ artifact_id, kind, visibility, content_hash })),
-      integrity: { ...integrity, verified_at: this.clock() },
+      integrity: {
+        ...integrity,
+        verified_at: this.clock(),
+        event_count: this.events.length,
+        event_head_hash: this.events.at(-1)?.event_hash ?? null,
+        artifact_count: this.artifacts.length,
+        provider_call_count: this.calls.length,
+      },
     });
   }
 
@@ -306,23 +347,31 @@ export function verifyEvidenceBundle(bundle: EvidenceBundle): { valid: boolean; 
   const result = verifyIntegrity(bundle.events, bundle.artifacts);
   const errors = [...result.errors];
   if (bundle.schema_version !== PHASE1A_SCHEMA_VERSION) errors.push('schema_version');
+  try { createManifest(bundle.manifest); }
+  catch { errors.push('manifest_contract'); }
   if (hash(bundle.manifest) !== bundle.manifest_hash) errors.push('manifest_hash');
   const eventIds = new Set(bundle.events.map((event) => event.event_id));
   const artifactIds = new Set(bundle.artifacts.map((artifact) => artifact.artifact_id));
   const callIds = new Set(bundle.provider_calls.map((call) => call.call_id));
+  const runIds = new Set(bundle.events.map((event) => event.run_id));
+  const runId = bundle.events[0]?.run_id;
+  if (!runId || runIds.size !== 1) errors.push('run_id');
   if (eventIds.size !== bundle.events.length) errors.push('duplicate_event_id');
   if (artifactIds.size !== bundle.artifacts.length) errors.push('duplicate_artifact_id');
   if (callIds.size !== bundle.provider_calls.length) errors.push('duplicate_call_id');
   const expectedIndex = bundle.artifacts.map(({ artifact_id, kind, visibility, content_hash }) => ({ artifact_id, kind, visibility, content_hash }));
   if (canonicalize(bundle.artifacts_index) !== canonicalize(expectedIndex)) errors.push('artifacts_index');
   for (const event of bundle.events) {
-    if (event.run_id !== bundle.events[0]?.run_id) errors.push(`event_run_id:${event.event_id}`);
+    if (event.schema_version !== PHASE1A_SCHEMA_VERSION) errors.push(`event_schema_version:${event.event_id}`);
+    if (event.run_id !== runId) errors.push(`event_run_id:${event.event_id}`);
     for (const ref of event.artifact_refs) if (!artifactIds.has(ref)) errors.push(`event_artifact_ref:${event.event_id}:${ref}`);
   }
+  for (const artifact of bundle.artifacts) if (artifact.run_id !== runId) errors.push(`artifact_run_id:${artifact.artifact_id}`);
   for (const metric of bundle.metrics) {
     for (const ref of metric.source_event_ids) if (!eventIds.has(ref)) errors.push(`metric_event_ref:${metric.name}:${ref}`);
   }
   for (const call of bundle.provider_calls) {
+    if (call.run_id !== runId) errors.push(`call_run_id:${call.call_id}`);
     const requestArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref);
     const rawArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.raw_artifact_ref);
     if (!requestArtifact || requestArtifact.kind !== 'provider.request' || requestArtifact.visibility !== 'operator') {
@@ -366,7 +415,123 @@ export function verifyEvidenceBundle(bundle: EvidenceBundle): { valid: boolean; 
       && event.payload.outcome === call.terminal_status,
     );
     if (!terminalEvent) errors.push(`call_terminal_event:${call.call_id}`);
+    else {
+      if (terminalEvent.actor_id !== call.participant_id) errors.push(`call_terminal_actor:${call.call_id}`);
+      if (canonicalize(terminalEvent.artifact_refs) !== canonicalize([call.raw_artifact_ref])) errors.push(`call_terminal_artifact:${call.call_id}`);
+    }
   }
+  const createdEvents = bundle.events.filter((event) => event.event_type === 'run.created');
+  if (createdEvents.length !== 1) errors.push('run_created_count');
+  const created = createdEvents[0];
+  if (created && created.payload.manifest_hash !== bundle.manifest_hash) errors.push('run_created_manifest_hash');
+
+  let plan: ReturnType<typeof buildWorkshopPlan> | null = null;
+  try { plan = buildWorkshopPlan(bundle.manifest); }
+  catch { /* manifest_contract already records the invalid contract */ }
+  if (plan) {
+    const expectedByKey = new Map(plan.operations.map((operation) => [operation.key, operation]));
+    const allocations = bundle.events.filter((event) => event.event_type === 'report.roles_allocated');
+    if (plan.reportAllocation) {
+      if (allocations.length !== 1) errors.push('report_role_allocation_count');
+      else if (canonicalize(allocations[0]!.payload) !== canonicalize(reportRoleEvidence(plan.reportAllocation))) errors.push('report_role_allocation');
+    } else if (allocations.length !== 0) errors.push('report_role_allocation_unexpected');
+
+    for (const call of bundle.provider_calls) {
+      const operation = expectedByKey.get(call.operation_key);
+      if (!operation) {
+        errors.push(`call_operation_key:${call.call_id}`);
+        continue;
+      }
+      const participant = bundle.manifest.participants.find((candidate) => candidate.id === operation.participantId);
+      if (call.participant_id !== operation.participantId) errors.push(`call_operation_participant:${call.call_id}`);
+      if (!participant || call.provider !== participant.provider) errors.push(`call_operation_provider:${call.call_id}`);
+      if (!participant || call.model !== participant.model) errors.push(`call_operation_model:${call.call_id}`);
+      if (!participant || canonicalize(call.configuration) !== canonicalize(participant.configuration)) errors.push(`call_operation_configuration:${call.call_id}`);
+
+      const requestArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref);
+      const rawArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.raw_artifact_ref);
+      if (requestArtifact?.owner_id !== operation.participantId) errors.push(`call_request_owner:${call.call_id}`);
+      if (rawArtifact?.owner_id !== operation.participantId) errors.push(`call_raw_owner:${call.call_id}`);
+      const started = bundle.events.filter((event) =>
+        event.event_type === 'provider_call.started'
+        && event.payload.operation_key === call.operation_key
+        && event.payload.attempt === call.attempt
+        && event.payload.request_artifact_ref === call.request_artifact_ref,
+      );
+      if (started.length !== 1 || started[0]!.actor_id !== operation.participantId || canonicalize(started[0]!.artifact_refs) !== canonicalize([call.request_artifact_ref])) {
+        errors.push(`call_started_event:${call.call_id}`);
+      }
+      if (requestArtifact && started.length === 1) {
+        try {
+          const request = JSON.parse(requestArtifact.content) as ProviderCallSpec;
+          const availableArtifactIds = new Set(bundle.events
+            .filter((event) => event.sequence < started[0]!.sequence)
+            .flatMap((event) => event.artifact_refs));
+          const availableArtifacts = bundle.artifacts.filter((artifact) => availableArtifactIds.has(artifact.artifact_id));
+          const expectedContext = contextForOperation(availableArtifacts, operation);
+          if (request.systemPrompt !== operation.system) errors.push(`call_operation_system_prompt:${call.call_id}`);
+          if (request.userPrompt !== operation.prompt) errors.push(`call_operation_user_prompt:${call.call_id}`);
+          if (canonicalize(request.context) !== canonicalize(expectedContext)) errors.push(`call_operation_context:${call.call_id}`);
+        } catch {
+          errors.push(`call_operation_request:${call.call_id}`);
+        }
+      }
+    }
+
+    const callsByOperation = new Map<string, ProviderCallRecord[]>();
+    for (const call of bundle.provider_calls) {
+      const calls = callsByOperation.get(call.operation_key) ?? [];
+      calls.push(call);
+      callsByOperation.set(call.operation_key, calls);
+    }
+    for (const [operationKey, calls] of callsByOperation) {
+      const ordered = [...calls].sort((left, right) => left.attempt - right.attempt);
+      ordered.forEach((call, index) => {
+        if (call.attempt !== index + 1) errors.push(`call_attempt_sequence:${call.call_id}`);
+        const expectedPrevious = ordered.slice(0, index).map((previous) => previous.call_id);
+        if (canonicalize(call.previous_attempt_ids) !== canonicalize(expectedPrevious)) errors.push(`call_retry_chain:${call.call_id}`);
+      });
+      if (!expectedByKey.has(operationKey)) continue;
+      const terminalCalls = ordered.filter((call) => !isTechnical(call.terminal_status));
+      if (terminalCalls.length > 1) errors.push(`operation_terminal_call_count:${operationKey}`);
+      if (terminalCalls.length === 1 && terminalCalls[0] !== ordered.at(-1)) errors.push(`operation_terminal_call_order:${operationKey}`);
+    }
+
+    const committed = bundle.events.filter((event) => event.event_type === 'operation.committed');
+    for (let index = 0; index < committed.length; index += 1) {
+      const event = committed[index]!;
+      const expected = plan.operations[index];
+      if (!expected || event.payload.operation_key !== expected.key || event.payload.state !== expected.state) {
+        errors.push(`operation_commit_order:${event.event_id}`);
+        continue;
+      }
+      if (event.artifact_refs.length !== 1) errors.push(`operation_commit_artifact_count:${event.event_id}`);
+      const artifact = bundle.artifacts.find((candidate) => candidate.artifact_id === event.artifact_refs[0]);
+      if (!artifact || artifact.kind !== expected.kind || artifact.visibility !== expected.visibility || artifact.owner_id !== expected.ownerId) {
+        errors.push(`operation_commit_artifact:${event.event_id}`);
+      }
+      const completed = bundle.events.filter((candidate) => candidate.event_type === `${expected.kind}.completed` && candidate.payload.operation_key === expected.key);
+      if (completed.length !== 1
+        || completed[0]!.actor_id !== expected.participantId
+        || completed[0]!.visibility !== expected.visibility
+        || canonicalize(completed[0]?.artifact_refs ?? []) !== canonicalize(event.artifact_refs)) {
+        errors.push(`operation_completion_link:${event.event_id}`);
+      }
+      const calls = callsByOperation.get(expected.key) ?? [];
+      const terminal = calls.at(-1);
+      if (!terminal || isTechnical(terminal.terminal_status) || completed[0]?.payload.outcome !== terminal.terminal_status) {
+        errors.push(`operation_terminal_evidence:${event.event_id}`);
+      }
+    }
+    if (bundle.events.some((event) => event.event_type === 'run.completed') && committed.length !== plan.operations.length) errors.push('completed_operation_count');
+  }
+
+  if (bundle.integrity.valid !== true || bundle.integrity.errors.length !== 0) errors.push('declared_integrity');
+  if (!Number.isFinite(Date.parse(bundle.integrity.verified_at))) errors.push('integrity_verified_at');
+  if (bundle.integrity.event_count !== bundle.events.length) errors.push('integrity_event_count');
+  if (bundle.integrity.event_head_hash !== (bundle.events.at(-1)?.event_hash ?? null)) errors.push('integrity_event_head_hash');
+  if (bundle.integrity.artifact_count !== bundle.artifacts.length) errors.push('integrity_artifact_count');
+  if (bundle.integrity.provider_call_count !== bundle.provider_calls.length) errors.push('integrity_provider_call_count');
   return { valid: errors.length === 0, errors };
 }
 
@@ -396,7 +561,11 @@ export class Phase1aRuntime {
   }
 
   createRun(manifestInput: Phase1aManifest, rejectEvent?: (eventType: string) => boolean): string {
+    const canonicallyAdmitted = hasCanonicalWp01Admission(manifestInput);
     const manifest = createManifest(manifestInput);
+    if (manifest.source.admissionClass !== 'fixture' && !canonicallyAdmitted) {
+      throw new Error('Non-fixture Phase 1A execution requires canonical WP01 adapter admission');
+    }
     const runId = id('run');
     const ledger = new EvidenceLedger(runId, manifest, this.clock, rejectEvent);
     const workshopPlan = buildWorkshopPlan(manifest);
@@ -408,13 +577,7 @@ export class Phase1aRuntime {
       adapter_input_hash: manifest.source.adapterInputHash,
     });
     if (workshopPlan.reportAllocation) {
-      ledger.append('report.roles_allocated', 'operator', 'host', {
-        policy: workshopPlan.reportAllocation.policy,
-        replication: workshopPlan.reportAllocation.replication,
-        writer_id: workshopPlan.reportAllocation.writerId,
-        reviewer_1_id: workshopPlan.reportAllocation.reviewer1Id,
-        reviewer_2_id: workshopPlan.reportAllocation.reviewer2Id,
-      });
+      ledger.append('report.roles_allocated', 'operator', 'host', { ...reportRoleEvidence(workshopPlan.reportAllocation) });
     }
     for (const variation of manifest.variations) ledger.append('protocol_deviation.recorded', 'public', 'host', { variation, preserved: true });
     const record = { manifest, ledger, state: 'CREATED' as RunState, callsUsed: 0, tokensUsed: 0 };
@@ -428,7 +591,7 @@ export class Phase1aRuntime {
     if (!verification.valid || inferState(source.events) !== 'COMPLETE') throw new Error('Repeat requires a valid completed source run');
     const sourceRunId = source.events[0]?.run_id;
     if (!sourceRunId) throw new Error('Repeat source has no run id');
-    const runId = this.createRun(source.manifest);
+    const runId = this.createRun(source.manifest.source.admissionClass === 'fixture' ? source.manifest : markCanonicalWp01Admission(source.manifest));
     const record = this.required(runId);
     record.ledger.append('run.repeated', 'public', 'host', {
       source_run_id: sourceRunId,
@@ -441,7 +604,7 @@ export class Phase1aRuntime {
   restore(bundle: EvidenceBundle): string {
     const ledger = EvidenceLedger.restore(bundle);
     const state = inferState(bundle.events);
-    const record = { manifest: ledger.manifest, ledger, state, callsUsed: ledger.calls.length, tokensUsed: ledger.calls.reduce((sum, call) => sum + (call.usage?.inputTokens ?? 0) + (call.usage?.outputTokens ?? 0), 0) };
+    const record = { manifest: ledger.manifest, ledger, state, callsUsed: ledger.calls.length, tokensUsed: ledger.calls.reduce((sum, call) => sum + providerCallTokenCharge(call.usage), 0) };
     this.runs.set(ledger.runId, record);
     this.persist(record);
     return ledger.runId;
@@ -467,6 +630,7 @@ export class Phase1aRuntime {
 
   async run(runId: string, provider: Phase1aProvider, options: { stopAfterOperations?: number; markInterrupted?: boolean } = {}): Promise<RunState> {
     const record = this.required(runId);
+    if (record.state === 'FAILED' || record.state === 'CANCELLED' || record.state === 'COMPLETE') return record.state;
     let committedThisInvocation = 0;
     for (const operation of operationPlan(record.manifest)) {
       if (record.ledger.hasCommitted(operation.key)) continue;
@@ -530,22 +694,21 @@ export class Phase1aRuntime {
       this.persist(record);
       let response: ProviderResponse;
       try { response = await provider.invoke(spec); }
-      catch (error) { response = { outcome: 'provider_error', provider: spec.provider, model: spec.model, content: null, usage: null, finishReason: null, raw: { error: error instanceof Error ? error.message : String(error) } }; }
-      if (response.provider !== spec.provider || response.model !== spec.model) {
-        response = {
-          outcome: 'invalid_response', provider: spec.provider, model: spec.model, content: null, usage: response.usage,
-          finishReason: response.finishReason,
-          raw: { ...response.raw, adapter_identity_mismatch: { provider: response.provider, model: response.model } },
-        };
+      catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as { code?: unknown }).code) : '';
+        const outcome: Outcome = /permission[_ -]?denied/i.test(`${code} ${message}`) ? 'permission_denied' : 'provider_error';
+        response = { outcome, provider: spec.provider, model: spec.model, content: null, usage: null, finishReason: null, raw: { error: message, error_code: code || null } };
       }
+      response = validateProviderResponseAtBoundary(spec, response);
       const endedAt = this.clock(); record.callsUsed += 1;
-      record.tokensUsed += (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0);
+      record.tokensUsed += providerCallTokenCharge(response.usage);
       const raw = record.ledger.artifact('provider.raw', 'operator', operation.participantId, canonicalize(redactSecrets(response.raw)));
       const call = record.ledger.providerCall(spec, response, startedAt, endedAt, request.artifact_id, raw.artifact_id, previousAttemptIds);
       previousAttemptIds.push(call.call_id);
       record.ledger.append(`provider_call.${isTechnical(response.outcome) ? 'failed' : 'completed'}`, 'operator', operation.participantId, { operation_key: operation.key, attempt, outcome: response.outcome, call_id: call.call_id }, [raw.artifact_id]);
       if (isTechnical(response.outcome)) {
-        if (attempt <= record.manifest.limits.maxRetries) { record.ledger.append('retry.scheduled', 'operator', 'host', { operation_key: operation.key, failed_call_id: call.call_id, next_attempt: attempt + 1 }); this.persist(record); continue; }
+        if (isRetriableProviderOutcome(response.outcome) && attempt <= record.manifest.limits.maxRetries) { record.ledger.append('retry.scheduled', 'operator', 'host', { operation_key: operation.key, failed_call_id: call.call_id, next_attempt: attempt + 1 }); this.persist(record); continue; }
         record.ledger.append('run.failed', 'public', 'host', { reason: response.outcome, operation_key: operation.key }); record.state = 'FAILED'; this.persist(record); return false;
       }
       const content = response.content ?? `[${response.outcome}]`;

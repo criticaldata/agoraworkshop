@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { canonicalize, configHash } from '../src/config/hash.js';
 import {
   DeterministicMockProvider,
   EvidenceLedger,
@@ -8,6 +9,7 @@ import {
   inferState,
   replayEvidence,
   verifyEvidenceBundle,
+  type EvidenceBundle,
   type Phase1aManifest,
   type Phase1aProvider,
   type ProviderCallSpec,
@@ -204,6 +206,127 @@ describe('Phase 1A orchestration, visibility, and report workflow', () => {
     const exhausted = runtime.evidence(runId).events.find((event) => event.event_type === 'budget.exhausted');
     expect(exhausted?.payload.context_hash).toMatch(/^sha256:/);
   });
+
+  it('[P07] rejects report-contaminated t0 prompts before any provider call', () => {
+    const base = createFixtureManifest();
+    expect(() => createFixtureManifest({
+      checkpoints: { ...base.checkpoints, t0: 'Condition B will prepare a joint report. Give a baseline.' },
+    })).toThrow(/t0 prompt.*report condition/i);
+  });
+
+  it('[P11] rejects malformed cells, fixture compositions, and approval markers', () => {
+    const base = createFixtureManifest();
+    const homogeneous = base.participants.map((participant) => ({ ...participant, model: 'gemma-fixture' })) as unknown as Phase1aManifest['participants'];
+    const wrongFamilyA = homogeneous.map((participant) => ({ ...participant, model: 'not-gemma' })) as unknown as Phase1aManifest['participants'];
+    const twoModelD = base.participants.map((participant, index) => ({ ...participant, model: index === 2 ? 'gemini-fixture' : participant.model })) as unknown as Phase1aManifest['participants'];
+
+    expect(() => createFixtureManifest({ cell: 'A', reportEnabled: false, participants: wrongFamilyA })).toThrow(/composition/i);
+    expect(() => createFixtureManifest({ participants: twoModelD })).toThrow(/heterogeneous|composition/i);
+    expect(() => createFixtureManifest({ cell: 'Z' as Phase1aManifest['cell'] })).toThrow(/cell must be/i);
+    expect(() => createFixtureManifest({ approvedAt: '', contractVersion: 'September-S1-S8' })).toThrow(/approval marker/i);
+  });
+
+  it('[S03] requires canonical WP01 admission for every non-fixture execution', () => {
+    const base = createFixtureManifest();
+    for (const admissionClass of ['engineering', 'scientific'] as const) {
+      const forged = createManifest({
+        ...structuredClone(base),
+        source: {
+          ...base.source,
+          admissionClass,
+          campaignHash: `sha256:${'0'.repeat(64)}`,
+          runManifestHash: `sha256:${'0'.repeat(64)}`,
+          adapterInputHash: `sha256:${'0'.repeat(64)}`,
+        },
+      });
+      expect(() => new Phase1aRuntime(fixedClock()).createRun(forged)).toThrow(/canonical WP01 adapter admission/i);
+    }
+  });
+
+  it('[P22] keeps FAILED runs terminal across later run calls', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest());
+    const failing = new DeterministicMockProvider({ 't0:agent_1': ['timeout', 'timeout'] });
+    expect(await runtime.run(runId, failing)).toBe('FAILED');
+    const before = runtime.evidence(runId);
+    const recovery = new DeterministicMockProvider();
+
+    expect(await runtime.run(runId, recovery)).toBe('FAILED');
+    expect(recovery.calls).toHaveLength(0);
+    expect(runtime.evidence(runId).provider_calls).toHaveLength(before.provider_calls.length);
+    expect(runtime.evidence(runId).events).toHaveLength(before.events.length);
+  });
+
+  it('[P16] charges a conservative token when usage is unavailable and stops at the bound', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest({ limits: { maxCalls: 40, maxTokens: 1, maxRetries: 0 } }));
+    const provider: Phase1aProvider = {
+      invoke: async (spec) => ({
+        outcome: 'success', provider: spec.provider, model: spec.model, content: 'usage unavailable',
+        usage: null, finishReason: 'stop', raw: {},
+      }),
+    };
+
+    expect(await runtime.run(runId, provider)).toBe('FAILED');
+
+    const bundle = runtime.evidence(runId);
+    expect(bundle.provider_calls).toHaveLength(1);
+    expect(bundle.provider_calls[0]?.usage).toBeNull();
+    expect(bundle.events.find((event) => event.event_type === 'budget.exhausted')?.payload.tokens_used).toBe(1);
+    expect(bundle.events.some((event) => event.event_type === 'report_requirement.disclosed')).toBe(false);
+    expect(bundle.provider_calls.some((call) => call.operation_key.startsWith('round:'))).toBe(false);
+  });
+
+  it.each([NaN, Infinity])('[B02-%s] rejects non-finite execution limits', (limit) => {
+    expect(() => createFixtureManifest({ limits: { maxCalls: limit, maxTokens: 1_000, maxRetries: limit } })).toThrow(/finite integer limits/i);
+  });
+
+  it('[P15] preserves permission_denied as a typed terminal technical cause', async () => {
+    let calls = 0;
+    const provider: Phase1aProvider = {
+      invoke: async () => {
+        calls += 1;
+        throw new Error('permission_denied: audit-only synthetic');
+      },
+    };
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest());
+
+    expect(await runtime.run(runId, provider)).toBe('FAILED');
+
+    const bundle = runtime.evidence(runId);
+    expect(calls).toBe(1);
+    expect(bundle.provider_calls[0]?.terminal_status).toBe('permission_denied');
+    expect(bundle.artifacts.some((artifact) => artifact.kind === 'checkpoint.t0')).toBe(false);
+    expect(bundle.events.some((event) => event.event_type === 'operation.committed')).toBe(false);
+  });
+
+  it('[B03-secret-format] rejects password sentinels before execution', () => {
+    expect(() => createFixtureManifest({
+      checkpoints: { t0: 'password=AUDIT_SYNTHETIC_NOT_A_REAL_SECRET', t1: 'x', t2: 'y' },
+    })).toThrow(/Secrets/i);
+  });
+
+  it('[S05-max_tokens] archives legitimate token-limit parameters without redaction', async () => {
+    const base = createFixtureManifest();
+    const configuration = { temperature: 0.37, top_p: 0.86, seed: 777, max_tokens: 64 };
+    const manifest = createFixtureManifest({
+      participants: base.participants.map((participant) => ({ ...participant, configuration })) as unknown as Phase1aManifest['participants'],
+    });
+    const runtime = new Phase1aRuntime(fixedClock());
+    const provider = new DeterministicMockProvider();
+    const runId = runtime.createRun(manifest);
+    await runtime.run(runId, provider, { stopAfterOperations: 1 });
+
+    const bundle = runtime.evidence(runId);
+    const call = bundle.provider_calls[0]!;
+    const request = JSON.parse(bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref)!.content) as ProviderCallSpec;
+    expect(provider.calls[0]?.configuration).toEqual(configuration);
+    expect(call.configuration).toEqual(configuration);
+    expect(request.configuration).toEqual(configuration);
+    expect(configHash(request.configuration)).toBe(configHash(configuration));
+    expect(verifyEvidenceBundle(bundle)).toEqual({ valid: true, errors: [] });
+  });
 });
 
 describe('Phase 1A evidence, export, and dry-run acceptance', () => {
@@ -258,6 +381,139 @@ describe('Phase 1A evidence, export, and dry-run acceptance', () => {
     expect(verifyEvidenceBundle(changedIndex).errors).toContain('artifacts_index');
   });
 
+  it('[RPT-10] rejects restored evidence when the manifest changes the recorded report roles', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest({ replication: 1 }));
+    const bundle = runtime.evidence(runId);
+    bundle.manifest = { ...structuredClone(bundle.manifest), replication: 2 };
+    bundle.manifest_hash = configHash(bundle.manifest);
+
+    expect(verifyEvidenceBundle(bundle).errors).toContain('run_created_manifest_hash');
+    expect(() => new Phase1aRuntime(fixedClock()).restore(bundle)).toThrow(/invalid evidence/);
+  });
+
+  it('[RPT-10] rejects a report provider call assigned to a role inconsistent with the frozen plan', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest({ replication: 1 }));
+    await runtime.run(runId, new DeterministicMockProvider());
+    const bundle = runtime.evidence(runId);
+    const call = bundle.provider_calls.find((candidate) => candidate.operation_key === 'report:draft')!;
+    const request = bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref)!;
+    const requestBody = JSON.parse(request.content) as ProviderCallSpec;
+    requestBody.participantId = 'agent_2';
+    request.content = canonicalizeForTest(requestBody);
+    request.content_hash = configHash(request.content);
+    call.participant_id = 'agent_2';
+    bundle.artifacts_index.find((artifact) => artifact.artifact_id === request.artifact_id)!.content_hash = request.content_hash;
+
+    expect(verifyEvidenceBundle(bundle).errors).toContain(`call_operation_participant:${call.call_id}`);
+  });
+
+  it('[D02] [D03] [D04] rejects resealed changed, reassigned, or missing report-role evidence', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest({ replication: 2 }));
+    await runtime.run(runId, new DeterministicMockProvider(), { stopAfterOperations: 25 });
+    const source = runtime.evidence(runId);
+    expect(verifyEvidenceBundle(source)).toEqual({ valid: true, errors: [] });
+    const alternate = { writer_id: 'agent_1', reviewer_1_id: 'agent_2', reviewer_2_id: 'agent_3' };
+
+    const changedRoles = structuredClone(source);
+    Object.assign(changedRoles.events.find((event) => event.event_type === 'report.roles_allocated')!.payload, alternate);
+    resealEvidence(changedRoles);
+    expect(verifyEvidenceBundle(changedRoles).errors).toContain('report_role_allocation');
+    expect(() => new Phase1aRuntime(fixedClock()).restore(changedRoles)).toThrow(/invalid evidence/);
+
+    const reassignedDraft = structuredClone(source);
+    Object.assign(reassignedDraft.events.find((event) => event.event_type === 'report.roles_allocated')!.payload, alternate);
+    const draftCall = reassignedDraft.provider_calls.find((call) => call.operation_key === 'report:draft')!;
+    const alternateWriter = reassignedDraft.manifest.participants[0]!;
+    Object.assign(draftCall, {
+      participant_id: alternateWriter.id,
+      provider: alternateWriter.provider,
+      model: alternateWriter.model,
+      configuration: structuredClone(alternateWriter.configuration),
+    });
+    const draftRequest = reassignedDraft.artifacts.find((artifact) => artifact.artifact_id === draftCall.request_artifact_ref)!;
+    const draftSpec = JSON.parse(draftRequest.content) as ProviderCallSpec;
+    Object.assign(draftSpec, {
+      participantId: alternateWriter.id,
+      provider: alternateWriter.provider,
+      model: alternateWriter.model,
+      configuration: structuredClone(alternateWriter.configuration),
+    });
+    draftRequest.content = canonicalize(draftSpec);
+    draftRequest.content_hash = configHash(draftRequest.content);
+    draftRequest.owner_id = alternateWriter.id;
+    reassignedDraft.artifacts.find((artifact) => artifact.artifact_id === draftCall.raw_artifact_ref)!.owner_id = alternateWriter.id;
+    reassignedDraft.artifacts.find((artifact) => artifact.kind === 'report.draft')!.owner_id = alternateWriter.id;
+    for (const event of reassignedDraft.events) {
+      if (event.payload.operation_key === 'report:draft' && event.actor_id !== 'host') event.actor_id = alternateWriter.id;
+    }
+    resealEvidence(reassignedDraft);
+    const reassignedErrors = verifyEvidenceBundle(reassignedDraft).errors;
+    expect(reassignedErrors).toContain('report_role_allocation');
+    expect(reassignedErrors).toContain(`call_operation_participant:${draftCall.call_id}`);
+    expect(reassignedErrors.some((error) => error.startsWith('operation_commit_artifact:'))).toBe(true);
+    expect(() => new Phase1aRuntime(fixedClock()).restore(reassignedDraft)).toThrow(/invalid evidence/);
+
+    const missingAllocation = structuredClone(source);
+    missingAllocation.events = missingAllocation.events.filter((event) => event.event_type !== 'report.roles_allocated');
+    resealEvidence(missingAllocation);
+    expect(verifyEvidenceBundle(missingAllocation).errors).toContain('report_role_allocation_count');
+    expect(() => new Phase1aRuntime(fixedClock()).restore(missingAllocation)).toThrow(/invalid evidence/);
+  });
+
+  it('[B01] rejects deletion of the final event using the exported evidence head seal', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest());
+    await runtime.run(runId, new DeterministicMockProvider());
+    const truncated = runtime.evidence(runId);
+    expect(truncated.events.pop()?.event_type).toBe('run.completed');
+
+    const errors = verifyEvidenceBundle(truncated).errors;
+    expect(errors).toContain('integrity_event_count');
+    expect(errors).toContain('integrity_event_head_hash');
+    expect(() => new Phase1aRuntime(fixedClock()).restore(truncated)).toThrow(/invalid evidence/);
+  });
+
+  it('[S09] rejects coherent call and stored-request identity or configuration changes against the manifest', async () => {
+    const runtime = new Phase1aRuntime(fixedClock());
+    const runId = runtime.createRun(createFixtureManifest());
+    await runtime.run(runId, new DeterministicMockProvider(), { stopAfterOperations: 4 });
+    const bundle = runtime.evidence(runId);
+    const call = bundle.provider_calls.find((candidate) => candidate.operation_key === 'round:1:agent_1')!;
+    const requestArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref)!;
+    const request = JSON.parse(requestArtifact.content) as ProviderCallSpec;
+    Object.assign(call, {
+      provider: 'changed-provider',
+      model: 'changed-model',
+      configuration: { temperature: 0.9 },
+      system_prompt_hash: configHash('changed system'),
+      user_prompt_hash: configHash('changed prompt'),
+      context_hash: configHash([]),
+      context_message_ids: [],
+    });
+    Object.assign(request, {
+      provider: call.provider,
+      model: call.model,
+      configuration: structuredClone(call.configuration),
+      systemPrompt: 'changed system',
+      userPrompt: 'changed prompt',
+      context: [],
+    });
+    requestArtifact.content = canonicalize(request);
+    requestArtifact.content_hash = configHash(requestArtifact.content);
+    bundle.artifacts_index.find((artifact) => artifact.artifact_id === requestArtifact.artifact_id)!.content_hash = requestArtifact.content_hash;
+
+    const errors = verifyEvidenceBundle(bundle).errors;
+    expect(errors).toContain(`call_operation_provider:${call.call_id}`);
+    expect(errors).toContain(`call_operation_model:${call.call_id}`);
+    expect(errors).toContain(`call_operation_configuration:${call.call_id}`);
+    expect(errors).toContain(`call_operation_system_prompt:${call.call_id}`);
+    expect(errors).toContain(`call_operation_user_prompt:${call.call_id}`);
+    expect(errors).toContain(`call_operation_context:${call.call_id}`);
+  });
+
   it('[EVD-08] binds every derived metric to exact events and an algorithm version', () => {
     const manifest = createFixtureManifest();
     const ledger = new EvidenceLedger('run_metric', manifest, fixedClock());
@@ -271,7 +527,7 @@ describe('Phase 1A evidence, export, and dry-run acceptance', () => {
     const runId = runtime.createRun(createFixtureManifest());
     await runtime.run(runId, new DeterministicMockProvider());
     const bundle = runtime.evidence(runId);
-    expect(bundle.schema_version).toBe('phase1a-0.1');
+    expect(bundle.schema_version).toBe('phase1a-0.2');
     expect(bundle.artifacts_index).toHaveLength(bundle.artifacts.length);
     expect(new Set(bundle.artifacts_index.map((artifact) => artifact.visibility))).toEqual(new Set(['public', 'private-agent', 'reviewer-isolated', 'operator']));
     expect(bundle.provider_calls.every((call) => call.context_hash && call.raw_artifact_ref)).toBe(true);
@@ -347,4 +603,20 @@ describe('Phase 1A evidence, export, and dry-run acceptance', () => {
 
 function canonicalizeForTest(value: unknown): string {
   return JSON.stringify(value);
+}
+
+function resealEvidence(bundle: EvidenceBundle): void {
+  let previous: string | null = null;
+  bundle.events.forEach((event, index) => {
+    event.sequence = index + 1;
+    event.previous_event_hash = previous;
+    const { event_hash: _oldHash, ...base } = event;
+    event.event_hash = configHash(base);
+    previous = event.event_hash;
+  });
+  bundle.artifacts_index = bundle.artifacts.map(({ artifact_id, kind, visibility, content_hash }) => ({ artifact_id, kind, visibility, content_hash }));
+  bundle.integrity.event_count = bundle.events.length;
+  bundle.integrity.event_head_hash = bundle.events.at(-1)?.event_hash ?? null;
+  bundle.integrity.artifact_count = bundle.artifacts.length;
+  bundle.integrity.provider_call_count = bundle.provider_calls.length;
 }

@@ -1,4 +1,4 @@
-export const WP03_WORKFLOW_VERSION = 'wp03-workflow-v1';
+export const WP03_WORKFLOW_VERSION = 'wp03-workflow-v2';
 export const REPORT_ALLOCATION_POLICY = 'COUNTERBALANCED_ROTATION' as const;
 
 export type Wp03Visibility = 'public' | 'private-agent' | 'reviewer-isolated' | 'operator';
@@ -32,6 +32,15 @@ export interface ReportRoleAllocation {
   writerId: string;
   reviewer1Id: string;
   reviewer2Id: string;
+}
+
+export interface ReportRoleEvidencePayload {
+  policy: typeof REPORT_ALLOCATION_POLICY;
+  workflow_version: typeof WP03_WORKFLOW_VERSION;
+  replication: number;
+  writer_id: string;
+  reviewer_1_id: string;
+  reviewer_2_id: string;
 }
 
 export interface Wp03Artifact {
@@ -77,6 +86,17 @@ export function allocateReportRoles(ids: readonly string[], replication: number)
     writerId: ids[writerIndex]!,
     reviewer1Id: ids[(writerIndex + 1) % 3]!,
     reviewer2Id: ids[(writerIndex + 2) % 3]!,
+  };
+}
+
+export function reportRoleEvidence(allocation: ReportRoleAllocation): ReportRoleEvidencePayload {
+  return {
+    policy: allocation.policy,
+    workflow_version: allocation.workflowVersion,
+    replication: allocation.replication,
+    writer_id: allocation.writerId,
+    reviewer_1_id: allocation.reviewer1Id,
+    reviewer_2_id: allocation.reviewer2Id,
   };
 }
 

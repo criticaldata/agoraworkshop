@@ -48,9 +48,9 @@ must fail on an omitted, modified, defaulted, or unsupported parameter.
 
 Discussion provenance:
 
-- Community group message `186071` on 2026-07-24 establishes provider-neutral
+- Community group message `WA-COM-186071` on 2026-07-24 establishes provider-neutral
   adapters and gradual introduction of heterogeneous models.
-- Community group message `210450` on 2026-10-13 selects Gemma, Gemini, and an
+- Community group message `WA-COM-210450` on 2026-10-13 selects Gemma, Gemini, and an
   unresolved `Model X`, prioritizes an open model runnable on the NVIDIA
   cluster, and leaves turn limits, timeouts, retries, and budgets for a technical
   follow-up.

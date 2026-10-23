@@ -58,11 +58,11 @@ Until that happens Simon owns maintenance of the WP03 and WP05 code he shipped.
 
 ## Evidence and acceptance
 
-- Community group message `210450` on 2026-10-13 records the six work-package
+- Community group message `WA-COM-210450` on 2026-10-13 records the six work-package
   assignments and leaves WP04 `TBD`.
-- Community group messages `213320`-`213322` on 2026-10-20 record the proposed
+- Community group messages `WA-COM-213320`-`WA-COM-213322` on 2026-10-20 record the proposed
   Tina/Noushin WP03 collaboration; Tina accepted the collaboration in message
-  `213329`.
+  `WA-COM-213329`.
 - PR #12 is scoped to WP01 contracts and fixtures.
 - PR #13 contains the runtime and WP05 engineering baseline.
 - PR #20 contains the merged WP03 engineering baseline.

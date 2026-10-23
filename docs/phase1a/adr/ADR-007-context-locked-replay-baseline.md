@@ -55,15 +55,15 @@ produce zero replay provider calls.
 
 Discussion provenance:
 
-- Community group message `209305` on 2026-10-09 adds identity and endorsement
+- Community group message `WA-COM-209305` on 2026-10-09 adds identity and endorsement
   replay to the pilot as a way to isolate social cues.
-- Community group messages `213108`, `213113`, and `213115` on 2026-10-20 retain
+- Community group messages `WA-COM-213108`, `WA-COM-213113`, and `WA-COM-213115` on 2026-10-20 retain
   the existing logging/context/export system, require an exact parent attempt,
   distinguish observed from synthetic endorsements, add human meaning review,
   and define the first four-cell mock milestone with independent trials.
-- Community group message `213273` on 2026-10-20 requires a WP01-to-WP05
+- Community group message `WA-COM-213273` on 2026-10-20 requires a WP01-to-WP05
   scientific interface and separate provenance for recorded and injected cues.
-- Community group message `213417` on 2026-10-21 records the incorporation of
+- Community group message `WA-COM-213417` on 2026-10-21 records the incorporation of
   those clarifications into the repository baseline.
 
 ## Revisit trigger

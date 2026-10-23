@@ -53,10 +53,10 @@ and the absence of report stages in A/C.
 
 Discussion provenance and implementation evidence:
 
-- Community group message `209280` on 2026-10-09 records the decision that both
+- Community group message `WA-COM-209280` on 2026-10-09 records the decision that both
   reviewers receive the same original draft independently and never see each
   other's feedback before revision.
-- Community group message `209305` on 2026-10-09 records speaking-order rotation
+- Community group message `WA-COM-209305` on 2026-10-09 records speaking-order rotation
   as a control against permanent first-speaker bias.
 - PR #20 records the report-role allocation in evidence and proves the three
   mappings, isolated reviews, revision ordering, and absence of report work in

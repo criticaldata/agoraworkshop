@@ -46,12 +46,12 @@ claims about persuasion, conformity, role adherence, or social dynamics.
 
 ## Evidence and acceptance
 
-- `WA-OLD-189497`-`189502` on 2026-08-09 propose the instrument metrics and
+- `WA-OLD-189497`-`WA-OLD-189502` on 2026-08-09 propose the instrument metrics and
   three validation gates.
 - `WA-OLD-189520` adds context isolation, state-machine correctness, and
   retry/idempotency integrity, and defines trace-level reproducibility.
 - `WA-OLD-189895` proposes persona calibration before the Workshop.
-- `WA-OLD-189901`-`189905` correct that sequencing and retain identical prompts
+- `WA-OLD-189901`-`WA-OLD-189905` correct that sequencing and retain identical prompts
   as the Phase 0 control.
 
 Acceptance is the existing Phase 0 validation package and explicit separation

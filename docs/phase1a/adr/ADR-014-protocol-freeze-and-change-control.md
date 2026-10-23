@@ -51,7 +51,7 @@ protocol decisions from implementation experiments.
 
 - `WA-COM-201452` on 2026-09-11 records collective prompt review before any
   experiment.
-- `WA-COM-205276`-`205278` on 2026-09-22 record the blueprint review request and
+- `WA-COM-205276`-`WA-COM-205278` on 2026-09-22 record the blueprint review request and
   the decision to hold implementation until group discussion.
 - `WA-COM-213113` on 2026-10-20 requires human meaning-preservation review for
   replay cue edits and distinguishes open ideas from meeting decisions.

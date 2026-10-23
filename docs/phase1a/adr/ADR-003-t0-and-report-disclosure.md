@@ -45,10 +45,10 @@ no disclosure in A/C, and no public call after terminal `t0` failure.
 
 Discussion provenance:
 
-- Community group message `209305` on 2026-10-09 establishes private responses
+- Community group message `WA-COM-209305` on 2026-10-09 establishes private responses
   before and after discussion and an additional post-report response in report
   conditions.
-- Community group message `210450` on 2026-10-13 restates the 2x2 report
+- Community group message `WA-COM-210450` on 2026-10-13 restates the 2x2 report
   conditions and private/public context separation.
 - The two group histories do not settle whether the B/D report requirement is
   disclosed before or after `t0`. That timing was resolved later through Mateo's

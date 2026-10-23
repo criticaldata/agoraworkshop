@@ -44,7 +44,7 @@ presenting an implementation choice as a scientific result.
 | [ADR-007](ADR-007-context-locked-replay-baseline.md) | WP05 derives every cell from the exact parent request bytes | ACCEPTED, SCIENTIFIC REVIEW REQUIRED | Simon / WP05 engineering | WP05 scientific owner to accept |
 | [ADR-008](ADR-008-outcome-and-failure-taxonomy.md) | Abstention, refusal, timeout and provider failure remain distinct | ACCEPTED | Simon / WP02-WP05 | WP06 measurement owner |
 | [ADR-009](ADR-009-validation-and-release-evidence.md) | A release requires executed validation, structured CI evidence and human review | ACCEPTED, IMPLEMENTATION PENDING | Simon | Release reviewer |
-| [ADR-010](ADR-010-private-repository-review-interface.md) | Keep repository credentials server-side and degrade explanations without losing GitHub grounding | ACCEPTED | Simon | Repository owner |
+| [ADR-010](ADR-010-private-repository-review-interface.md) | Publish a curated review view without visitor sign-in while keeping repository credentials server-side | ACCEPTED | Simon | Repository owner |
 | [ADR-011](ADR-011-whatsapp-decision-provenance.md) | Preserve WhatsApp provenance, status, and supersession without publishing unrelated chat content | ACCEPTED | Simon | Project leads validate interpretation |
 | [ADR-012](ADR-012-phase0-instrument-boundary.md) | Phase 0 validates the instrument under symmetric prompts; behavioral treatments start later | ACCEPTED | Simon / Phase 0 | Study owner |
 | [ADR-013](ADR-013-workshop-topology-and-host.md) | Use the three-agent 2x2, six-round pilot with a deterministic host | ACCEPTED, SCIENTIFIC FREEZE PENDING | Simon / WP02-WP03 | Mateo / WP01 plus freeze authority |

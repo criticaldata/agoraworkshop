@@ -1,7 +1,10 @@
 # WP05 — Replay and reconstruction
 
-Status: `AWAITING_INTEGRATION`.
+Status: `ENGINEERING_BASELINE_IMPLEMENTED_SCIENTIFIC_REVIEW_PENDING`.
 
-WP05 will consume immutable campaign/run manifests and traceable event
-contracts to implement replay and reconstruction. WP01 only specifies the
-inputs and acceptance boundary; no replay engine is duplicated here.
+WP05 consumes immutable campaign/run manifests and committed evidence through
+`contextLockedReplay.ts`. It locks the exact parent request, builds the four cue
+cells, requires human approval before provider calls, preserves abstention and
+refusal as distinct outcomes, and exports linked retry/failure evidence. Trial
+selection, cue interpretation and the normalized baseline representation still
+require scientific approval before behavioral interpretation.

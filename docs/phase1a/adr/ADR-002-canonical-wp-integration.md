@@ -1,6 +1,6 @@
 # ADR-002: Canonical WP01-to-WP05 integration boundary
 
-Status: **ACCEPTED**  
+Status: **ACCEPTED, ENGINEERING BASELINE IMPLEMENTED**
 Date: 2026-10-22  
 Owner: Simon Heilles / WP02
 
@@ -12,9 +12,9 @@ rather than to parameters reconstructed after execution.
 ## Context
 
 WP01 exports a study contract, campaign/run manifests, prompt references, an
-agenda, and deployment bindings. The current runtime has an independent fixture
-manifest. Tests project WP01 into that runtime, but production has no versioned
-adapter or freeze-authorization gate.
+agenda, and deployment bindings. `wp01-runtime-adapter-v1` now performs the
+versioned projection and rejects scientific admission until the campaign and
+all freeze-blocking decisions are frozen.
 
 ## Decision
 
@@ -46,9 +46,10 @@ evidence. WP05 may consume only committed WP04 evidence from an admitted run.
 
 ## Evidence and acceptance
 
-Pass when a negative integration test proves that a changed prompt hash,
+Implemented in `src/phase1a/wp02/adapter.ts`. Negative integration tests prove that a changed prompt hash,
 unresolved freeze decision, unknown participant, or unsupported deployment
-prevents all provider calls.
+prevents all provider calls. Synthetic engineering admission remains visibly distinct
+from scientific admission.
 
 Discussion provenance:
 

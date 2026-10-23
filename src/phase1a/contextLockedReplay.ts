@@ -13,6 +13,7 @@ export const REPLAY_SCHEMA_VERSION = 'wp05-0.1' as const;
 export type ReplayCellId = 'R1' | 'R2' | 'R3' | 'R4';
 export type ReplayOutcome =
   | 'success'
+  | 'abstained'
   | 'delivered_refusal'
   | 'provider_refusal'
   | 'timeout'
@@ -384,7 +385,7 @@ function technical(outcome: ReplayOutcome): boolean {
 }
 
 function validResponse(response: ReplayProviderResponse): void {
-  if ((response.outcome === 'success' || response.outcome === 'delivered_refusal') && response.content === null) throw new Error(`${response.outcome} requires archived text`);
+  if ((response.outcome === 'success' || response.outcome === 'abstained' || response.outcome === 'delivered_refusal') && response.content === null) throw new Error(`${response.outcome} requires archived text`);
   if (technical(response.outcome) && response.content !== null) throw new Error(`${response.outcome} cannot carry a delivered message`);
 }
 
@@ -467,7 +468,7 @@ export function auditReplaySet(set: ReplaySet, plan: ReplayPlan, parent: Evidenc
   for (const trial of set.trials) {
     const linked = trial.attemptIds.map((attemptId) => set.attempts.find((attempt) => attempt.attemptId === attemptId));
     if (linked.some((attempt) => !attempt)) traceGaps.push(`${trial.trialId}->attempt`);
-    if ((trial.outcome === 'success' || trial.outcome === 'delivered_refusal') && (!trial.outputId || trial.output === null)) traceGaps.push(`${trial.trialId}->output`);
+    if ((trial.outcome === 'success' || trial.outcome === 'abstained' || trial.outcome === 'delivered_refusal') && (!trial.outputId || trial.output === null)) traceGaps.push(`${trial.trialId}->output`);
     if (technical(trial.outcome) && (trial.outputId || trial.output !== null)) traceGaps.push(`${trial.trialId}->unexpected_output`);
     if (trial.parentRun !== set.parentRun || trial.parentOpportunity !== set.parentOpportunity || trial.parentSnapshotId !== set.parentSnapshotId) traceGaps.push(`${trial.trialId}->parent`);
   }
@@ -531,7 +532,7 @@ export class ScriptedReplayProvider implements ReplayProvider {
     const count = this.counts.get(key) ?? 0; this.counts.set(key, count + 1);
     const outcomes = this.script[key] ?? ['success'];
     const outcome = outcomes[Math.min(count, outcomes.length - 1)] ?? 'success';
-    const delivered = outcome === 'success' || outcome === 'delivered_refusal';
+    const delivered = outcome === 'success' || outcome === 'abstained' || outcome === 'delivered_refusal';
     return {
       outcome,
       content: delivered ? `${key}:${outcome}` : null,
@@ -544,6 +545,6 @@ export class ScriptedReplayProvider implements ReplayProvider {
 export function mapPhase1aOutcome(outcome: Outcome): ReplayOutcome {
   if (outcome === 'invalid_response') return 'malformed_response';
   if (outcome === 'refused') return 'delivered_refusal';
-  if (outcome === 'abstained') return 'delivered_refusal';
+  if (outcome === 'abstained') return 'abstained';
   return outcome;
 }

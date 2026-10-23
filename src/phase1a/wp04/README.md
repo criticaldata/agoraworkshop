@@ -1,8 +1,10 @@
 # WP04 — Context, visibility and evidence
 
-Status: `AWAITING_INTEGRATION`.
+Status: `ENGINEERING_BASELINE_IMPLEMENTED_ACCESS_REVIEW_PENDING`.
 
-WP04 will consume source-message links, context snapshot references and
-visibility rules from the WP01 execution contracts. It owns context assembly,
-privacy enforcement and evidence persistence. No WP04 runtime is implemented
-here.
+WP04 consumes source-message links, context snapshot references and visibility
+rules from the WP01 execution contracts. The runtime enforces private/public and
+reviewer isolation, binds provider metadata to request/raw artifacts, and can append
+atomic snapshots to `Phase1aSqliteStore`. Abrupt-process restart tests prove that
+committed calls resume without repetition. Deployment-specific access-control review
+and retention policy remain required before live data collection.

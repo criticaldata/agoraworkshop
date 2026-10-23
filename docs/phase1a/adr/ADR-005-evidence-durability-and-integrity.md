@@ -1,6 +1,6 @@
 # ADR-005: Evidence durability and integrity
 
-Status: **ACCEPTED, IMPLEMENTATION PENDING**  
+Status: **ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; ACCESS REVIEW PENDING**
 Date: 2026-10-22  
 Engineering owner: Simon Heilles / provisional WP04 maintainer
 
@@ -11,10 +11,9 @@ loss, and later alteration of the evidence.
 
 ## Context
 
-The current ledger preserves events, artifacts, requests, responses, hashes,
-and restore behavior in memory. Its verifier does not yet bind every call
-metadata field, and serialization tests do not prove durability after process
-termination.
+The ledger preserves events, artifacts, requests, responses and hashes. The
+verifier binds call metadata to request/raw artifacts, and `Phase1aSqliteStore`
+persists append-only atomic snapshots with WAL and full synchronization.
 
 ## Decision
 
@@ -44,8 +43,9 @@ because in-memory tests pass.
 
 ## Evidence and acceptance
 
-Acceptance requires kill/restart tests, metadata-tampering negative tests, an
-independent bundle verifier, and an access-control review.
+Kill/restart and metadata-tampering negative tests are implemented. The bundle
+verifier can run from a fresh process. Deployment-specific access-control and
+retention review remains required before live data collection.
 
 Discussion provenance:
 

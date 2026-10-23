@@ -1,19 +1,20 @@
 # Integration WP01-WP02..WP06 — handoff
 
-**Status:** `AWAITING_INTEGRATION`
+**Status:** `ENGINEERING_BASELINE_INTEGRATED — SCIENTIFIC_FREEZE_PENDING`
 
 WP01 supplies validated study, decision, prompt, deployment, agenda, manifest,
-and source-link contracts through `src/phase1a/wp01/index.ts`. The five
-consumer directories contain README scaffolds only; no duplicate runtime or
-dummy database was added.
+and source-link contracts through `src/phase1a/wp01/index.ts`. WP02 consumes
+them through `wp01-runtime-adapter-v1`; WP03 supplies the deterministic workflow;
+WP04 persists and verifies evidence; WP05 consumes committed evidence for replay.
+WP06 remains an explicit analysis handoff.
 
 | Consumer | Immediate input | Integration requirement |
 |---|---|---|
-| WP02 | study/campaign/run manifests, `RunStage[]`, and deployment bindings | own core orchestration and model-provider integration; preserve run/opportunity IDs, deterministic host stages, retries and provenance; do not expose report metadata in t0 context and do not fabricate failed baseline responses |
+| WP02 | study/campaign/run manifests, `RunStage[]`, and deployment bindings | implemented engineering adapter and runtime; scientific admission stays closed until every freeze blocker is resolved |
 | WP03 | `RunStage[]`, agenda, report policy, candidate prompt references and decision status | own the workshop and report workflow; implement `t0(P1,P2,P3) -> report/no-report notice -> public round 1`, then six rounds, `t6` and report-arm `tR`, without provider routing |
-| WP04 | scope and `SourceMessageLink` | independently enforce private/public isolation |
-| WP05 | hashes, manifests, provenance | replay only declared inputs and preserve reconstruction evidence |
+| WP04 | scope and `SourceMessageLink` | implemented isolation, append-only SQLite snapshots, restart and metadata-integrity checks; live access review pending |
+| WP05 | hashes, manifests, provenance | implemented context-locked replay from committed evidence; scientific replay plan approval pending |
 | WP06 | analysis units, probes, reports, decisions | keep codebook and claims separate from WP01 mechanics |
 
-The handoff does not assert that any consumer runtime exists or that an
-integration test has passed.
+The handoff asserts an offline engineering baseline only. It does not assert live
+provider qualification, scientific freeze, a completed pilot or behavioral findings.

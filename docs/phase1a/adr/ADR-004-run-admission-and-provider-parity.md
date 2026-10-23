@@ -1,6 +1,6 @@
 # ADR-004: Run admission and provider-request parity
 
-Status: **ACCEPTED, IMPLEMENTATION PENDING**  
+Status: **ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; LIVE LIMITS PENDING**
 Date: 2026-10-22  
 Engineering owner: Simon Heilles / WP02
 
@@ -11,9 +11,9 @@ unrecorded provider settings or runtime substitutions.
 
 ## Context
 
-The evidence ledger records participant configuration, but the current initial
-provider interface does not pass every decoding parameter to the provider. The
-runtime also needs an explicit admission boundary for models, budgets, and IDs.
+The provider interface now passes and records the effective configuration. The
+versioned adapter rejects unsupported parameters and non-frozen scientific runs;
+the runtime rejects unknown participants and provider/model identity drift.
 
 ## Decision
 
@@ -43,8 +43,9 @@ provider that cannot honor the frozen configuration cannot join that campaign.
 
 ## Evidence and acceptance
 
-Contract tests must compare the recorded request with the provider payload and
-must fail on an omitted, modified, defaulted, or unsupported parameter.
+Contract tests compare the recorded request with the provider payload and fail on
+modified or unsupported parameters. Exact cost, duration and concurrency ceilings
+remain part of unresolved D09 and must be added before live admission.
 
 Discussion provenance:
 

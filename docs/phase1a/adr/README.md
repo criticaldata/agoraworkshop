@@ -36,14 +36,14 @@ presenting an implementation choice as a scientific result.
 | ADR | Decision | Status | Engineering owner | Scientific authority |
 |---|---|---|---|---|
 | [ADR-001](ADR-001-work-package-ownership.md) | Work-package ownership and decision rights | ACCEPTED | Simon | Named scientific owners per package |
-| [ADR-002](ADR-002-canonical-wp-integration.md) | WP01 is the canonical contract; live execution requires a versioned adapter | ACCEPTED | Simon / WP02 | Mateo / WP01 plus freeze authority |
+| [ADR-002](ADR-002-canonical-wp-integration.md) | WP01 is the canonical contract; live execution requires a versioned adapter | ACCEPTED, ENGINEERING BASELINE IMPLEMENTED | Simon / WP02 | Mateo / WP01 plus freeze authority |
 | [ADR-003](ADR-003-t0-and-report-disclosure.md) | `t0` precedes report disclosure; A/C receive no condition notice | ACCEPTED | Simon / WP02-WP03 | Simon, following review with Mateo |
-| [ADR-004](ADR-004-run-admission-and-provider-parity.md) | Admit only frozen manifests with exact provider/configuration parity | ACCEPTED, IMPLEMENTATION PENDING | Simon / WP02 | Study and infrastructure owners |
-| [ADR-005](ADR-005-evidence-durability-and-integrity.md) | Durable append-only evidence and complete call-metadata integrity | ACCEPTED, IMPLEMENTATION PENDING | Simon / WP04 | Independent evidence reviewer |
+| [ADR-004](ADR-004-run-admission-and-provider-parity.md) | Admit only frozen manifests with exact provider/configuration parity | ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; LIVE LIMITS PENDING | Simon / WP02 | Study and infrastructure owners |
+| [ADR-005](ADR-005-evidence-durability-and-integrity.md) | Durable append-only evidence and complete call-metadata integrity | ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; ACCESS REVIEW PENDING | Simon / WP04 | Independent evidence reviewer |
 | [ADR-006](ADR-006-report-role-allocation.md) | Counterbalance report roles across the three replications | ACCEPTED, SCIENTIFIC REVIEW REQUIRED | Simon / WP03 | Study owner |
 | [ADR-007](ADR-007-context-locked-replay-baseline.md) | WP05 derives every cell from the exact parent request bytes | ACCEPTED, SCIENTIFIC REVIEW REQUIRED | Simon / WP05 engineering | WP05 scientific owner to accept |
-| [ADR-008](ADR-008-outcome-and-failure-taxonomy.md) | Abstention, refusal, timeout and provider failure remain distinct | ACCEPTED | Simon / WP02-WP05 | WP06 measurement owner |
-| [ADR-009](ADR-009-validation-and-release-evidence.md) | A release requires executed validation, structured CI evidence and human review | ACCEPTED, IMPLEMENTATION PENDING | Simon | Release reviewer |
+| [ADR-008](ADR-008-outcome-and-failure-taxonomy.md) | Abstention, refusal, timeout and provider failure remain distinct | ACCEPTED, ENGINEERING BASELINE IMPLEMENTED | Simon / WP02-WP05 | WP06 measurement owner |
+| [ADR-009](ADR-009-validation-and-release-evidence.md) | A release requires executed validation, structured CI evidence and human review | ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; HUMAN REVIEW REQUIRED | Simon | Release reviewer |
 | [ADR-010](ADR-010-private-repository-review-interface.md) | Publish a curated review view without visitor sign-in while keeping repository credentials server-side | ACCEPTED | Simon | Repository owner |
 | [ADR-011](ADR-011-whatsapp-decision-provenance.md) | Preserve WhatsApp provenance, status, and supersession without publishing unrelated chat content | ACCEPTED | Simon | Project leads validate interpretation |
 | [ADR-012](ADR-012-phase0-instrument-boundary.md) | Phase 0 validates the instrument under symmetric prompts; behavioral treatments start later | ACCEPTED | Simon / Phase 0 | Study owner |

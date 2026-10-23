@@ -1,6 +1,6 @@
 # ADR-008: Behavioral outcomes and technical failures
 
-Status: **ACCEPTED**  
+Status: **ACCEPTED, ENGINEERING BASELINE IMPLEMENTED**
 Date: 2026-10-22  
 Engineering owner: Simon Heilles / WP02-WP05
 
@@ -11,9 +11,9 @@ agreement, refusal, abstention, or silence by the model.
 
 ## Context
 
-The current crosswalk collapses an abstention into a delivered refusal in one
-WP05 mapping. Those outcomes have different behavioral meanings. Timeouts and
-provider failures are not delivered messages at all.
+The runtime and WP05 crosswalk now preserve abstention and delivered refusal as
+different behavioral outcomes. Timeouts and provider failures are not delivered
+messages at all.
 
 ## Decision
 

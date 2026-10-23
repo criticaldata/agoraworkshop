@@ -302,13 +302,13 @@ describe('WP01 synthetic manifests and public interface', () => {
   });
 });
 
-describe('WP01 scaffolding and documentation boundaries', () => {
-  it('creates only concise scaffolds for WP02-WP06', () => {
+describe('WP01 consumer documentation boundaries', () => {
+  it('publishes an honest status for WP02-WP06', () => {
     for (const wp of ['wp02', 'wp03', 'wp04', 'wp05', 'wp06']) {
       const path = `src/phase1a/${wp}/README.md`;
       expect(existsSync(path)).toBe(true);
       const text = readFileSync(path, 'utf8');
-      expect(text).toMatch(/not implemented|awaiting[_ ]integration|pending/i);
+      expect(text).toMatch(/implemented|awaiting[_ ]integration|pending/i);
       if (wp === 'wp02') expect(text).toMatch(/orchestration.*model-provider integration|model-provider integration.*orchestration/is);
       if (wp === 'wp03') expect(text).toMatch(/workshop.*report workflow|report workflow.*workshop/is);
     }

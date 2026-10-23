@@ -11,10 +11,11 @@ does not alter the closed Phase 0 evidence or configuration hashes.
 WP01 implements the study contract, pre-freeze decision register, candidate
 prompt registry, provider-neutral deployment contracts, deterministic agenda,
 campaign/run manifests, synthetic planning fixtures, and the interfaces that
-WP02–WP06 consume. WP02 owns core orchestration and model-provider integration.
-WP03 now implements the provider-neutral workshop/report plan and context rules.
-WP04–WP06 own context persistence, replay and analysis; their scientific gates
-remain separate from WP03's engineering baseline.
+WP02–WP06 consume. WP02 now implements the versioned WP01 runtime adapter and
+provider-neutral orchestration boundary. WP03 implements the workshop/report plan
+and context rules. WP04 has an append-only SQLite evidence baseline with
+metadata-tampering and abrupt-restart tests. WP05 implements context-locked replay.
+WP06 analysis and every scientific gate remain pending.
 
 ## Scientific boundary
 
@@ -63,6 +64,7 @@ consolidation note. The overall scientific freeze remains pending.
 
 ```text
 npx vitest run tests/phase1aWp01.test.ts --reporter=dot
+npx vitest run tests/phase1aWp02Adapter.test.ts tests/phase1aDurability.test.ts --reporter=dot
 npx tsc --noEmit -p tsconfig.json
 npm run phase1a:fixtures
 ```

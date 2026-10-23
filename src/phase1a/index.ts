@@ -24,6 +24,13 @@ export interface Phase1aManifest {
   manifestId: string;
   experimentId: string;
   contractVersion: string;
+  source: Readonly<{
+    adapterVersion: string;
+    admissionClass: 'fixture' | 'engineering' | 'scientific';
+    campaignHash: string;
+    runManifestHash: string;
+    adapterInputHash: string;
+  }>;
   cell: Cell;
   replication: number;
   reportEnabled: boolean;
@@ -82,6 +89,7 @@ export interface ProviderCallSpec {
   participantId: string;
   provider: string;
   model: string;
+  configuration: Readonly<Record<string, unknown>>;
   systemPrompt: string;
   userPrompt: string;
   context: readonly { role: 'user' | 'assistant'; content: string; sourceArtifactId?: string }[];
@@ -127,6 +135,19 @@ export interface EvidenceBundle {
   integrity: { valid: boolean; errors: string[]; verified_at: string };
 }
 
+export interface Phase1aPersistedSnapshot {
+  runId: string;
+  state: RunState;
+  callsUsed: number;
+  tokensUsed: number;
+  bundle: EvidenceBundle;
+}
+
+export interface Phase1aStore {
+  appendSnapshot(snapshot: Phase1aPersistedSnapshot): void;
+  latestSnapshot(runId: string): Phase1aPersistedSnapshot | null;
+}
+
 const secretPattern = /(authorization\s*:\s*bearer|api[_-]?key|secret[_-]?key|sk-[a-z0-9_-]{8,})/i;
 
 function clone<T>(value: T): T { return structuredClone(value); }
@@ -163,7 +184,9 @@ export function createFixtureManifest(overrides: Partial<Phase1aManifest> = {}):
   ];
   const order: [string, string, string] = ['agent_1', 'agent_2', 'agent_3'];
   return createManifest({
-    manifestId: 'manifest_phase1a_fixture', experimentId: 'agora_phase1a', contractVersion: '1A-0.1', cell: 'D', replication: 1,
+    manifestId: 'manifest_phase1a_fixture', experimentId: 'agora_phase1a', contractVersion: '1A-0.1',
+    source: { adapterVersion: 'fixture-v1', admissionClass: 'fixture', campaignHash: hash('fixture-campaign'), runManifestHash: hash('fixture-run'), adapterInputHash: hash('fixture-input') },
+    cell: 'D', replication: 1,
     reportEnabled: true, participants,
     rounds: [
       { number: 1, topic: 'human-problem', prompt: 'Frame the human problem, round 1.' },
@@ -221,8 +244,8 @@ export class EvidenceLedger {
   providerCall(spec: ProviderCallSpec, response: ProviderResponse, startedAt: string, endedAt: string, requestRef: string, rawRef: string, previousAttemptIds: string[]): ProviderCallRecord {
     const call = deepFreeze({
       call_id: id('call'), run_id: this.runId, operation_key: spec.operationKey, participant_id: spec.participantId,
-      provider: response.provider, model: response.model,
-      configuration: clone(this.manifest.participants.find((participant) => participant.id === spec.participantId)?.configuration ?? {}), attempt: spec.attempt,
+      provider: spec.provider, model: spec.model,
+      configuration: clone(spec.configuration), attempt: spec.attempt,
       request_started_at: startedAt, request_ended_at: endedAt, terminal_status: response.outcome,
       system_prompt_hash: hash(spec.systemPrompt), user_prompt_hash: hash(spec.userPrompt), context_hash: hash(spec.context),
       raw_response_hash: hash(redactSecrets(response.raw)), raw_artifact_ref: rawRef, request_artifact_ref: requestRef,
@@ -284,7 +307,66 @@ export function verifyEvidenceBundle(bundle: EvidenceBundle): { valid: boolean; 
   const errors = [...result.errors];
   if (bundle.schema_version !== PHASE1A_SCHEMA_VERSION) errors.push('schema_version');
   if (hash(bundle.manifest) !== bundle.manifest_hash) errors.push('manifest_hash');
-  if (bundle.artifacts_index.length !== bundle.artifacts.length) errors.push('artifacts_index');
+  const eventIds = new Set(bundle.events.map((event) => event.event_id));
+  const artifactIds = new Set(bundle.artifacts.map((artifact) => artifact.artifact_id));
+  const callIds = new Set(bundle.provider_calls.map((call) => call.call_id));
+  if (eventIds.size !== bundle.events.length) errors.push('duplicate_event_id');
+  if (artifactIds.size !== bundle.artifacts.length) errors.push('duplicate_artifact_id');
+  if (callIds.size !== bundle.provider_calls.length) errors.push('duplicate_call_id');
+  const expectedIndex = bundle.artifacts.map(({ artifact_id, kind, visibility, content_hash }) => ({ artifact_id, kind, visibility, content_hash }));
+  if (canonicalize(bundle.artifacts_index) !== canonicalize(expectedIndex)) errors.push('artifacts_index');
+  for (const event of bundle.events) {
+    if (event.run_id !== bundle.events[0]?.run_id) errors.push(`event_run_id:${event.event_id}`);
+    for (const ref of event.artifact_refs) if (!artifactIds.has(ref)) errors.push(`event_artifact_ref:${event.event_id}:${ref}`);
+  }
+  for (const metric of bundle.metrics) {
+    for (const ref of metric.source_event_ids) if (!eventIds.has(ref)) errors.push(`metric_event_ref:${metric.name}:${ref}`);
+  }
+  for (const call of bundle.provider_calls) {
+    const requestArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref);
+    const rawArtifact = bundle.artifacts.find((artifact) => artifact.artifact_id === call.raw_artifact_ref);
+    if (!requestArtifact || requestArtifact.kind !== 'provider.request' || requestArtifact.visibility !== 'operator') {
+      errors.push(`call_request_ref:${call.call_id}`);
+      continue;
+    }
+    if (!rawArtifact || rawArtifact.kind !== 'provider.raw' || rawArtifact.visibility !== 'operator') {
+      errors.push(`call_raw_ref:${call.call_id}`);
+      continue;
+    }
+    let request: ProviderCallSpec | null = null;
+    try { request = JSON.parse(requestArtifact.content) as ProviderCallSpec; }
+    catch { errors.push(`call_request_json:${call.call_id}`); }
+    if (request) {
+      const checks: Array<[string, unknown, unknown]> = [
+        ['operation_key', request.operationKey, call.operation_key],
+        ['participant_id', request.participantId, call.participant_id],
+        ['provider', request.provider, call.provider],
+        ['model', request.model, call.model],
+        ['configuration', request.configuration, call.configuration],
+        ['attempt', request.attempt, call.attempt],
+        ['system_prompt_hash', hash(request.systemPrompt), call.system_prompt_hash],
+        ['user_prompt_hash', hash(request.userPrompt), call.user_prompt_hash],
+        ['context_hash', hash(request.context), call.context_hash],
+        ['context_message_ids', request.context.map((message) => message.sourceArtifactId).filter((value): value is string => typeof value === 'string'), call.context_message_ids],
+      ];
+      for (const [name, expected, actual] of checks) if (canonicalize(expected) !== canonicalize(actual)) errors.push(`call_${name}:${call.call_id}`);
+    }
+    try {
+      if (hash(JSON.parse(rawArtifact.content)) !== call.raw_response_hash) errors.push(`call_raw_hash:${call.call_id}`);
+    } catch { errors.push(`call_raw_json:${call.call_id}`); }
+    for (const previousId of call.previous_attempt_ids) {
+      const previous = bundle.provider_calls.find((candidate) => candidate.call_id === previousId);
+      if (!previous || previous.operation_key !== call.operation_key || previous.attempt >= call.attempt) errors.push(`call_retry_ref:${call.call_id}:${previousId}`);
+    }
+    const terminalEvent = bundle.events.find((event) =>
+      (event.event_type === 'provider_call.completed' || event.event_type === 'provider_call.failed')
+      && event.payload.call_id === call.call_id
+      && event.payload.operation_key === call.operation_key
+      && event.payload.attempt === call.attempt
+      && event.payload.outcome === call.terminal_status,
+    );
+    if (!terminalEvent) errors.push(`call_terminal_event:${call.call_id}`);
+  }
   return { valid: errors.length === 0, errors };
 }
 
@@ -301,14 +383,30 @@ function operationPlan(manifest: Phase1aManifest): Operation[] {
 
 export class Phase1aRuntime {
   private readonly runs = new Map<string, RunRecord>();
-  constructor(private readonly clock: () => string = () => new Date().toISOString()) {}
+  constructor(private readonly clock: () => string = () => new Date().toISOString(), private readonly store?: Phase1aStore) {}
+
+  private persist(record: RunRecord): void {
+    this.store?.appendSnapshot({
+      runId: record.ledger.runId,
+      state: record.state,
+      callsUsed: record.callsUsed,
+      tokensUsed: record.tokensUsed,
+      bundle: record.ledger.bundle(),
+    });
+  }
 
   createRun(manifestInput: Phase1aManifest, rejectEvent?: (eventType: string) => boolean): string {
     const manifest = createManifest(manifestInput);
     const runId = id('run');
     const ledger = new EvidenceLedger(runId, manifest, this.clock, rejectEvent);
     const workshopPlan = buildWorkshopPlan(manifest);
-    ledger.append('run.created', 'public', 'host', { manifest_hash: hash(manifest), report_enabled: manifest.reportEnabled, wp03_workflow_version: workshopPlan.workflowVersion });
+    ledger.append('run.created', 'public', 'host', {
+      manifest_hash: hash(manifest), report_enabled: manifest.reportEnabled,
+      wp03_workflow_version: workshopPlan.workflowVersion,
+      source_campaign_hash: manifest.source.campaignHash,
+      source_run_manifest_hash: manifest.source.runManifestHash,
+      adapter_input_hash: manifest.source.adapterInputHash,
+    });
     if (workshopPlan.reportAllocation) {
       ledger.append('report.roles_allocated', 'operator', 'host', {
         policy: workshopPlan.reportAllocation.policy,
@@ -319,7 +417,9 @@ export class Phase1aRuntime {
       });
     }
     for (const variation of manifest.variations) ledger.append('protocol_deviation.recorded', 'public', 'host', { variation, preserved: true });
-    this.runs.set(runId, { manifest, ledger, state: 'CREATED', callsUsed: 0, tokensUsed: 0 });
+    const record = { manifest, ledger, state: 'CREATED' as RunState, callsUsed: 0, tokensUsed: 0 };
+    this.runs.set(runId, record);
+    this.persist(record);
     return runId;
   }
 
@@ -329,18 +429,33 @@ export class Phase1aRuntime {
     const sourceRunId = source.events[0]?.run_id;
     if (!sourceRunId) throw new Error('Repeat source has no run id');
     const runId = this.createRun(source.manifest);
-    this.required(runId).ledger.append('run.repeated', 'public', 'host', {
+    const record = this.required(runId);
+    record.ledger.append('run.repeated', 'public', 'host', {
       source_run_id: sourceRunId,
       source_manifest_hash: source.manifest_hash,
     });
+    this.persist(record);
     return runId;
   }
 
   restore(bundle: EvidenceBundle): string {
     const ledger = EvidenceLedger.restore(bundle);
     const state = inferState(bundle.events);
-    this.runs.set(ledger.runId, { manifest: ledger.manifest, ledger, state, callsUsed: ledger.calls.length, tokensUsed: ledger.calls.reduce((sum, call) => sum + (call.usage?.inputTokens ?? 0) + (call.usage?.outputTokens ?? 0), 0) });
+    const record = { manifest: ledger.manifest, ledger, state, callsUsed: ledger.calls.length, tokensUsed: ledger.calls.reduce((sum, call) => sum + (call.usage?.inputTokens ?? 0) + (call.usage?.outputTokens ?? 0), 0) };
+    this.runs.set(ledger.runId, record);
+    this.persist(record);
     return ledger.runId;
+  }
+
+  restoreFromStore(runId: string): string {
+    const snapshot = this.store?.latestSnapshot(runId);
+    if (!snapshot) throw new Error(`No durable Phase 1A snapshot for ${runId}`);
+    const restoredId = this.restore(snapshot.bundle);
+    const record = this.required(restoredId);
+    record.state = snapshot.state;
+    record.callsUsed = snapshot.callsUsed;
+    record.tokensUsed = snapshot.tokensUsed;
+    return restoredId;
   }
 
   state(runId: string): RunState { return this.required(runId).state; }
@@ -356,7 +471,10 @@ export class Phase1aRuntime {
     for (const operation of operationPlan(record.manifest)) {
       if (record.ledger.hasCommitted(operation.key)) continue;
       if (options.stopAfterOperations !== undefined && committedThisInvocation >= options.stopAfterOperations) {
-        if (options.markInterrupted !== false) record.ledger.append('run.interrupted', 'operator', 'host', { after_operations: committedThisInvocation });
+        if (options.markInterrupted !== false) {
+          record.ledger.append('run.interrupted', 'operator', 'host', { after_operations: committedThisInvocation });
+          this.persist(record);
+        }
         return record.state;
       }
       if (operation.key.startsWith('round:1:')) this.discloseReportRequirement(record);
@@ -369,6 +487,7 @@ export class Phase1aRuntime {
       record.ledger.append('validation.integrity_passed', 'operator', 'host', { valid: integrity.valid, errors: integrity.errors });
       record.ledger.append('run.completed', 'public', 'host', { operations: operationPlan(record.manifest).length });
       record.state = 'COMPLETE';
+      this.persist(record);
     }
     return record.state;
   }
@@ -388,26 +507,37 @@ export class Phase1aRuntime {
       after_t0_event_ids: t0Commits.map((event) => event!.event_id),
       disclosure_hash: artifact.content_hash,
     }, [artifact.artifact_id]);
+    this.persist(record);
   }
 
   private async perform(record: RunRecord, operation: Operation, provider: Phase1aProvider): Promise<boolean> {
     const context = contextFor(record, operation);
     if (context.some((message) => secretPattern.test(message.content))) throw new Error('Secret leakage detected while assembling context');
     record.ledger.append('state_transition.started', 'operator', 'host', { operation_key: operation.key, to_state: operation.state });
+    this.persist(record);
     const previousAttemptIds: string[] = [];
     for (let attempt = 1; attempt <= record.manifest.limits.maxRetries + 1; attempt += 1) {
       if (record.callsUsed >= record.manifest.limits.maxCalls || record.tokensUsed >= record.manifest.limits.maxTokens) {
         record.ledger.append('budget.exhausted', 'operator', 'host', { calls_used: record.callsUsed, tokens_used: record.tokensUsed, context_hash: hash(context) });
-        record.ledger.append('run.failed', 'public', 'host', { reason: 'budget_exhausted' }); record.state = 'FAILED'; return false;
+        record.ledger.append('run.failed', 'public', 'host', { reason: 'budget_exhausted' }); record.state = 'FAILED'; this.persist(record); return false;
       }
-      const participant = record.manifest.participants.find((entry) => entry.id === operation.participantId) ?? record.manifest.participants[0];
-      const spec: ProviderCallSpec = { operationKey: operation.key, participantId: operation.participantId, provider: participant.provider, model: participant.model, systemPrompt: operation.system, userPrompt: operation.prompt, context, attempt };
+      const participant = record.manifest.participants.find((entry) => entry.id === operation.participantId);
+      if (!participant) throw new Error(`Unknown Phase 1A participant ${operation.participantId}`);
+      const spec: ProviderCallSpec = { operationKey: operation.key, participantId: operation.participantId, provider: participant.provider, model: participant.model, configuration: clone(participant.configuration), systemPrompt: operation.system, userPrompt: operation.prompt, context, attempt };
       const startedAt = this.clock();
       const request = record.ledger.artifact('provider.request', 'operator', operation.participantId, canonicalize(redactSecrets(spec)));
       record.ledger.append('provider_call.started', 'operator', operation.participantId, { operation_key: operation.key, attempt, context_hash: hash(context), request_artifact_ref: request.artifact_id }, [request.artifact_id]);
+      this.persist(record);
       let response: ProviderResponse;
       try { response = await provider.invoke(spec); }
       catch (error) { response = { outcome: 'provider_error', provider: spec.provider, model: spec.model, content: null, usage: null, finishReason: null, raw: { error: error instanceof Error ? error.message : String(error) } }; }
+      if (response.provider !== spec.provider || response.model !== spec.model) {
+        response = {
+          outcome: 'invalid_response', provider: spec.provider, model: spec.model, content: null, usage: response.usage,
+          finishReason: response.finishReason,
+          raw: { ...response.raw, adapter_identity_mismatch: { provider: response.provider, model: response.model } },
+        };
+      }
       const endedAt = this.clock(); record.callsUsed += 1;
       record.tokensUsed += (response.usage?.inputTokens ?? 0) + (response.usage?.outputTokens ?? 0);
       const raw = record.ledger.artifact('provider.raw', 'operator', operation.participantId, canonicalize(redactSecrets(response.raw)));
@@ -415,14 +545,15 @@ export class Phase1aRuntime {
       previousAttemptIds.push(call.call_id);
       record.ledger.append(`provider_call.${isTechnical(response.outcome) ? 'failed' : 'completed'}`, 'operator', operation.participantId, { operation_key: operation.key, attempt, outcome: response.outcome, call_id: call.call_id }, [raw.artifact_id]);
       if (isTechnical(response.outcome)) {
-        if (attempt <= record.manifest.limits.maxRetries) { record.ledger.append('retry.scheduled', 'operator', 'host', { operation_key: operation.key, failed_call_id: call.call_id, next_attempt: attempt + 1 }); continue; }
-        record.ledger.append('run.failed', 'public', 'host', { reason: response.outcome, operation_key: operation.key }); record.state = 'FAILED'; return false;
+        if (attempt <= record.manifest.limits.maxRetries) { record.ledger.append('retry.scheduled', 'operator', 'host', { operation_key: operation.key, failed_call_id: call.call_id, next_attempt: attempt + 1 }); this.persist(record); continue; }
+        record.ledger.append('run.failed', 'public', 'host', { reason: response.outcome, operation_key: operation.key }); record.state = 'FAILED'; this.persist(record); return false;
       }
       const content = response.content ?? `[${response.outcome}]`;
       const artifact = record.ledger.artifact(operation.kind, operation.visibility, operation.ownerId, content);
       record.ledger.append(`${operation.kind}.completed`, operation.visibility, operation.participantId, { operation_key: operation.key, outcome: response.outcome }, [artifact.artifact_id]);
       record.ledger.append('operation.committed', 'operator', 'host', { operation_key: operation.key, state: operation.state }, [artifact.artifact_id]);
       record.state = operation.state;
+      this.persist(record);
       return true;
     }
     return false;
@@ -457,3 +588,5 @@ export class DeterministicMockProvider implements Phase1aProvider {
     return { outcome, provider: spec.provider, model: spec.model, content: isTechnical(outcome) ? null : `${spec.operationKey}:${outcome}`, usage: { inputTokens: 10, outputTokens: 5 }, finishReason: outcome, raw: { fixture: true, operation: spec.operationKey, outcome } };
   }
 }
+
+export { Phase1aSqliteStore } from './sqliteStore.js';

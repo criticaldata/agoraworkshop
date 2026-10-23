@@ -5,3 +5,4 @@
 - [WP02–WP06 handoff](WP01_WP02_WP06_HANDOFF.md)
 - [Provider canary readiness](WP01_PROVIDER_CANARY_READINESS.md)
 - [Root README integration proposal](WP01_README_INTEGRATION_PROPOSAL.md)
+- [Consolidated engineering readiness, 2026-10-22](CONSOLIDATED_READINESS_2026-10-22.md)

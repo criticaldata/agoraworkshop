@@ -1,6 +1,6 @@
 # ADR-009: Validation and release evidence
 
-Status: **ACCEPTED, IMPLEMENTATION PENDING**  
+Status: **ACCEPTED, ENGINEERING BASELINE IMPLEMENTED; HUMAN RELEASE REVIEW REQUIRED**
 Date: 2026-10-22  
 Engineering owner: Simon Heilles
 
@@ -13,8 +13,8 @@ module import.
 ## Context
 
 GitHub Actions publishes structured Vitest results for the acceptance workbook.
-However, `npm run validate` currently imports a module without invoking the
-validation campaign. A zero exit code therefore does not prove validation ran.
+`npm run validate` now invokes the same validation CLI used by operators and exits
+non-zero when the package is not ready.
 
 ## Decision
 

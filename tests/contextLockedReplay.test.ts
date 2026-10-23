@@ -14,6 +14,7 @@ import {
   createReplayPlan,
   evidenceFingerprint,
   executeReplayPlan,
+  mapPhase1aOutcome,
   replayEligibility,
   verifyReplayCell,
   type ReplayPlan,
@@ -176,6 +177,8 @@ describe('WP05 replay execution and fault visibility', () => {
     const set = await executeReplayPlan(plan, bundle, new ScriptedReplayProvider({ 'R1:1': ['delivered_refusal'], 'R2:1': ['provider_refusal'] }));
     expect(set.trials.find((trial) => trial.cell === 'R1')).toMatchObject({ outcome: 'delivered_refusal', output: 'R1:1:delivered_refusal' });
     expect(set.trials.find((trial) => trial.cell === 'R2')).toMatchObject({ outcome: 'provider_refusal', output: null, outputId: null });
+    expect(mapPhase1aOutcome('abstained')).toBe('abstained');
+    expect(mapPhase1aOutcome('refused')).toBe('delivered_refusal');
   });
 
   it('[TST-02] recomputes replay visibility and reports a deliberately inserted private marker', async () => {

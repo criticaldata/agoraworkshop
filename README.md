@@ -1,4 +1,4 @@
-# AGORA — Phase 0
+# AGORA — auditable multi-agent research instrument
 
 Phase 1A role-experiment extension: [specification](docs/phase1/IMPLEMENTATION_SPEC.md),
 [operator guide and review notes](docs/phase1/REVIEW.md). Open `/phase1` for the
@@ -6,8 +6,9 @@ draft/preview/freeze/mock/compare/annotate/export workflow. Phase 1B remains out
 
 ## Phase 1A workshop runtime and WP05 replay
 
-The repository now also contains Mateo's WP01 study contract, an executable Phase 1A
-workshop runtime, and the first WP05 context-locked replay milestone. The
+The repository preserves the closed Phase 0 instrument and contains the team's WP01
+study contract, a versioned WP01→WP02 adapter, an executable Phase 1A workshop
+runtime with durable evidence, and the first WP05 context-locked replay milestone. The
 implementation is backed by a machine-checked requirement matrix. The scientific
 freeze remains pending for every item still marked `OPEN` or `PROPOSED` in the WP01
 decision register.
@@ -43,7 +44,8 @@ failure evidence.
 - [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
 
 Run `npm test` for the full validation suite and `npm run build` for the production
-build check.
+build check. `npm run validate` executes the Phase 0 mock validation campaign; it is
+not a no-op import.
 
 A small, controlled, replayable multi-agent workshop, plus enough instrumentation to
 trust it as a research instrument.

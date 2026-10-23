@@ -218,6 +218,9 @@ describe('Phase 1A evidence, export, and dry-run acceptance', () => {
     expect(call.usage).toEqual({ inputTokens: 10, outputTokens: 5 });
     expect(bundle.artifacts.find((artifact) => artifact.artifact_id === call.raw_artifact_ref)?.visibility).toBe('operator');
     expect(bundle.events.some((event) => canonicalizeForTest(event.payload).includes('fixture'))).toBe(false);
+    const request = JSON.parse(bundle.artifacts.find((artifact) => artifact.artifact_id === call.request_artifact_ref)!.content) as ProviderCallSpec;
+    expect(request.configuration).toEqual({ temperature: 0 });
+    expect(call.configuration).toEqual(request.configuration);
   });
 
   it('stores unavailable provider usage explicitly as null rather than zero', async () => {
@@ -249,6 +252,10 @@ describe('Phase 1A evidence, export, and dry-run acceptance', () => {
     expect(verifyEvidenceBundle(reordered).valid).toBe(false);
     const substituted = structuredClone(good); substituted.artifacts[0]!.content = 'tampered';
     expect(verifyEvidenceBundle(substituted).errors.some((error) => error.startsWith('artifact_hash'))).toBe(true);
+    const changedCall = structuredClone(good); changedCall.provider_calls[0]!.model = 'tampered-model';
+    expect(verifyEvidenceBundle(changedCall).errors.some((error) => error.startsWith('call_model'))).toBe(true);
+    const changedIndex = structuredClone(good); changedIndex.artifacts_index[0]!.kind = 'tampered-kind';
+    expect(verifyEvidenceBundle(changedIndex).errors).toContain('artifacts_index');
   });
 
   it('[EVD-08] binds every derived metric to exact events and an algorithm version', () => {

@@ -45,11 +45,33 @@ adversarial finding.
 - `npm audit --omit=dev --audit-level=high --offline`: 0 vulnerabilities found
   from the locally available advisory data.
 
+### Local rerun of Mateo's probes
+
+The supplied probe corpus was also rerun locally against the remediation commit:
+
+- `independent-probes.mts`: 67/67 passed.
+- `extra-probes.mts`: 8/8 passed.
+- `boundary-probes.mts`: 5/5 passed.
+- Original observation inventory: **80/80 passed**.
+- `postmerge-supplementary.mts`: 25/25 passed.
+- `extra-integrity.mts`: 5/5 passed.
+- `unsupported-parameter.mts`: passed with zero provider calls.
+
+The ignored local harness copies required compatibility-only changes because
+the original scripts assumed the old failure location: P07 and S03 now accept
+the earlier fail-closed manifest rejection, and X03 now derives its status from
+the returned malformed-attempt trace instead of a hard-coded `FAIL`. The X03
+copy also captures the malformed invocation result rather than accidentally
+reading the preceding successful result. These changes did not alter production
+code or the predicates under test. All invocations used deterministic mocks;
+no provider API, credential, GPU or network call was made.
+
 The 23 formerly failing original predicates and the supplementary D/S/Windows
-predicates now have passing repository regression tests. This is engineering
-remediation evidence, not a claim that Mateo has independently rerun and signed
-off the complete 80-observation corpus. That independent rerun remains the next
-acceptance action.
+predicates now have passing repository regression tests, and the original
+80-observation probe inventory passes locally. This is engineering remediation
+evidence, not a claim that Mateo has independently rerun or signed off the
+remediated commit. His independent confirmation remains the next acceptance
+action.
 
 ## Scientific boundary
 

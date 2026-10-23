@@ -74,6 +74,7 @@ This matrix is the executable proof map for the normative Phase 1A specification
 | `RPT-07` | `phase1aRuntime.test.ts > [RPT-02] [RPT-07] [RPT-08] keeps report artifacts immutable and t2 strictly after the revised report` | Prompts, contexts, timing, hashes, outcomes, and outputs remain independently auditable. | GREEN |
 | `RPT-08` | `phase1aRuntime.test.ts > [RPT-02] [RPT-07] [RPT-08] keeps report artifacts immutable and t2 strictly after the revised report` | The final checkpoint cannot precede or bypass revision. | GREEN |
 | `RPT-09` | `phase1aRuntime.test.ts > [RPT-09] [ORCH-08] stores refusal as terminal behavior and retries technical failure separately` | Refusal completes review behavior; technical failure follows retry/failure policy. | GREEN |
+| `RPT-10` | `phase1aWp03.test.ts > [RPT-10] counterbalances writer and reviewer roles across the three replications` plus runtime integration | Each participant writes once, reviews twice, and the selected allocation is preserved in evidence; scientific freeze remains pending. | GREEN |
 
 ## Evidence schema
 
@@ -107,7 +108,7 @@ This matrix is the executable proof map for the normative Phase 1A specification
 
 ## Audit summary
 
-- `GREEN`: 79 requirements have direct behavioral proof in `tests/phase1aRuntime.test.ts` and `tests/contextLockedReplay.test.ts`.
+- `GREEN`: 80 requirements have direct behavioral proof in the focused Phase 1A runtime, WP03, and WP05 acceptance suites.
 - The deterministic test fixture supplies explicit `DEC-03` speaking order and `DEC-06` exact replay policy values; the runtime has no implicit defaults.
 - Live-provider identifiers, limits, final prompts, and research operations remain open in `decision-log.md` and do not weaken the executable Phase 1A contract.
 

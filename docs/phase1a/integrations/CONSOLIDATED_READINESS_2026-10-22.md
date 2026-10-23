@@ -1,7 +1,9 @@
 # Phase 1A consolidated engineering readiness
 
-Date: 2026-10-22 (America/Guayaquil)  
-Scientific status: **SCIENTIFIC_FREEZE_PENDING**  
+Date: 2026-10-22 (America/Guayaquil)
+
+Scientific status: **SCIENTIFIC_FREEZE_PENDING**
+
 Release class: **offline engineering baseline; no behavioral result and no live pilot approval**
 
 ## Consolidation source

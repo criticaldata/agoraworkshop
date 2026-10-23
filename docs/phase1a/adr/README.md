@@ -39,6 +39,7 @@ presenting an implementation choice as a scientific result.
 | [ADR-007](ADR-007-context-locked-replay-baseline.md) | WP05 derives every cell from the exact parent request bytes | ACCEPTED, SCIENTIFIC REVIEW REQUIRED | Simon / WP05 engineering | WP05 scientific owner to accept |
 | [ADR-008](ADR-008-outcome-and-failure-taxonomy.md) | Abstention, refusal, timeout and provider failure remain distinct | ACCEPTED | Simon / WP02-WP05 | WP06 measurement owner |
 | [ADR-009](ADR-009-validation-and-release-evidence.md) | A release requires executed validation, structured CI evidence and human review | ACCEPTED, IMPLEMENTATION PENDING | Simon | Release reviewer |
+| [ADR-010](ADR-010-private-repository-review-interface.md) | Keep repository credentials server-side and degrade explanations without losing GitHub grounding | ACCEPTED | Simon | Repository owner |
 
 ## Ownership rule
 

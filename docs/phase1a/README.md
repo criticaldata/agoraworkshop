@@ -11,10 +11,10 @@ does not alter the closed Phase 0 evidence or configuration hashes.
 WP01 implements the study contract, pre-freeze decision register, candidate
 prompt registry, provider-neutral deployment contracts, deterministic agenda,
 campaign/run manifests, synthetic planning fixtures, and the interfaces that
-WP02–WP06 will consume. WP02 owns core orchestration and model-provider
-integration; WP03 owns the workshop and report workflow; WP04–WP06 own context,
-replay and analysis. All five consumer packages are intentionally scaffolds
-only in this change.
+WP02–WP06 consume. WP02 owns core orchestration and model-provider integration.
+WP03 now implements the provider-neutral workshop/report plan and context rules.
+WP04–WP06 own context persistence, replay and analysis; their scientific gates
+remain separate from WP03's engineering baseline.
 
 ## Scientific boundary
 
@@ -35,6 +35,9 @@ consolidation note. The overall scientific freeze remains pending.
 ## Deliverables
 
 - [WP01 README](wp01/README.md)
+- [WP03 workshop and report workflow](wp03/README.md)
+- [WP03 engineering decisions](wp03/DECISIONS.md)
+- [WP03 acceptance record](wp03/ACCEPTANCE.md)
 - [Study contract](wp01/01_STUDY_CONTRACT.md)
 - [Decision register](wp01/02_DECISION_REGISTER.md)
 - [Candidate prompt registry](wp01/03_PROMPT_REGISTRY.md)

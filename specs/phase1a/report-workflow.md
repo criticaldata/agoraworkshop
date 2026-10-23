@@ -1,6 +1,6 @@
 # Joint report workflow
 
-Status: **PROPOSED**
+Status: **ENGINEERING BASELINE IMPLEMENTED — SCIENTIFIC FREEZE PENDING**
 
 ## Applicability
 
@@ -17,6 +17,14 @@ This workflow runs only in report-arm cells B and D.
 - `RPT-07` — Draft, reviews, revised report, prompts, contexts, timings, hashes, and provider outcomes are preserved separately.
 - `RPT-08` — `t2` is collected only after the revised report is committed.
 - `RPT-09` — A reviewer refusal is preserved as an outcome; a provider failure follows the technical failure policy.
+- `RPT-10` — The engineering baseline counterbalances report roles across the three replications: P1/P2/P3 each writes once and reviews twice. The selected allocation and policy version are preserved as evidence. This allocation still requires scientific approval before a live pilot.
+
+## Ownership boundary
+
+WP03 produces a deterministic, provider-neutral operation plan and the exact
+context for each stage. WP02 owns provider routing and invocation. WP04 owns
+durable evidence persistence. WP03 does not contain credentials, deployment
+selection, retry transport, or model-specific request code.
 
 ## Acceptance example
 

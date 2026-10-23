@@ -1,5 +1,11 @@
 import { randomUUID } from 'node:crypto';
 import { canonicalize, configHash, deepFreeze } from '../config/hash.js';
+import {
+  buildWorkshopPlan,
+  contextForOperation,
+  reportDisclosureBoundary,
+  type Wp03Operation,
+} from './wp03/workflow.js';
 
 export const PHASE1A_SCHEMA_VERSION = 'phase1a-0.1';
 export type Visibility = 'public' | 'private-agent' | 'reviewer-isolated' | 'operator';
@@ -130,6 +136,7 @@ function isTechnical(outcome: Outcome): boolean { return ['timeout', 'provider_e
 
 export function createManifest(input: Phase1aManifest): Phase1aManifest {
   const copy = clone(input);
+  if (!Number.isInteger(copy.replication) || copy.replication < 1 || copy.replication > 3) throw new Error('Phase 1A replication must be 1, 2, or 3');
   if (copy.participants.length !== 3 || new Set(copy.participants.map((p) => p.id)).size !== 3) throw new Error('Phase 1A requires exactly three unique participants');
   if (copy.rounds.length !== 6 || copy.rounds.some((round, index) => round.number !== index + 1)) throw new Error('Phase 1A requires exactly six ordered rounds');
   const expectedTopics = ['human-problem', 'human-problem', 'redesign', 'redesign', 'agent-role', 'agent-role'];
@@ -281,40 +288,15 @@ export function verifyEvidenceBundle(bundle: EvidenceBundle): { valid: boolean; 
   return { valid: errors.length === 0, errors };
 }
 
-interface Operation { key: string; state: RunState; kind: string; participantId: string; visibility: Visibility; ownerId: string | null; system: string; prompt: string }
+type Operation = Wp03Operation;
 interface RunRecord { manifest: Phase1aManifest; ledger: EvidenceLedger; state: RunState; callsUsed: number; tokensUsed: number }
 
 function contextFor(record: RunRecord, operation: Operation): Array<{ role: 'user' | 'assistant'; content: string; sourceArtifactId?: string }> {
-  const publicContext = record.ledger.publicHistory().map((artifact) => ({ role: 'assistant' as const, content: artifact.content, sourceArtifactId: artifact.artifact_id }));
-  if (operation.kind.startsWith('checkpoint.')) {
-    return [...publicContext, ...record.ledger.ownedPrivate(operation.participantId).map((artifact) => ({ role: 'assistant' as const, content: artifact.content, sourceArtifactId: artifact.artifact_id }))];
-  }
-  if (operation.kind === 'report.draft') return publicContext;
-  if (operation.kind === 'report.review1' || operation.kind === 'report.review2') {
-    const draft = record.ledger.byKind('report.draft')[0];
-    return draft ? [{ role: 'assistant', content: draft.content, sourceArtifactId: draft.artifact_id }] : [];
-  }
-  if (operation.kind === 'report.revised') {
-    const artifacts = ['report.draft', 'report.review1', 'report.review2'].flatMap((kind) => record.ledger.byKind(kind));
-    if (artifacts.length !== 3) throw new Error('Revision requires a committed draft and two terminal reviews');
-    return artifacts.map((artifact) => ({ role: 'assistant' as const, content: artifact.content, sourceArtifactId: artifact.artifact_id }));
-  }
-  return publicContext;
+  return contextForOperation(record.ledger.artifacts, operation);
 }
 
 function operationPlan(manifest: Phase1aManifest): Operation[] {
-  const plan: Operation[] = [];
-  for (const participant of manifest.participants) plan.push({ key: `t0:${participant.id}`, state: 'T0', kind: 'checkpoint.t0', participantId: participant.id, visibility: 'private-agent', ownerId: participant.id, system: 'Deterministic Phase 1A private checkpoint', prompt: manifest.checkpoints.t0 });
-  for (const round of manifest.rounds) for (const participantId of manifest.speakingOrder[round.number - 1]!) plan.push({ key: `round:${round.number}:${participantId}`, state: `ROUND_${round.number}` as RunState, kind: `round.${round.number}`, participantId, visibility: 'public', ownerId: null, system: 'Deterministic Phase 1A workshop host', prompt: round.prompt });
-  for (const participant of manifest.participants) plan.push({ key: `t1:${participant.id}`, state: 'T1', kind: 'checkpoint.t1', participantId: participant.id, visibility: 'private-agent', ownerId: participant.id, system: 'Deterministic Phase 1A private checkpoint', prompt: manifest.checkpoints.t1 });
-  if (manifest.reportEnabled) {
-    plan.push({ key: 'report:draft', state: 'REPORT_DRAFT', kind: 'report.draft', participantId: 'agent_1', visibility: 'reviewer-isolated', ownerId: 'report', system: 'Deterministic Phase 1A report pipeline', prompt: manifest.reportPrompts.draft });
-    plan.push({ key: 'report:review1', state: 'REVIEW_1', kind: 'report.review1', participantId: 'agent_2', visibility: 'reviewer-isolated', ownerId: 'reviewer_1', system: 'Isolated reviewer 1', prompt: manifest.reportPrompts.review1 });
-    plan.push({ key: 'report:review2', state: 'REVIEW_2', kind: 'report.review2', participantId: 'agent_3', visibility: 'reviewer-isolated', ownerId: 'reviewer_2', system: 'Isolated reviewer 2', prompt: manifest.reportPrompts.review2 });
-    plan.push({ key: 'report:revised', state: 'REPORT_REVISED', kind: 'report.revised', participantId: 'agent_1', visibility: 'public', ownerId: null, system: 'Deterministic Phase 1A report revision', prompt: manifest.reportPrompts.revision });
-    for (const participant of manifest.participants) plan.push({ key: `t2:${participant.id}`, state: 'T2', kind: 'checkpoint.t2', participantId: participant.id, visibility: 'private-agent', ownerId: participant.id, system: 'Deterministic Phase 1A private checkpoint', prompt: manifest.checkpoints.t2 });
-  }
-  return plan;
+  return buildWorkshopPlan(manifest).operations;
 }
 
 export class Phase1aRuntime {
@@ -325,7 +307,17 @@ export class Phase1aRuntime {
     const manifest = createManifest(manifestInput);
     const runId = id('run');
     const ledger = new EvidenceLedger(runId, manifest, this.clock, rejectEvent);
-    ledger.append('run.created', 'public', 'host', { manifest_hash: hash(manifest), report_enabled: manifest.reportEnabled });
+    const workshopPlan = buildWorkshopPlan(manifest);
+    ledger.append('run.created', 'public', 'host', { manifest_hash: hash(manifest), report_enabled: manifest.reportEnabled, wp03_workflow_version: workshopPlan.workflowVersion });
+    if (workshopPlan.reportAllocation) {
+      ledger.append('report.roles_allocated', 'operator', 'host', {
+        policy: workshopPlan.reportAllocation.policy,
+        replication: workshopPlan.reportAllocation.replication,
+        writer_id: workshopPlan.reportAllocation.writerId,
+        reviewer_1_id: workshopPlan.reportAllocation.reviewer1Id,
+        reviewer_2_id: workshopPlan.reportAllocation.reviewer2Id,
+      });
+    }
     for (const variation of manifest.variations) ledger.append('protocol_deviation.recorded', 'public', 'host', { variation, preserved: true });
     this.runs.set(runId, { manifest, ledger, state: 'CREATED', callsUsed: 0, tokensUsed: 0 });
     return runId;
@@ -382,11 +374,14 @@ export class Phase1aRuntime {
   }
 
   private discloseReportRequirement(record: RunRecord): void {
-    if (!record.manifest.reportEnabled || record.ledger.events.some((event) => event.event_type === 'report_requirement.disclosed')) return;
+    const alreadyDisclosed = record.ledger.events.some((event) => event.event_type === 'report_requirement.disclosed');
+    const committedKeys = record.ledger.events
+      .filter((event) => event.event_type === 'operation.committed')
+      .map((event) => String(event.payload.operation_key));
+    if (reportDisclosureBoundary(record.manifest, committedKeys, alreadyDisclosed) === 'skip') return;
     const t0Commits = record.manifest.participants.map((participant) =>
       record.ledger.events.find((event) => event.event_type === 'operation.committed' && event.payload.operation_key === `t0:${participant.id}`),
     );
-    if (t0Commits.some((event) => !event)) throw new Error('Report requirement cannot be disclosed before every t0 checkpoint is committed');
     const artifact = record.ledger.artifact('condition.report-disclosure', 'public', null, record.manifest.reportPrompts.disclosure);
     record.ledger.append('report_requirement.disclosed', 'public', 'host', {
       condition: record.manifest.cell,

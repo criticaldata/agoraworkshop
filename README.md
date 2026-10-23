@@ -37,6 +37,7 @@ failure evidence.
 
 - [Phase 1A specification pack](specs/README.md)
 - [WP01 study contract and decision register](docs/phase1a/wp01/README.md)
+- [WP03 workshop and report workflow](docs/phase1a/wp03/README.md)
 - [WP05 context-locked replay contract](specs/phase1a/context-locked-replay.md)
 - [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
 

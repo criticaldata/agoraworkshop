@@ -38,7 +38,7 @@ describe('Phase 1A specification traceability', () => {
     const expected = normativeRequirementIds();
     const actual = matrixRows().map((row) => row.id).sort();
 
-    expect(expected).toHaveLength(79);
+    expect(expected).toHaveLength(80);
     expect(actual).toHaveLength(new Set(actual).size);
     expect(actual).toEqual(expected);
   });
@@ -53,7 +53,7 @@ describe('Phase 1A specification traceability', () => {
   it('keeps the implemented status totals explicit', () => {
     const totals = Object.groupBy(matrixRows(), (row) => row.status);
 
-    expect(totals.GREEN).toHaveLength(79);
+    expect(totals.GREEN).toHaveLength(80);
     expect(totals.PARTIAL ?? []).toHaveLength(0);
     expect(totals.RED ?? []).toHaveLength(0);
     expect(totals.BLOCKED ?? []).toHaveLength(0);

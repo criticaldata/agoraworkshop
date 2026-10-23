@@ -43,6 +43,18 @@ anticipation in B/D; `TR - T6` isolates additional change after report work.
 Tests must prove event order, the absence of report text from all `t0` requests,
 no disclosure in A/C, and no public call after terminal `t0` failure.
 
+Discussion provenance:
+
+- Community group message `209305` on 2026-10-09 establishes private responses
+  before and after discussion and an additional post-report response in report
+  conditions.
+- Community group message `210450` on 2026-10-13 restates the 2x2 report
+  conditions and private/public context separation.
+- The two group histories do not settle whether the B/D report requirement is
+  disclosed before or after `t0`. That timing was resolved later through Mateo's
+  direct methodological question and recorded as `DEC-09` and `EXP-14`; it must
+  not be attributed to the earlier WhatsApp summaries.
+
 ## Revisit trigger
 
 Only a recorded protocol amendment approved by the study owner may supersede

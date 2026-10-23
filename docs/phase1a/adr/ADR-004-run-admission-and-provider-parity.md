@@ -46,6 +46,17 @@ provider that cannot honor the frozen configuration cannot join that campaign.
 Contract tests must compare the recorded request with the provider payload and
 must fail on an omitted, modified, defaulted, or unsupported parameter.
 
+Discussion provenance:
+
+- Community group message `186071` on 2026-07-24 establishes provider-neutral
+  adapters and gradual introduction of heterogeneous models.
+- Community group message `210450` on 2026-10-13 selects Gemma, Gemini, and an
+  unresolved `Model X`, prioritizes an open model runnable on the NVIDIA
+  cluster, and leaves turn limits, timeouts, retries, and budgets for a technical
+  follow-up.
+- Because no later message in the two-group corpus freezes those exact values,
+  they remain run-admission blockers rather than implicit provider defaults.
+
 ## Revisit trigger
 
 Review when a provider introduces a materially different request model.

@@ -48,6 +48,17 @@ available. Historical data must be migrated or explicitly labelled ambiguous.
 Fault-injection tests must prove the record set for every outcome and prove that
 no technical failure creates a message or delivery.
 
+Discussion provenance:
+
+- Historical Workshop group message `189520` on 2026-08-09 makes retry and
+  idempotency integrity part of the Phase 0 instrument gate.
+- Community group message `213113` on 2026-10-20 states that a timeout has a
+  complete failure record without requiring a message or delivery that never
+  existed, and requests an explicit retryable-failure set, attempt limit, and
+  delay.
+- Community group message `213417` on 2026-10-21 records that this outcome-aware
+  trace rule was incorporated into the repository baseline.
+
 ## Revisit trigger
 
 Extend, rather than collapse, the taxonomy when a provider adds a new outcome.

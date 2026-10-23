@@ -48,6 +48,16 @@ review. The article can cite a frozen release record rather than a mutable UI.
 Acceptance requires a deliberately failing validation fixture that makes the
 CLI and CI fail, plus a successful artifact consumed by the dashboard.
 
+Discussion provenance:
+
+- Historical Workshop group messages `189497`-`189520` on 2026-08-09 define
+  Phase 0 completion through instrument gates rather than behavioral results.
+- Community group messages `213091`-`213116` on 2026-10-20 distinguish a draft
+  specification from confirmed decisions and add explicit human review before
+  experimental cue edits are approved.
+- Community group message `213417` on 2026-10-21 records which review
+  clarifications entered the implemented baseline.
+
 ## Revisit trigger
 
 Review whenever the release pipeline or validation entrypoint changes.

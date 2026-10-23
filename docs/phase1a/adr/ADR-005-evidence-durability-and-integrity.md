@@ -47,6 +47,20 @@ because in-memory tests pass.
 Acceptance requires kill/restart tests, metadata-tampering negative tests, an
 independent bundle verifier, and an access-control review.
 
+Discussion provenance:
+
+- Historical Workshop group messages `189497`-`189520` on 2026-08-09 establish
+  routing integrity, zero private-channel leakage, complete event coverage,
+  failure attribution, reproducibility, provenance, context isolation,
+  state-machine correctness, and retry/idempotency integrity as instrument
+  gates.
+- Community group message `209280` on 2026-10-09 requires a passive context
+  logger that records exactly what each agent receives, including instructions,
+  conversation history, and observation disclosure.
+- Community group message `210450` on 2026-10-13 records immutable evidence as a
+  first-class architecture component and requires private checkpoints to remain
+  outside public history.
+
 ## Revisit trigger
 
 Review when storage technology or the evidence schema changes.

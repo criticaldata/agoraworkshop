@@ -50,6 +50,17 @@ Pass when a negative integration test proves that a changed prompt hash,
 unresolved freeze decision, unknown participant, or unsupported deployment
 prevents all provider calls.
 
+Discussion provenance:
+
+- Community group message `210450` on 2026-10-13 records the modular split
+  between experiment specification, orchestrator, model adapters, and evidence
+  store.
+- Community group message `213317` on 2026-10-20 records the common
+  `src/phase1a/wp01` through `wp06` layout and the decision to reuse validated
+  Phase 0 infrastructure rather than duplicate it.
+- Community group message `213273` on 2026-10-20 requests an explicit WP01-to-WP05
+  interface for parent context, experimental assumptions, and measured response.
+
 ## Revisit trigger
 
 Supersede when WP01 publishes a backwards-incompatible contract version.

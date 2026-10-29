@@ -43,4 +43,46 @@ footer{display:flex;align-items:center;justify-content:space-between;gap:30px;pa
   .section{padding:70px 24px}.section-heading,.about-grid{grid-template-columns:1fr;gap:24px}.section-heading .section-index,.section-heading h2,.section-heading>p:last-child:not(.section-index){grid-column:1}.section-heading{margin-bottom:40px}.section-heading h2{font-size:42px}.about-copy{font-size:22px}.why,.how,.team{padding-inline:24px}.theme-grid,.direction-grid{grid-template-columns:1fr}.theme-grid article,.direction-grid article{min-height:225px;border-right:1px solid var(--line);border-bottom:1px solid var(--line)}.theme-grid h3,.direction-grid h3{margin-top:38px}.simple-steps{display:grid;grid-template-columns:1fr}.simple-steps>i{display:none}.simple-steps article{min-height:210px}.simple-steps h3{margin-top:38px}.team-grid{grid-template-columns:1fr 1fr}.resource-list a{grid-template-columns:105px 1fr 20px}.resource-list p{grid-column:2}.resource-list b{grid-column:3;grid-row:1/3}.contact{grid-template-columns:1fr;gap:40px;padding:70px 24px}footer{padding:25px 24px;flex-wrap:wrap}.footer-mit{order:2}.footer-mit img{width:130px}
 }
 @media(max-width:430px){.wordmark small{font-size:4.8px}.hero-actions{flex-wrap:wrap}.hero h1{font-size:39px}.workshop-ring figcaption{font-size:9px}.question-list h3{font-size:28px}.condition-readout dl>div{grid-template-columns:120px 1fr}.timeline{grid-template-columns:1fr}.team-grid{grid-template-columns:1fr}.team-grid h3{min-height:0}.team-grid p{min-height:0}.resource-list a{grid-template-columns:1fr 20px}.resource-list a>span,.resource-list h3,.resource-list p{grid-column:1}.resource-list b{grid-column:2;grid-row:1/4}.contact h2{font-size:42px}footer>div{order:3;width:100%}.footer-mit{order:2}}
+
+/* Readability pass: supporting copy stays legible without losing hierarchy. */
+.wordmark small{margin-top:4px;font-size:8px;line-height:1.25;letter-spacing:.08em}
+.primary-nav a{font-size:12px}
+.section-index,.mini-label{font-size:11px;letter-spacing:.12em}
+.button{font-size:13px}
+.workshop-ring figcaption{margin-top:6px;font-size:12px}
+.legend-dot{width:8px;height:8px}
+.section-heading>p:last-child:not(.section-index){font-size:16px;line-height:1.75}
+.about-copy p:last-child{font-size:18px}
+.principles article{padding-block:24px}
+.principles article>span{font-size:18px}
+.principles h3{margin-bottom:10px}
+.principles p{font-size:15px;line-height:1.7}
+.theme-grid article{min-height:300px;padding:30px}
+.theme-grid article>span,.simple-steps span,.direction-grid span{font-size:11px}
+.theme-grid h3{margin:66px 0 20px}
+.theme-grid p,.simple-steps p,.direction-grid p{font-size:15px;line-height:1.7}
+.how .section-heading>p:last-child,.simple-steps p{color:#d2d9dc}
+.simple-steps article{min-height:280px;padding:30px}
+.simple-steps h3{margin:58px 0 19px}
+.direction-grid article{min-height:330px;padding:30px}
+.direction-grid h3{margin:62px 0 20px}
+.team-profile>div{padding:24px}
+.team-role{font-size:10px;line-height:1.45;letter-spacing:.1em}
+.team-grid h3{min-height:62px;margin-bottom:11px}
+.team-grid p{min-height:44px;font-size:14px;line-height:1.55}
+.team-grid nav{gap:16px;margin-top:19px}
+.team-grid a{font-size:12px}
+.resource-list a{grid-template-columns:160px 1.2fr 1.4fr 25px;padding-block:27px}
+.resource-list a>span{font-size:11px}
+.resource-list p{font-size:14px;line-height:1.6}
+.resource-list b{font-size:18px}
+.contact p:not(.section-index){font-size:16px;color:#f6e6de}
+.text-link{font-size:13px;color:#fff4ef}
+footer{padding-block:30px;font-size:12px}
+.footer-mark small{font-size:7px}
+@media(max-width:760px){
+  .wordmark small{font-size:7px}.menu-button{font-size:12px}.primary-nav a{font-size:15px}.lede{font-size:16px}
+  .resource-list a{grid-template-columns:115px 1fr 20px}
+}
+@media(max-width:430px){.wordmark small{font-size:6.5px}.workshop-ring figcaption{font-size:11px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}.reveal{opacity:1;transform:none}.ring-pulse,.ring-chord{opacity:1;stroke-dashoffset:0;stroke-dasharray:none}.stage-1{opacity:1}.stage-2{opacity:0}}

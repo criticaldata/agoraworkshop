@@ -3,10 +3,10 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A practical introduction to AGORA Phase 1A: the research question, experimental design, technical instrument, evidence rules, and first-week steps." />
-    <meta property="og:title" content="AGORA — Guided Onboarding" />
-    <meta property="og:description" content="Understand AGORA Phase 1A through the protocol, instrument, selected recordings, and short knowledge checks." />
-    <title>AGORA — Guided Onboarding</title>
+    <meta name="description" content="AGORA Workshop onboarding: get access, catch up on previous calls, find the shared documents and code, then learn the experiment." />
+    <meta property="og:title" content="AGORA Workshop — Onboarding" />
+    <meta property="og:description" content="Your first week with AGORA Workshop, followed by the purpose, experimental design, run pipeline, and evidence rules." />
+    <title>AGORA Workshop — Onboarding</title>
     <link rel="icon" href="./assets/brand/favicon.svg?v=1" type="image/svg+xml" />
     <link rel="stylesheet" href="./styles.css?v=22" />
     <script src="./script.js?v=22" defer></script>
@@ -35,15 +35,10 @@
       <section class="onboarding-hero guided-hero">
         <p class="section-index">AGORA WORKSHOP ONBOARDING</p>
         <div>
-          <h1>Start with the experiment. Learn how to trust it.</h1>
-          <p>A five-step path through AGORA’s current research question, 2×2 design, run pipeline, evidence rules, and the practical steps for joining the team.</p>
-          <a class="button primary" href="#step-1">Begin the onboarding ↓</a>
+          <h1>Your first week starts here.</h1>
+          <p>Get connected, catch up on previous calls, find the shared documents and code, then learn how the AGORA Workshop works.</p>
+          <a class="button primary" href="#step-1">Start with access setup ↓</a>
         </div>
-      </section>
-
-      <section class="phase-status" aria-label="Current project status">
-        <article><span>PHASE 0 · CLOSED</span><h2>The control plane is validated.</h2><p>Configuration hashing, deterministic scheduling, append-only events, visibility checks, and failure attribution are in place.</p></article>
-        <article class="current"><span>PHASE 1A · CURRENT</span><h2>The workshop becomes executable.</h2><p>We are extending that control plane to multi-model deliberation, private probes, report branches, replay tests, and run-level metrics.</p></article>
       </section>
 
       <div class="onboarding-progress" aria-live="polite">
@@ -52,15 +47,50 @@
       </div>
 
       <nav class="onboarding-map five-steps" aria-label="Onboarding steps">
-        <a href="#step-1"><span>01</span> Purpose</a>
-        <a href="#step-2"><span>02</span> 2×2 design</a>
-        <a href="#step-3"><span>03</span> One run</a>
-        <a href="#step-4"><span>04</span> Evidence rules</a>
-        <a href="#step-5"><span>05</span> First week</a>
+        <a href="#step-1"><span>01</span> First week</a>
+        <a href="#step-2"><span>02</span> Purpose</a>
+        <a href="#step-3"><span>03</span> 2×2 design</a>
+        <a href="#step-4"><span>04</span> One run</a>
+        <a href="#step-5"><span>05</span> Evidence rules</a>
       </nav>
 
       <section class="learning-step" id="step-1">
-        <header class="learning-heading"><p class="section-index">STEP 01 / PURPOSE</p><h2>Observe an agent society without deciding its outcome in advance.</h2></header>
+        <header class="learning-heading"><p class="section-index">STEP 01 / YOUR FIRST WEEK</p><h2>Get connected before you study or build the experiment.</h2></header>
+        <div class="learning-grid">
+          <div class="lesson-copy">
+            <ol class="first-week-list">
+              <li><span>01</span><div><h3>Share your email first</h3><p>If you have not already done so, send the email address you want to use for AGORA to <a href="mailto:simon@denemlabs.com?subject=AGORA%20%E2%80%94%20Call%20invitations">simon@denemlabs.com</a>. Simon will use it to add you to automatic invitations for upcoming calls.</p></div></li>
+              <li><span>02</span><div><h3>Open the WhatsApp group description</h3><p>WhatsApp is the coordination channel. The group description contains the current links to the project documents, so use it as the starting point for the shared workspace.</p></div></li>
+              <li><span>03</span><div><h3>Watch the previous meetings</h3><p>Start with the recent calls to understand the current context, decisions, and remaining work. Each recording in the resource library includes a written summary, so you can orient yourself before watching the full discussion.</p><a href="./resources.html#calls-title">Open previous meetings and summaries →</a></div></li>
+              <li><span>04</span><div><h3>Browse the GitHub repository</h3><p>The AGORA Workshop repository contains the code, technical documentation, research materials, and project history. Read the Phase 1A documentation before changing the implementation.</p><div class="mini-links"><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">Open repository ↗</a><a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a" target="_blank" rel="noreferrer">Read technical docs ↗</a></div></div></li>
+              <li><span>05</span><div><h3>Explore the live instrument</h3><p>Use the run inspector to follow a message from assembled context to model call, delivery, transcript, and gate result.</p><a href="https://agora-production-046a.up.railway.app/runs" target="_blank" rel="noreferrer">Open the run inspector ↗</a></div></li>
+              <li><span>06</span><div><h3>Join the next call and choose a task</h3><p>The group meets approximately every ten days. Once Simon has your email, you should receive the invitations automatically. Calls are where the team aligns on what needs to be built or studied and assigns bounded tasks.</p></div></li>
+            </ol>
+            <div class="contributor-paths">
+              <article><span>RESEARCH & DESIGN</span><h3>Protocol, analysis, and interpretation</h3><p>Help refine experimental choices, measurement, claim discipline, or manuscript sections.</p></article>
+              <article><span>ENGINEERING</span><h3>Instrument, tests, and evidence</h3><p>Work on a scoped package while preserving the existing control plane and acceptance gates.</p></article>
+            </div>
+            <a class="library-link" href="./resources.html">Browse the complete resource library →</a>
+          </div>
+          <form class="quiz" data-quiz data-answer="c" data-correct="Exactly. Sharing your email first unlocks automatic call invitations; then use WhatsApp, the recordings, and GitHub to build context." data-incorrect="Start with access: Simon needs your email before the rest of the onboarding can stay connected to the meeting rhythm.">
+            <p class="quiz-label">KNOWLEDGE CHECK 01</p>
+            <fieldset><legend>What should a new contributor do first?</legend>
+              <label><input type="radio" name="q1" value="a" /> Change the implementation immediately</label>
+              <label><input type="radio" name="q1" value="b" /> Wait for someone to assign a task without reading anything</label>
+              <label><input type="radio" name="q1" value="c" /> Send their contact email to Simon for call invitations</label>
+            </fieldset>
+            <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="phase-status" aria-label="Current project status">
+        <article><span>PHASE 0 · CLOSED</span><h2>The control plane is validated.</h2><p>Configuration hashing, deterministic scheduling, append-only events, visibility checks, and failure attribution are in place.</p></article>
+        <article class="current"><span>PHASE 1A · CURRENT</span><h2>The workshop becomes executable.</h2><p>We are extending that control plane to multi-model deliberation, private probes, report branches, replay tests, and run-level metrics.</p></article>
+      </section>
+
+      <section class="learning-step" id="step-2">
+        <header class="learning-heading"><p class="section-index">STEP 02 / PURPOSE</p><h2>Observe an agent society without deciding its outcome in advance.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
             <p>AGORA is a research instrument for studying how interacting AI agents behave under roles, rules, incentives, and institutional pressure. The broad program asks what simulated societies can reveal about peer review, prestige, citation, ranking systems, and collective judgment.</p>
@@ -72,19 +102,19 @@
             </div>
           </div>
           <form class="quiz" data-quiz data-answer="b" data-correct="Exactly. The workshop is a contained environment for observing emergent multi-agent behavior." data-incorrect="AGORA studies the interaction process; it is not primarily an automation or model-ranking product.">
-            <p class="quiz-label">KNOWLEDGE CHECK 01</p>
+            <p class="quiz-label">KNOWLEDGE CHECK 02</p>
             <fieldset><legend>What is the current Phase 1A workshop primarily for?</legend>
-              <label><input type="radio" name="q1" value="a" /> Producing the strongest possible joint report</label>
-              <label><input type="radio" name="q1" value="b" /> Observing what emerges when agents deliberate under controlled conditions</label>
-              <label><input type="radio" name="q1" value="c" /> Selecting one model to replace all others</label>
+              <label><input type="radio" name="q2" value="a" /> Producing the strongest possible joint report</label>
+              <label><input type="radio" name="q2" value="b" /> Observing what emerges when agents deliberate under controlled conditions</label>
+              <label><input type="radio" name="q2" value="c" /> Selecting one model to replace all others</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
         </div>
       </section>
 
-      <section class="learning-step" id="step-2">
-        <header class="learning-heading"><p class="section-index">STEP 02 / THE 2×2 DESIGN</p><h2>Twelve workshops isolate two sources of change.</h2></header>
+      <section class="learning-step" id="step-3">
+        <header class="learning-heading"><p class="section-index">STEP 03 / THE 2×2 DESIGN</p><h2>Twelve workshops isolate two sources of change.</h2></header>
         <div class="learning-grid wide-lesson">
           <div class="lesson-copy">
             <p>Phase 1A crosses two experimental dimensions: panel composition and the anticipation of a joint report. Each of the four conditions is repeated three times with rotated speaking orders, producing 12 workshops.</p>
@@ -105,19 +135,19 @@
             </div>
           </div>
           <form class="quiz" data-quiz data-answer="c" data-correct="Correct. The design varies panel composition and whether agents anticipate producing a joint report." data-incorrect="Look at the row and column labels of the 2×2 matrix.">
-            <p class="quiz-label">KNOWLEDGE CHECK 02</p>
+            <p class="quiz-label">KNOWLEDGE CHECK 03</p>
             <fieldset><legend>Which two variables define conditions A–D?</legend>
-              <label><input type="radio" name="q2" value="a" /> Speaking speed and token price</label>
-              <label><input type="radio" name="q2" value="b" /> Moderator personality and workshop topic</label>
-              <label><input type="radio" name="q2" value="c" /> Panel composition and joint-report requirement</label>
+              <label><input type="radio" name="q3" value="a" /> Speaking speed and token price</label>
+              <label><input type="radio" name="q3" value="b" /> Moderator personality and workshop topic</label>
+              <label><input type="radio" name="q3" value="c" /> Panel composition and joint-report requirement</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
         </div>
       </section>
 
-      <section class="learning-step" id="step-3">
-        <header class="learning-heading"><p class="section-index">STEP 03 / ONE RUN</p><h2>Private positions surround a public discussion.</h2></header>
+      <section class="learning-step" id="step-4">
+        <header class="learning-heading"><p class="section-index">STEP 04 / ONE RUN</p><h2>Private positions surround a public discussion.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
             <div class="run-pipeline">
@@ -134,19 +164,19 @@
             </div>
           </div>
           <form class="quiz" data-quiz data-answer="a" data-correct="Yes. The isolated probes let the study compare public participation with independent positions before and after interaction." data-incorrect="The private probes are measurement branches, not content that should influence the public discussion.">
-            <p class="quiz-label">KNOWLEDGE CHECK 03</p>
+            <p class="quiz-label">KNOWLEDGE CHECK 04</p>
             <fieldset><legend>Why must private probes stay outside the public transcript?</legend>
-              <label><input type="radio" name="q3" value="a" /> To preserve independent measures of position change</label>
-              <label><input type="radio" name="q3" value="b" /> To make the final report shorter</label>
-              <label><input type="radio" name="q3" value="c" /> To prevent agents from ever changing their minds</label>
+              <label><input type="radio" name="q4" value="a" /> To preserve independent measures of position change</label>
+              <label><input type="radio" name="q4" value="b" /> To make the final report shorter</label>
+              <label><input type="radio" name="q4" value="c" /> To prevent agents from ever changing their minds</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
         </div>
       </section>
 
-      <section class="learning-step" id="step-4">
-        <header class="learning-heading"><p class="section-index">STEP 04 / EVIDENCE RULES</p><h2>The instrument must make every interpretation auditable.</h2></header>
+      <section class="learning-step" id="step-5">
+        <header class="learning-heading"><p class="section-index">STEP 05 / EVIDENCE RULES</p><h2>The instrument must make every interpretation auditable.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
             <div class="architecture-strip">
@@ -168,40 +198,11 @@
             </div>
           </div>
           <form class="quiz" data-quiz data-answer="b" data-correct="Correct. Technical failures remain technical failures; only a delivered [ABSTAIN] is a behavioral observation." data-incorrect="The distinction protects the behavioral analysis from infrastructure noise.">
-            <p class="quiz-label">KNOWLEDGE CHECK 04</p>
-            <fieldset><legend>An API call times out before an agent responds. How should it be classified?</legend>
-              <label><input type="radio" name="q4" value="a" /> The agent chose to abstain</label>
-              <label><input type="radio" name="q4" value="b" /> A technical failure excluded from behavioral availability</label>
-              <label><input type="radio" name="q4" value="c" /> Evidence that the agent rejected the workshop</label>
-            </fieldset>
-            <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
-          </form>
-        </div>
-      </section>
-
-      <section class="learning-step" id="step-5">
-        <header class="learning-heading"><p class="section-index">STEP 05 / YOUR FIRST WEEK</p><h2>Read, inspect, attend — then take ownership of a bounded task.</h2></header>
-        <div class="learning-grid">
-          <div class="lesson-copy">
-            <ol class="first-week-list">
-              <li><span>01</span><div><h3>Watch the three context recordings</h3><p>Start with implementation strategy, the engineering workshop, and the architecture session. Use the Fathom summary and transcript before watching every minute.</p><div class="mini-links"><a href="https://fathom.video/share/umHV6ku5byLgutyD2k1iDNr17S4wz68V" target="_blank" rel="noreferrer">Implementation strategy ↗</a><a href="https://fathom.video/share/Fjd6T5LwzcDHy2HDULTeXyEBQH3Wzz8f" target="_blank" rel="noreferrer">AI engineering workshop ↗</a><a href="https://fathom.video/share/B3gemyqqyWqxR7Wbruz2nh2JsiVyzBy1" target="_blank" rel="noreferrer">Architecture session ↗</a></div></div></li>
-              <li><span>02</span><div><h3>Read the technical blueprint</h3><p>Understand the protocol, visibility boundaries, work packages, and current implementation state before changing code.</p><a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a" target="_blank" rel="noreferrer">Open Phase 1A docs ↗</a></div></li>
-              <li><span>03</span><div><h3>Explore the live instrument</h3><p>Inspect the two validated runs above, then follow one message from assembled context to API call, delivery, transcript, and gate result.</p><a href="https://agora-production-046a.up.railway.app/runs" target="_blank" rel="noreferrer">Open the run inspector ↗</a></div></li>
-              <li><span>04</span><div><h3>Share your email for call invitations</h3><p>If you have not already done so, send the email address you want to use for AGORA to <a href="mailto:simon@denemlabs.com?subject=AGORA%20%E2%80%94%20Call%20invitations">simon@denemlabs.com</a>. This allows you to receive invitations to upcoming calls automatically.</p></div></li>
-              <li><span>05</span><div><h3>Attend a meeting and choose a task</h3><p>WhatsApp is the coordination channel. Work is assigned after the group agrees on what needs to be built or studied; repository access follows the task.</p></div></li>
-            </ol>
-            <div class="contributor-paths">
-              <article><span>RESEARCH & DESIGN</span><h3>Protocol, analysis, and interpretation</h3><p>Help refine experimental choices, measurement, claim discipline, or manuscript sections.</p></article>
-              <article><span>ENGINEERING</span><h3>Instrument, tests, and evidence</h3><p>Work on a scoped package while preserving the existing control plane and acceptance gates.</p></article>
-            </div>
-            <a class="library-link" href="./resources.html">Browse the complete resource library and all recorded calls →</a>
-          </div>
-          <form class="quiz" data-quiz data-answer="c" data-correct="Exactly. Contributors first build shared context, share their contact email, then take ownership of a clearly bounded research or engineering task." data-incorrect="The onboarding guide prioritizes context, call access, and assignment before implementation access.">
             <p class="quiz-label">KNOWLEDGE CHECK 05</p>
-            <fieldset><legend>What should a new contributor do before starting implementation?</legend>
-              <label><input type="radio" name="q5" value="a" /> Rewrite the architecture from scratch</label>
-              <label><input type="radio" name="q5" value="b" /> Run as many live experiments as possible</label>
-              <label><input type="radio" name="q5" value="c" /> Review the evidence, share a contact email, attend a meeting, then take a scoped task</label>
+            <fieldset><legend>An API call times out before an agent responds. How should it be classified?</legend>
+              <label><input type="radio" name="q5" value="a" /> The agent chose to abstain</label>
+              <label><input type="radio" name="q5" value="b" /> A technical failure excluded from behavioral availability</label>
+              <label><input type="radio" name="q5" value="c" /> Evidence that the agent rejected the workshop</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>

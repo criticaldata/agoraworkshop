@@ -12,35 +12,31 @@ const nav=document.querySelector("[data-nav]");
 menuButton.addEventListener("click",()=>{const open=menuButton.getAttribute("aria-expanded")==="true";menuButton.setAttribute("aria-expanded",String(!open));nav.classList.toggle("open",!open)});
 nav.querySelectorAll("a").forEach(link=>{link.addEventListener("click",()=>{menuButton.setAttribute("aria-expanded","false");nav.classList.remove("open")})});
 const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const demo=document.querySelector(".workshop-demo");
+const demo=document.querySelector(".idea-demo");
 if(demo){
-  const phases={
-    baseline:{host:"Private baseline",description:"Each agent records an isolated baseline. Private checkpoints are excluded from the shared discussion.",record:"3 isolated checkpoints"},
-    discussion:{host:"Public discussion",description:"Messages circulate in a scheduled six-round discussion. AGORA retains exactly what each participant receives.",record:"Public messages + exact delivered context"},
-    evidence:{host:"Committed evidence",description:"A final private checkpoint closes the discussion. The record links each output to its context, configuration, and provider attempt.",record:"Context → attempt → outcome → lineage"}
+  const stories={
+    positions:"Different models enter with distinct positions.",
+    influence:"Interaction can reshape, merge, or silence those positions.",
+    report:"A shared output may preserve disagreement — or leave it out."
   };
-  const phaseKeys=Object.keys(phases);
-  const buttons=[...demo.querySelectorAll("[data-phase-button]")];
+  const storyKeys=Object.keys(stories);
+  const progress=[...demo.querySelectorAll(".story-progress i")];
   const pause=demo.querySelector("[data-demo-pause]");
-  let phaseIndex=0,paused=reducedMotion,timer;
-  const setPhase=key=>{
-    phaseIndex=phaseKeys.indexOf(key);
-    demo.dataset.phase=key;
-    buttons.forEach(b=>b.setAttribute("aria-pressed",String(b.dataset.phaseButton===key)));
-    demo.querySelector("[data-host-label]").textContent=phases[key].host;
-    demo.querySelector("[data-phase-description]").textContent=phases[key].description;
-    demo.querySelector("[data-record-label]").textContent=phases[key].record;
+  let storyIndex=reducedMotion?2:0,paused=reducedMotion,timer;
+  const setStory=key=>{
+    storyIndex=storyKeys.indexOf(key);
+    demo.dataset.story=key;
+    progress.forEach((dot,index)=>dot.classList.toggle("on",index===storyIndex));
+    demo.querySelector("[data-story-caption]").textContent=stories[key];
   };
   const updatePlayback=()=>{
     clearInterval(timer);
     pause.textContent=paused?"Play animation":"Pause animation";
     pause.setAttribute("aria-pressed",String(paused));
-    const svg=demo.querySelector("svg");
-    if(paused)svg.pauseAnimations?.();else svg.unpauseAnimations?.();
-    if(!paused)timer=setInterval(()=>{if(!document.hidden)setPhase(phaseKeys[(phaseIndex+1)%3]);},6500);
+    if(!paused)timer=setInterval(()=>{if(!document.hidden)setStory(storyKeys[(storyIndex+1)%storyKeys.length]);},3600);
   };
-  buttons.forEach(b=>b.addEventListener("click",()=>{setPhase(b.dataset.phaseButton);paused=true;updatePlayback();}));
   pause.addEventListener("click",()=>{paused=!paused;updatePlayback();});
+  setStory(storyKeys[storyIndex]);
   updatePlayback();
 }
 const reveals=document.querySelectorAll(".reveal");

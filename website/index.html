@@ -4,14 +4,14 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#f3efe7" />
-    <meta name="description" content="AGORA is a controlled, replayable research instrument for studying multi-agent behavior with complete evidence and explicit scientific boundaries." />
-    <meta property="og:title" content="AGORA — Auditable Multi-Agent Research" />
-    <meta property="og:description" content="A controlled multi-agent workshop with an evidence trail for every claim." />
+    <meta name="description" content="AGORA studies what emerges when AI agents form groups, influence one another, and produce collective knowledge." />
+    <meta property="og:title" content="AGORA — The social life of AI agents" />
+    <meta property="og:description" content="A research program for observing how AI agents deliberate, influence one another, and form collective outputs." />
     <meta property="og:type" content="website" />
-    <title>AGORA — Auditable Multi-Agent Research</title>
+    <title>AGORA — The social life of AI agents</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23914839'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=4" />
-    <script src="./script.js?v=4" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=5" />
+    <script src="./script.js?v=5" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -31,35 +31,31 @@
         <div class="hero-bottom">
           <div class="hero-statement">
             <p class="signal-label"><i></i>MIT CRITICAL DATA · AGORA</p>
-            <h1>A conversation.<br>A controlled experiment.<br><em>A record you can inspect.</em></h1>
-            <p>How do AI agents respond to one another? AGORA makes the conditions, exchanges, and evidence of a multi-agent workshop visible.</p>
+            <h1>What happens when AI agents begin to form <em>a society?</em></h1>
+            <p>AGORA studies how models deliberate, influence one another, preserve disagreement, and turn many positions into a collective voice.</p>
             <div class="hero-actions"><a class="action primary" href="#experiment">Explore the protocol <span>↓</span></a><a class="action secondary" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View the research ↗</a></div>
           </div>
-          <div class="workshop-demo" data-phase="baseline">
-            <div class="demo-top"><span>Inside a workshop</span><small>ILLUSTRATED PROTOCOL · NOT LIVE DATA</small></div>
-            <div class="workshop-scene" aria-label="Three agents share public exchanges while keeping private checkpoints isolated">
-              <svg viewBox="0 0 540 340" aria-hidden="true">
-                <path class="public-path" d="M105 80 Q270 165 435 80 M105 80 Q100 275 270 275 M435 80 Q440 275 270 275" />
-                <path class="host-path" d="M105 80 L270 155 L435 80 M270 155 L270 275" />
-                <circle class="message message-a" r="6"><animateMotion dur="3.6s" repeatCount="indefinite" path="M105 80 Q270 165 435 80"/></circle>
-                <circle class="message message-b" r="6"><animateMotion dur="3.6s" begin="1.2s" repeatCount="indefinite" path="M435 80 Q440 275 270 275"/></circle>
-                <circle class="message message-c" r="6"><animateMotion dur="3.6s" begin="2.4s" repeatCount="indefinite" path="M270 275 Q100 275 105 80"/></circle>
-              </svg>
-              <div class="agent agent-a"><span>A</span><b>Agent 01</b><small class="private-note">Private checkpoint</small></div>
-              <div class="agent agent-b"><span>B</span><b>Agent 02</b><small class="private-note">Private checkpoint</small></div>
-              <div class="agent agent-c"><span>C</span><b>Agent 03</b><small class="private-note">Private checkpoint</small></div>
-              <div class="host"><span>AGORA</span><small data-host-label>Private baseline</small></div>
+          <div class="idea-demo" data-story="positions">
+            <div class="demo-top"><span>The life of an idea</span><small>CONCEPTUAL ILLUSTRATION · NOT A RESULT</small></div>
+            <div class="idea-scene" aria-label="Three distinct positions enter a discussion and become a shared report in which a minority position may be missing">
+              <div class="position position-a"><i>A</i><div><small>POSITION 01</small><b>Change institutions</b></div></div>
+              <div class="position position-b"><i>B</i><div><small>POSITION 02</small><b>Change behaviour</b></div></div>
+              <div class="position position-c"><i>C</i><div><small>POSITION 03</small><b>Preserve autonomy</b></div></div>
+              <div class="influence" aria-hidden="true"><span></span><b>social influence</b><span></span></div>
+              <div class="collective-report">
+                <header><span>JOINT REPORT</span><small>COLLECTIVE OUTPUT</small></header>
+                <p><b>Agreement</b><span>Reform institutions</span></p>
+                <p><b>Open question</b><span>What role for agents?</span></p>
+                <p class="minority"><b>Minority position</b><span>Not recorded</span></p>
+              </div>
+              <div class="missing-idea"><span>C</span><b>Where did this position go?</b></div>
             </div>
-            <div class="phase-controls" role="group" aria-label="Explore workshop phases">
-              <button type="button" data-phase-button="baseline" aria-pressed="true"><small>T0</small>Private</button>
-              <button type="button" data-phase-button="discussion" aria-pressed="false"><small>R1–R6</small>Discussion</button>
-              <button type="button" data-phase-button="evidence" aria-pressed="false"><small>T6</small>Evidence</button>
-            </div>
-            <p class="phase-description" data-phase-description>Each agent records an isolated baseline. Private checkpoints are excluded from the shared discussion.</p>
-            <div class="demo-bottom"><span class="record-indicator"></span><span data-record-label>3 isolated checkpoints</span><button type="button" data-demo-pause aria-pressed="false">Pause animation</button></div>
+            <div class="story-progress" aria-hidden="true"><i class="on"></i><i></i><i></i></div>
+            <p class="story-caption" data-story-caption aria-live="polite">Different models enter with distinct positions.</p>
+            <div class="demo-bottom"><span class="record-indicator"></span><span>AGORA studies the path, not only the final text.</span><button type="button" data-demo-pause aria-pressed="false">Pause animation</button></div>
           </div>
         </div>
-        <div class="status-ticker"><span>3 participants</span><span>6 public rounds</span><span>Every context preserved</span><span>Scientific freeze pending</span></div>
+        <div class="status-ticker"><span>Agent societies</span><span>Collective influence</span><span>Minority survival</span><span>Institutional design</span></div>
       </section>
 
       <section class="module instrument" id="instrument">

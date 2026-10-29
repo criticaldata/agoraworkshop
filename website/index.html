@@ -10,8 +10,8 @@
     <meta property="og:type" content="website" />
     <title>AGORA — The social life of AI agents</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23914839'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=6" />
-    <script src="./script.js?v=6" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=8" />
+    <script src="./script.js?v=8" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -35,13 +35,24 @@
             <p>AGORA studies how models deliberate, influence one another, preserve disagreement, and turn many positions into a collective voice.</p>
             <div class="hero-actions"><a class="action primary" href="#experiment">Explore the protocol <span>↓</span></a><a class="action secondary" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View the research ↗</a></div>
           </div>
-          <div class="agora-orbit" role="img" aria-label="Different AI models interact inside an institution and produce collective behavior">
-            <div class="orbit-ring orbit-outer" aria-hidden="true"><i></i><i></i></div>
-            <div class="orbit-ring orbit-middle" aria-hidden="true"><i></i><i></i></div>
-            <div class="orbit-ring orbit-inner" aria-hidden="true"><i></i></div>
-            <div class="orbit-core"><span>MODELS</span><b>+</b><span>INTERACTION</span><b>+</b><span>INSTITUTIONS</span></div>
-            <p>Individual systems enter.<br />Collective behaviour emerges.</p>
-          </div>
+          <figure class="workshop-ring">
+            <svg viewBox="0 0 600 340" role="img" aria-label="A moderator and five agents exchange messages publicly, then in private groups, before one failed delivery is shown.">
+              <circle class="ring-track" cx="300" cy="170" r="120" />
+              <circle class="ring-pulse" cx="300" cy="170" r="120" />
+              <path class="ring-chord chord-a" d="M 404 110 Q 460 170 404 230" />
+              <path class="ring-chord chord-b" d="M 300 290 Q 180 290 196 230 Q 150 170 196 110" />
+              <g class="ring-node mod"><circle class="node-halo" cx="300" cy="50" r="26" /><circle class="node-dot" cx="300" cy="50" r="19" /><text class="node-label" x="300" y="55">Mod</text></g>
+              <g class="ring-node a1"><circle class="node-halo" cx="404" cy="110" r="26" /><circle class="node-dot" cx="404" cy="110" r="19" /><text class="node-label" x="404" y="115">1</text></g>
+              <g class="ring-node a2"><circle class="node-halo" cx="404" cy="230" r="26" /><circle class="node-dot" cx="404" cy="230" r="19" /><text class="node-label" x="404" y="235">2</text></g>
+              <g class="ring-node a3"><circle class="node-halo" cx="300" cy="290" r="26" /><circle class="node-dot" cx="300" cy="290" r="19" /><text class="node-label" x="300" y="295">3</text></g>
+              <g class="ring-node a4"><circle class="node-halo" cx="196" cy="230" r="26" /><circle class="node-dot" cx="196" cy="230" r="19" /><text class="node-label" x="196" y="235">4</text></g>
+              <g class="ring-node a5"><circle class="node-halo" cx="196" cy="110" r="26" /><circle class="node-dot" cx="196" cy="110" r="19" /><text class="node-label" x="196" y="115">5</text></g>
+              <g class="ring-stage stage-1"><text x="300" y="176" class="stage-text">All participants receive the message</text></g>
+              <g class="ring-stage stage-2"><text x="300" y="176" class="stage-text">Groups exchange messages privately</text></g>
+              <g class="ring-stage stage-3"><text x="300" y="176" class="stage-text">One message did not reach agent 4</text></g>
+            </svg>
+            <figcaption><span><i class="legend-dot public"></i>Public</span><span><i class="legend-dot private"></i>Private</span><span><i class="legend-dot fault"></i>Failed delivery</span></figcaption>
+          </figure>
         </div>
         <div class="status-ticker"><span>Agent societies</span><span>Collective influence</span><span>Minority survival</span><span>Institutional design</span></div>
       </section>

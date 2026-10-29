@@ -3,13 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="A guided introduction to AGORA, its research questions, experiments, evidence, and ways to contribute." />
+    <meta name="description" content="A practical introduction to AGORA Phase 1A: the research question, experimental design, technical instrument, evidence rules, and first-week steps." />
     <meta property="og:title" content="AGORA — Guided Onboarding" />
-    <meta property="og:description" content="Understand AGORA step by step through selected resources, recorded calls, and short knowledge checks." />
+    <meta property="og:description" content="Understand AGORA Phase 1A through the protocol, instrument, selected recordings, and short knowledge checks." />
     <title>AGORA — Guided Onboarding</title>
     <link rel="icon" href="./assets/brand/favicon.svg?v=1" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=21" />
-    <script src="./script.js?v=21" defer></script>
+    <link rel="stylesheet" href="./styles.css?v=22" />
+    <script src="./script.js?v=22" defer></script>
   </head>
   <body class="onboarding-page guided-page">
     <a class="skip-link" href="#main">Skip to content</a>
@@ -33,43 +33,50 @@
 
     <main id="main">
       <section class="onboarding-hero guided-hero">
-        <p class="section-index">GUIDED ONBOARDING</p>
+        <p class="section-index">PHASE 1A ONBOARDING</p>
         <div>
-          <h1>Understand the question before joining the build.</h1>
-          <p>This path introduces AGORA in four steps. Each step combines one idea, a small set of resources, and a short check that helps you verify what you understood.</p>
+          <h1>Start with the experiment. Learn how to trust it.</h1>
+          <p>A five-step path through AGORA’s current research question, 2×2 design, run pipeline, evidence rules, and the practical steps for joining the team.</p>
           <a class="button primary" href="#step-1">Begin the onboarding ↓</a>
         </div>
       </section>
 
+      <section class="phase-status" aria-label="Current project status">
+        <article><span>PHASE 0 · CLOSED</span><h2>The control plane is validated.</h2><p>Configuration hashing, deterministic scheduling, append-only events, visibility checks, and failure attribution are in place.</p></article>
+        <article class="current"><span>PHASE 1A · CURRENT</span><h2>The workshop becomes executable.</h2><p>We are extending that control plane to multi-model deliberation, private probes, report branches, replay tests, and run-level metrics.</p></article>
+      </section>
+
       <div class="onboarding-progress" aria-live="polite">
-        <div><span>YOUR PROGRESS</span><strong data-progress-label>0 / 4 checks complete</strong></div>
+        <div><span>YOUR PROGRESS</span><strong data-progress-label>0 / 5 checks complete</strong></div>
         <i><b data-progress-bar></b></i>
       </div>
 
-      <nav class="onboarding-map" aria-label="Onboarding steps">
-        <a href="#step-1"><span>01</span> The idea</a>
-        <a href="#step-2"><span>02</span> The workshop</a>
-        <a href="#step-3"><span>03</span> The evidence</a>
-        <a href="#step-4"><span>04</span> The research program</a>
+      <nav class="onboarding-map five-steps" aria-label="Onboarding steps">
+        <a href="#step-1"><span>01</span> Purpose</a>
+        <a href="#step-2"><span>02</span> 2×2 design</a>
+        <a href="#step-3"><span>03</span> One run</a>
+        <a href="#step-4"><span>04</span> Evidence rules</a>
+        <a href="#step-5"><span>05</span> First week</a>
       </nav>
 
       <section class="learning-step" id="step-1">
-        <header class="learning-heading"><p class="section-index">STEP 01 / THE IDEA</p><h2>AGORA is a mirror, not an automation product.</h2></header>
+        <header class="learning-heading"><p class="section-index">STEP 01 / PURPOSE</p><h2>Observe an agent society without deciding its outcome in advance.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
-            <p>AGORA builds artificial social worlds where agents interact under explicit roles, rules, and incentives. The purpose is to observe what emerges between them — coordination, conformity, gaming, collusion, dissent — and to use those traces to question the institutions that shape human knowledge.</p>
-            <p>The first workshop is a contained experiment. The larger program extends the same method to academic publishing and peer review.</p>
+            <p>AGORA is a research instrument for studying how interacting AI agents behave under roles, rules, incentives, and institutional pressure. The broad program asks what simulated societies can reveal about peer review, prestige, citation, ranking systems, and collective judgment.</p>
+            <p>The current focus is narrower: the Phase 1A “Reimagining Humans” workshop. Three agents discuss human limitations, possible redesigns, and the role and limits of AI. We orchestrate the environment, but leave as much behavioral freedom as the protocol safely allows.</p>
+            <aside class="lesson-note"><strong>What AGORA is not</strong><p>It is not a paper-writing factory or a benchmark for the “best” model. The interaction process — influence, accommodation, omission, dissent, reward gaming — is itself the object of study.</p></aside>
             <div class="lesson-resources">
               <a href="https://docs.google.com/document/d/14jIgCfOvrApTx1y4OzWaWhJU1wW7HlhYBJxa9ObhLPs/edit?tab=t.0#heading=h.1u3na0p1fd8b" target="_blank" rel="noreferrer"><span>READ</span><strong>AGORA Concept Note</strong><b>↗</b></a>
               <a href="https://fathom.video/share/z5jWrvpqDYH1AKXi-pMcpNqu-PWWG7AC" target="_blank" rel="noreferrer"><span>WATCH · 56 MIN</span><strong>AGORA introduction and research directions</strong><b>↗</b></a>
             </div>
           </div>
-          <form class="quiz" data-quiz data-answer="b" data-correct="Exactly. AGORA uses observable agent societies to study behavior and institutions." data-incorrect="Look again at the distinction between automating science and using a simulation as a mirror.">
+          <form class="quiz" data-quiz data-answer="b" data-correct="Exactly. The workshop is a contained environment for observing emergent multi-agent behavior." data-incorrect="AGORA studies the interaction process; it is not primarily an automation or model-ranking product.">
             <p class="quiz-label">KNOWLEDGE CHECK 01</p>
-            <fieldset><legend>What is AGORA primarily trying to do?</legend>
-              <label><input type="radio" name="q1" value="a" /> Automate the production of scientific papers</label>
-              <label><input type="radio" name="q1" value="b" /> Observe emergent behavior inside simulated institutions</label>
-              <label><input type="radio" name="q1" value="c" /> Benchmark which language model writes best</label>
+            <fieldset><legend>What is the current Phase 1A workshop primarily for?</legend>
+              <label><input type="radio" name="q1" value="a" /> Producing the strongest possible joint report</label>
+              <label><input type="radio" name="q1" value="b" /> Observing what emerges when agents deliberate under controlled conditions</label>
+              <label><input type="radio" name="q1" value="c" /> Selecting one model to replace all others</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
@@ -77,24 +84,32 @@
       </section>
 
       <section class="learning-step" id="step-2">
-        <header class="learning-heading"><p class="section-index">STEP 02 / THE WORKSHOP</p><h2>Put agents together. Change one condition. Watch what happens.</h2></header>
-        <div class="learning-grid">
+        <header class="learning-heading"><p class="section-index">STEP 02 / THE 2×2 DESIGN</p><h2>Twelve workshops isolate two sources of change.</h2></header>
+        <div class="learning-grid wide-lesson">
           <div class="lesson-copy">
-            <p>The Reimagining Humans workshop gives agents roles and a shared problem, then lets them exchange proposals and respond to one another. The pilot varies the pressure to produce a joint report and the composition of the group.</p>
-            <p>A control condition lets behavior emerge with less moderation. Replay tests hide speaker identity or endorsements to determine whether ideas are judged differently when social context changes.</p>
+            <p>Phase 1A crosses two experimental dimensions: panel composition and the anticipation of a joint report. Each of the four conditions is repeated three times with rotated speaking orders, producing 12 workshops.</p>
+            <div class="experiment-matrix" aria-label="Phase 1A experimental conditions">
+              <div class="matrix-corner"><span>3 RUNS EACH</span><b>12 TOTAL</b></div>
+              <div class="matrix-axis">DISCUSSION ONLY</div><div class="matrix-axis">DISCUSSION → REPORT</div>
+              <div class="matrix-axis row-axis">3 × GEMMA</div>
+              <article><span>A</span><h3>Homogeneous baseline</h3><p>Three Gemma agents discuss without report pressure.</p></article>
+              <article><span>B</span><h3>Report anticipation</h3><p>The same homogeneous trio knows it must produce a joint report.</p></article>
+              <div class="matrix-axis row-axis">GEMMA + GEMINI + MODEL X</div>
+              <article><span>C</span><h3>Composition contrast</h3><p>A mixed panel discusses without a report requirement.</p></article>
+              <article><span>D</span><h3>Combined condition</h3><p>A mixed panel discusses and moves into the report branch.</p></article>
+            </div>
+            <p class="fine-note">A deterministic host announces stages and schedules turns. The baseline does not use an autonomous LLM moderator.</p>
             <div class="lesson-resources">
-              <a href="https://agora-production-046a.up.railway.app" target="_blank" rel="noreferrer"><span>TRY</span><strong>Live workshop platform on Railway</strong><b>↗</b></a>
               <a href="https://docs.google.com/document/d/14EOkCgiXzlgghRJS6vCpMMQCCS7tWJKmhUu7TjVrPXI/edit?usp=sharing" target="_blank" rel="noreferrer"><span>READ</span><strong>Experiment Design — Reimagining Humans</strong><b>↗</b></a>
-              <a href="https://docs.google.com/document/d/1qABIxWgRvyw2tlEv_1qafnKJ0Rw3K_a9xzRerq1zZcA/edit?tab=t.q2b8y3nroofx#heading=h.fwv7oax2as1q" target="_blank" rel="noreferrer"><span>READ</span><strong>Workshop Scripts</strong><b>↗</b></a>
               <a href="https://fathom.video/share/zEhLKtpxkjeqj5y6z8w-5xCg1sEinc_s" target="_blank" rel="noreferrer"><span>WATCH · 58 MIN</span><strong>Pilot design approval</strong><b>↗</b></a>
             </div>
           </div>
-          <form class="quiz" data-quiz data-answer="c" data-correct="Correct. The outcome matters, but AGORA is especially interested in the interaction process that produces it." data-incorrect="The workshop is designed to study interaction dynamics, not only the quality of the final answer.">
+          <form class="quiz" data-quiz data-answer="c" data-correct="Correct. The design varies panel composition and whether agents anticipate producing a joint report." data-incorrect="Look at the row and column labels of the 2×2 matrix.">
             <p class="quiz-label">KNOWLEDGE CHECK 02</p>
-            <fieldset><legend>Why does the pilot preserve the full discussion trace?</legend>
-              <label><input type="radio" name="q2" value="a" /> To train a larger general-purpose model</label>
-              <label><input type="radio" name="q2" value="b" /> To rank agents by writing speed</label>
-              <label><input type="radio" name="q2" value="c" /> To study how ideas, influence, and strategies evolve through interaction</label>
+            <fieldset><legend>Which two variables define conditions A–D?</legend>
+              <label><input type="radio" name="q2" value="a" /> Speaking speed and token price</label>
+              <label><input type="radio" name="q2" value="b" /> Moderator personality and workshop topic</label>
+              <label><input type="radio" name="q2" value="c" /> Panel composition and joint-report requirement</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
@@ -102,24 +117,28 @@
       </section>
 
       <section class="learning-step" id="step-3">
-        <header class="learning-heading"><p class="section-index">STEP 03 / THE EVIDENCE</p><h2>If the trace is not auditable, the experiment cannot teach us much.</h2></header>
+        <header class="learning-heading"><p class="section-index">STEP 03 / ONE RUN</p><h2>Private positions surround a public discussion.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
-            <p>AGORA is built as a research instrument. The system separates orchestration, model adapters, and immutable evidence storage. Runs need enough structure to reconstruct what each participant received, produced, and changed.</p>
-            <p>The implementation also distinguishes an agent refusing a task from an infrastructure failure. Without that distinction, a broken API could be misread as meaningful agent behavior.</p>
+            <div class="run-pipeline">
+              <article><span>t0</span><div><h3>Baseline private probe</h3><p>Each agent answers the three workshop questions alone, before seeing any peer contribution.</p></div></article>
+              <article><span>01–06</span><div><h3>Six public rounds</h3><p>Problems, redesigns, and the role of agents unfold across 18 scheduled speaking opportunities.</p></div></article>
+              <article><span>t1</span><div><h3>Post-discussion private probe</h3><p>Private positions are captured immediately after the public discussion.</p></div></article>
+              <article><span>B / D</span><div><h3>Report and independent review</h3><p>One drafter produces a structured report. Two isolated reviewers critique it without seeing each other.</p></div></article>
+              <article><span>t2</span><div><h3>Final private probe</h3><p>After revision, report conditions capture one last independent position.</p></div></article>
+            </div>
+            <aside class="lesson-note"><strong>Why the branches matter</strong><p>Private probes never re-enter the public transcript. Reviewer 1 and Reviewer 2 never see each other’s critique. Context assembly — not a sentence in the prompt — enforces those boundaries.</p></aside>
             <div class="lesson-resources">
-              <a href="https://agora-test-review-dashboard.denemlabs.chatgpt.site/" target="_blank" rel="noreferrer"><span>REVIEW</span><strong>Acceptance workbook and ADRs</strong><b>↗</b></a>
-              <a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><span>INSPECT</span><strong>AGORA source repository</strong><b>↗</b></a>
-              <a href="https://fathom.video/share/B3gemyqqyWqxR7Wbruz2nh2JsiVyzBy1" target="_blank" rel="noreferrer"><span>WATCH · 1 H 05</span><strong>Architecture and work packages</strong><b>↗</b></a>
-              <a href="https://fathom.video/share/mdEBaX7LdDGYMN8PxK5QHUvLEEB6mCSs" target="_blank" rel="noreferrer"><span>WATCH · 36 MIN</span><strong>Engineering review and remaining work</strong><b>↗</b></a>
+              <a href="https://docs.google.com/document/d/1qABIxWgRvyw2tlEv_1qafnKJ0Rw3K_a9xzRerq1zZcA/edit?tab=t.q2b8y3nroofx#heading=h.fwv7oax2as1q" target="_blank" rel="noreferrer"><span>READ</span><strong>Workshop Scripts</strong><b>↗</b></a>
+              <a href="https://agora-production-046a.up.railway.app/runs" target="_blank" rel="noreferrer"><span>EXPLORE</span><strong>Live demo and run inspector</strong><b>↗</b></a>
             </div>
           </div>
-          <form class="quiz" data-quiz data-answer="a" data-correct="Yes. Causal interpretation depends on knowing whether the model chose not to act or the system failed around it." data-incorrect="Think about what a researcher could wrongly conclude if a technical failure looked like an agent decision.">
+          <form class="quiz" data-quiz data-answer="a" data-correct="Yes. The isolated probes let the study compare public participation with independent positions before and after interaction." data-incorrect="The private probes are measurement branches, not content that should influence the public discussion.">
             <p class="quiz-label">KNOWLEDGE CHECK 03</p>
-            <fieldset><legend>Why separate agent refusal from infrastructure failure?</legend>
-              <label><input type="radio" name="q3" value="a" /> To avoid interpreting a technical error as agent behavior</label>
-              <label><input type="radio" name="q3" value="b" /> To make the interface load faster</label>
-              <label><input type="radio" name="q3" value="c" /> To remove disagreement from the experiment</label>
+            <fieldset><legend>Why must private probes stay outside the public transcript?</legend>
+              <label><input type="radio" name="q3" value="a" /> To preserve independent measures of position change</label>
+              <label><input type="radio" name="q3" value="b" /> To make the final report shorter</label>
+              <label><input type="radio" name="q3" value="c" /> To prevent agents from ever changing their minds</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
@@ -127,24 +146,61 @@
       </section>
 
       <section class="learning-step" id="step-4">
-        <header class="learning-heading"><p class="section-index">STEP 04 / THE RESEARCH PROGRAM</p><h2>The workshop is one experiment inside a larger institutional question.</h2></header>
+        <header class="learning-heading"><p class="section-index">STEP 04 / EVIDENCE RULES</p><h2>The instrument must make every interpretation auditable.</h2></header>
         <div class="learning-grid">
           <div class="lesson-copy">
-            <p>Beyond the workshop, AGORA asks how scientific institutions shape judgment: what gets reviewed, rewarded, published, cited, or ignored. Simulated publishing worlds make it possible to change one institutional rule and compare the consequences.</p>
-            <p>The aim is not to claim that agents perfectly reproduce humans. It is to build controlled counterfactuals that reveal assumptions, expose feedback loops, and generate better questions about real institutions.</p>
+            <div class="architecture-strip">
+              <article><span>ORCHESTRATOR</span><p>Forward-only phases, queues, budgets, and retries.</p></article>
+              <article><span>MODEL ROUTER</span><p>Per-agent providers and models without silent fallbacks.</p></article>
+              <article><span>EVENT LEDGER</span><p>Append-only records for contexts, calls, deliveries, and state changes.</p></article>
+              <article><span>AUDIT & EXPORT</span><p>Visibility verification and hashed JSONL bundles.</p></article>
+            </div>
+            <ol class="rule-list">
+              <li><span>01</span><div><h3>Extend Phase 0</h3><p>Phase 1A modules must use the existing control plane rather than bypass its audit trail.</p></div></li>
+              <li><span>02</span><div><h3>Separate failure from abstention</h3><p>A timeout or provider block is not an agent choice. Only a valid delivered <code>[ABSTAIN]</code> counts as behavioral abstention.</p></div></li>
+              <li><span>03</span><div><h3>Replay frozen contexts</h3><p>Cue-reduced replay removes speaker labels and peer endorsements to test argument quality against social pressure.</p></div></li>
+              <li><span>04</span><div><h3>Use disciplined claims</h3><p>Describe observed stance changes, accommodation, and omission — not imagined feelings or intentions inside a model.</p></div></li>
+            </ol>
+            <div class="run-inspector-callout"><p class="section-index">TRY THIS</p><h3>Inspect two validated Phase 0 traces.</h3><p>Open the run inspector and look for baseline <code>run_9164f088</code> and fault-injection <code>run_c01e6309</code>. Compare timelines, retries, gates, transcripts, and raw JSON.</p><a class="button primary" href="https://agora-production-046a.up.railway.app/runs" target="_blank" rel="noreferrer">Open run inspector ↗</a></div>
             <div class="lesson-resources">
-              <a href="https://docs.google.com/document/d/1NchGUrMcS-ZdFy1Xlp8qi6E5EYvU4ZUUnQDld5JMrpw/edit?usp=sharing" target="_blank" rel="noreferrer"><span>READ</span><strong>AGORA Workshop Paper</strong><b>↗</b></a>
-              <a href="https://docs.google.com/document/d/1Vm_w590UAAGfQ0MMw_Qbk0YCk9gP4_uX_C2QQqjT6PQ/edit?tab=t.e94wolaycyqe" target="_blank" rel="noreferrer"><span>READ</span><strong>AGORA Peer Review</strong><b>↗</b></a>
-              <a href="https://fathom.video/share/L5zd2if9tP84P8KMAxTsqGmq_6AqTGQ8" target="_blank" rel="noreferrer"><span>WATCH · 50 MIN</span><strong>Peer-review simulation baseline</strong><b>↗</b></a>
-              <a href="./resources.html"><span>EXPLORE</span><strong>Complete resource library and all calls</strong><b>→</b></a>
+              <a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a" target="_blank" rel="noreferrer"><span>READ</span><strong>Phase 1A technical documentation</strong><b>↗</b></a>
+              <a href="https://fathom.video/share/B3gemyqqyWqxR7Wbruz2nh2JsiVyzBy1" target="_blank" rel="noreferrer"><span>WATCH · 1 H 05</span><strong>Architecture and work packages</strong><b>↗</b></a>
             </div>
           </div>
-          <form class="quiz" data-quiz data-answer="b" data-correct="Correct. Counterfactual worlds let the team compare institutions without asking a real journal to experiment on itself." data-incorrect="AGORA changes institutional rules to study their effects; it is not trying to declare one universal optimal policy.">
+          <form class="quiz" data-quiz data-answer="b" data-correct="Correct. Technical failures remain technical failures; only a delivered [ABSTAIN] is a behavioral observation." data-incorrect="The distinction protects the behavioral analysis from infrastructure noise.">
             <p class="quiz-label">KNOWLEDGE CHECK 04</p>
-            <fieldset><legend>Why build several simulated publishing worlds?</legend>
-              <label><input type="radio" name="q4" value="a" /> To replace every journal with one universal policy</label>
-              <label><input type="radio" name="q4" value="b" /> To compare how different rules and incentives change behavior</label>
-              <label><input type="radio" name="q4" value="c" /> To maximize the number of papers agents produce</label>
+            <fieldset><legend>An API call times out before an agent responds. How should it be classified?</legend>
+              <label><input type="radio" name="q4" value="a" /> The agent chose to abstain</label>
+              <label><input type="radio" name="q4" value="b" /> A technical failure excluded from behavioral availability</label>
+              <label><input type="radio" name="q4" value="c" /> Evidence that the agent rejected the workshop</label>
+            </fieldset>
+            <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
+          </form>
+        </div>
+      </section>
+
+      <section class="learning-step" id="step-5">
+        <header class="learning-heading"><p class="section-index">STEP 05 / YOUR FIRST WEEK</p><h2>Read, inspect, attend — then take ownership of a bounded task.</h2></header>
+        <div class="learning-grid">
+          <div class="lesson-copy">
+            <ol class="first-week-list">
+              <li><span>01</span><div><h3>Watch the three context recordings</h3><p>Start with implementation strategy, the engineering workshop, and the architecture session. Use the Fathom summary and transcript before watching every minute.</p><div class="mini-links"><a href="https://fathom.video/share/umHV6ku5byLgutyD2k1iDNr17S4wz68V" target="_blank" rel="noreferrer">Implementation strategy ↗</a><a href="https://fathom.video/share/Fjd6T5LwzcDHy2HDULTeXyEBQH3Wzz8f" target="_blank" rel="noreferrer">AI engineering workshop ↗</a><a href="https://fathom.video/share/B3gemyqqyWqxR7Wbruz2nh2JsiVyzBy1" target="_blank" rel="noreferrer">Architecture session ↗</a></div></div></li>
+              <li><span>02</span><div><h3>Read the technical blueprint</h3><p>Understand the protocol, visibility boundaries, work packages, and current implementation state before changing code.</p><a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a" target="_blank" rel="noreferrer">Open Phase 1A docs ↗</a></div></li>
+              <li><span>03</span><div><h3>Explore the live instrument</h3><p>Inspect the two validated runs above, then follow one message from assembled context to API call, delivery, transcript, and gate result.</p><a href="https://agora-production-046a.up.railway.app/runs" target="_blank" rel="noreferrer">Open the run inspector ↗</a></div></li>
+              <li><span>04</span><div><h3>Attend a meeting and choose a task</h3><p>WhatsApp is the coordination channel. Work is assigned after the group agrees on what needs to be built or studied; repository access follows the task.</p></div></li>
+            </ol>
+            <div class="contributor-paths">
+              <article><span>RESEARCH & DESIGN</span><h3>Protocol, analysis, and interpretation</h3><p>Help refine experimental choices, measurement, claim discipline, or manuscript sections.</p></article>
+              <article><span>ENGINEERING</span><h3>Instrument, tests, and evidence</h3><p>Work on a scoped package while preserving the existing control plane and acceptance gates.</p></article>
+            </div>
+            <a class="library-link" href="./resources.html">Browse the complete resource library and all recorded calls →</a>
+          </div>
+          <form class="quiz" data-quiz data-answer="c" data-correct="Exactly. Contributors first build shared context, then take ownership of a clearly bounded research or engineering task." data-incorrect="The onboarding guide prioritizes context and assignment before implementation access.">
+            <p class="quiz-label">KNOWLEDGE CHECK 05</p>
+            <fieldset><legend>What should a new contributor do before starting implementation?</legend>
+              <label><input type="radio" name="q5" value="a" /> Rewrite the architecture from scratch</label>
+              <label><input type="radio" name="q5" value="b" /> Run as many live experiments as possible</label>
+              <label><input type="radio" name="q5" value="c" /> Review the protocol and evidence, attend a meeting, then take a scoped task</label>
             </fieldset>
             <button type="submit">Check answer</button><p class="quiz-feedback" data-feedback role="status"></p>
           </form>
@@ -153,8 +209,8 @@
 
       <section class="completion-panel" data-completion>
         <p class="section-index">ONBOARDING COMPLETE</p>
-        <h2>You now have the context to ask a useful question.</h2>
-        <p>If you would like to contribute, introduce yourself, mention the part of the project you want to explore, and tell us what perspective or skill you bring.</p>
+        <h2>You have the shared context. Now tell us where you can help.</h2>
+        <p>Introduce yourself, name the research question or work package that interests you, and mention the perspective or skill you would bring.</p>
         <div class="contact-links"><a class="button light" href="mailto:simon@denemlabs.com?subject=AGORA%20—%20Joining%20the%20project">Email Simon ↗</a><a class="button light" href="mailto:isaac.gavilanes@yachaytech.edu.ec?subject=AGORA%20—%20Joining%20the%20project">Email Mateo ↗</a><a class="text-link" href="./resources.html">Browse all resources →</a></div>
       </section>
     </main>

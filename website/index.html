@@ -3,15 +3,15 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#080b14" />
+    <meta name="theme-color" content="#f3efe7" />
     <meta name="description" content="AGORA is a controlled, replayable research instrument for studying multi-agent behavior with complete evidence and explicit scientific boundaries." />
     <meta property="og:title" content="AGORA — Auditable Multi-Agent Research" />
     <meta property="og:description" content="A controlled multi-agent workshop with an evidence trail for every claim." />
     <meta property="og:type" content="website" />
     <title>AGORA — Auditable Multi-Agent Research</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%237c5cff'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=3" />
-    <script src="./script.js?v=3" defer></script>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23914839'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E" />
+    <link rel="stylesheet" href="./styles.css?v=4" />
+    <script src="./script.js?v=4" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
@@ -28,32 +28,42 @@
 
     <main id="main">
       <section class="hero" id="home">
-        <div class="hero-meta"><span>PROJECT / AGORA</span><span>SNAPSHOT / 63298bd</span><span>ACCESS / PUBLIC</span></div>
-        <div class="hero-title" aria-label="AGORA"><span>A</span><span>G</span><span>O</span><span>R</span><span>A</span></div>
         <div class="hero-bottom">
           <div class="hero-statement">
-            <p class="signal-label"><i></i>AUDITABLE MULTI-AGENT RESEARCH</p>
-            <h1>Observe the system behind the conversation.</h1>
-            <p>AGORA runs controlled workshops where conditions, context, responses, failures, and transitions remain inspectable. Every claim can resolve to the evidence that produced it.</p>
-            <div class="hero-actions"><a class="action primary" href="#instrument">Enter the instrument</a><a class="action secondary" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">Source on GitHub ↗</a></div>
+            <p class="signal-label"><i></i>MIT CRITICAL DATA · AGORA</p>
+            <h1>A conversation.<br>A controlled experiment.<br><em>A record you can inspect.</em></h1>
+            <p>How do AI agents respond to one another? AGORA makes the conditions, exchanges, and evidence of a multi-agent workshop visible.</p>
+            <div class="hero-actions"><a class="action primary" href="#experiment">Explore the protocol <span>↓</span></a><a class="action secondary" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View the research ↗</a></div>
           </div>
-          <div class="trace-console" aria-label="Illustration of an AGORA evidence trace">
-            <div class="console-head"><span>TRACE / RUN-041</span><span>00:00:06.314</span></div>
-            <div class="trace-lanes">
-              <div class="trace-line"><b>01</b><span class="node violet"></span><strong>CONFIG</strong><small>sha256: 72a…f31</small></div>
-              <div class="trace-line"><b>02</b><span class="node mint"></span><strong>CONTEXT</strong><small>authorized / exact</small></div>
-              <div class="trace-line"><b>03</b><span class="node coral"></span><strong>INVOCATION</strong><small>attempt 1 / delivered</small></div>
-              <div class="trace-line"><b>04</b><span class="node acid"></span><strong>OUTCOME</strong><small>success / 842 tokens</small></div>
-              <div class="trace-beam" aria-hidden="true"></div>
+          <div class="workshop-demo" data-phase="baseline">
+            <div class="demo-top"><span>Inside a workshop</span><small>ILLUSTRATED PROTOCOL · NOT LIVE DATA</small></div>
+            <div class="workshop-scene" aria-label="Three agents share public exchanges while keeping private checkpoints isolated">
+              <svg viewBox="0 0 540 340" aria-hidden="true">
+                <path class="public-path" d="M105 80 Q270 165 435 80 M105 80 Q100 275 270 275 M435 80 Q440 275 270 275" />
+                <path class="host-path" d="M105 80 L270 155 L435 80 M270 155 L270 275" />
+                <circle class="message message-a" r="6"><animateMotion dur="3.6s" repeatCount="indefinite" path="M105 80 Q270 165 435 80"/></circle>
+                <circle class="message message-b" r="6"><animateMotion dur="3.6s" begin="1.2s" repeatCount="indefinite" path="M435 80 Q440 275 270 275"/></circle>
+                <circle class="message message-c" r="6"><animateMotion dur="3.6s" begin="2.4s" repeatCount="indefinite" path="M270 275 Q100 275 105 80"/></circle>
+              </svg>
+              <div class="agent agent-a"><span>A</span><b>Agent 01</b><small class="private-note">Private checkpoint</small></div>
+              <div class="agent agent-b"><span>B</span><b>Agent 02</b><small class="private-note">Private checkpoint</small></div>
+              <div class="agent agent-c"><span>C</span><b>Agent 03</b><small class="private-note">Private checkpoint</small></div>
+              <div class="host"><span>AGORA</span><small data-host-label>Private baseline</small></div>
             </div>
-            <div class="console-foot"><span>PROVENANCE LOCKED</span><span>REPLAY ELIGIBLE</span></div>
+            <div class="phase-controls" role="group" aria-label="Explore workshop phases">
+              <button type="button" data-phase-button="baseline" aria-pressed="true"><small>T0</small>Private</button>
+              <button type="button" data-phase-button="discussion" aria-pressed="false"><small>R1–R6</small>Discussion</button>
+              <button type="button" data-phase-button="evidence" aria-pressed="false"><small>T6</small>Evidence</button>
+            </div>
+            <p class="phase-description" data-phase-description>Each agent records an isolated baseline. Private checkpoints are excluded from the shared discussion.</p>
+            <div class="demo-bottom"><span class="record-indicator"></span><span data-record-label>3 isolated checkpoints</span><button type="button" data-demo-pause aria-pressed="false">Pause animation</button></div>
           </div>
         </div>
-        <div class="status-ticker"><span>SCIENTIFIC_FREEZE_PENDING</span><span>OFFLINE ENGINEERING BASELINE</span><span>NO BEHAVIORAL RESULT CLAIMED</span><span>SCIENTIFIC_FREEZE_PENDING</span></div>
+        <div class="status-ticker"><span>3 participants</span><span>6 public rounds</span><span>Every context preserved</span><span>Scientific freeze pending</span></div>
       </section>
 
       <section class="module instrument" id="instrument">
-        <header class="module-head"><span>SYS::INSTRUMENT</span><span>01</span></header>
+        <header class="module-head"><span>THE RESEARCH INSTRUMENT</span><span>01</span></header>
         <div class="instrument-intro"><h2>A research apparatus, not a chat transcript</h2><p>Agents move through a bounded protocol. The host records the environment around every action so analysts can separate behavior from infrastructure and reproduce the conditions of a run.</p></div>
         <div class="axiom-stack">
           <article><em>FREEZE</em><div><h3>Conditions become data</h3><p>Prompts, models, settings, permissions, budgets, and scheduling rules live inside the experimental record.</p></div><span>CFG</span></article>
@@ -64,7 +74,7 @@
       </section>
 
       <section class="module pipeline">
-        <header class="module-head"><span>SYS::EXECUTION_PATH</span><span>02</span></header>
+        <header class="module-head"><span>FROM PROTOCOL TO EVIDENCE</span><span>02</span></header>
         <div class="pipeline-copy"><p class="signal-label"><i></i>VERSIONED HANDOFFS</p><h2>Scientific meaning survives each transition</h2><p>Five work packages connect a declared study contract to execution, storage, and replay. Every handoff verifies the identifiers and hashes it receives.</p></div>
         <div class="pipeline-map" role="list" aria-label="AGORA work package sequence">
           <article role="listitem"><div><span>WP01</span><small>CONTRACT</small></div><h3>Study definition</h3><p>Conditions / prompts / decisions / campaign manifest</p></article>
@@ -81,7 +91,7 @@
       </section>
 
       <section class="module experiment" id="experiment">
-        <header class="module-head"><span>EXP::CONDITION_MATRIX</span><span>03</span></header>
+        <header class="module-head"><span>THE EXPERIMENT</span><span>03</span></header>
         <div class="experiment-layout">
           <div class="experiment-copy"><p class="signal-label"><i></i>2 × 2 BASELINE</p><h2>One protocol. Four declared conditions.</h2><p>Three participants complete six public rounds with private checkpoints around the discussion. The report requirement appears only after every baseline checkpoint commits.</p><div class="protocol-sequence"><span>T0</span><i></i><span>R1</span><i></i><span>R2</span><i></i><span>R3</span><i></i><span>R4</span><i></i><span>R5</span><i></i><span>R6</span><i></i><span>T6</span><i></i><span>TR*</span></div><small>* TR exists in report conditions only</small></div>
           <div class="condition-interface">
@@ -103,7 +113,7 @@
       </section>
 
       <section class="module evidence" id="evidence">
-        <header class="module-head"><span>DATA::EVIDENCE_OBJECT</span><span>04</span></header>
+        <header class="module-head"><span>FOLLOW THE RECORD</span><span>04</span></header>
         <div class="evidence-title"><h2>A consequential output resolves to five linked records</h2><p>The transcript remains useful, but it cannot stand alone. AGORA traces each action back through context, provider attempt, frozen configuration, and lineage.</p></div>
         <div class="evidence-strip">
           <article><span>01 / ID</span><h3>Identity</h3><p>Run<br />Agent<br />Role<br />Opportunity</p></article>
@@ -119,7 +129,7 @@
       </section>
 
       <section class="module boundaries">
-        <header class="module-head"><span>SCI::BOUNDARIES</span><span>05</span></header>
+        <header class="module-head"><span>SCIENTIFIC BOUNDARIES</span><span>05</span></header>
         <div class="boundary-split">
           <div class="measure"><span>MEASURE</span><h2>Recorded behavior under a declared protocol</h2><ul><li>Participation and response opportunities</li><li>Public and private position change</li><li>Role fidelity and report workflow</li><li>Infrastructure-adjusted outcomes</li></ul></div>
           <div class="reject"><span>DO NOT INFER</span><h2>Hidden mental or human social states</h2><ul><li>Belief or consciousness</li><li>Stable personality</li><li>Human conformity or motive</li><li>General model quality</li></ul></div>
@@ -128,8 +138,8 @@
       </section>
 
       <section class="module current-status" id="status">
-        <header class="module-head"><span>OPS::CURRENT_STATE</span><span>06</span></header>
-        <div class="status-banner"><span>SCIENTIFIC STATUS</span><h2>FREEZE<br />PENDING</h2><p>Repository evidence refreshed 28 OCT 2026</p></div>
+        <header class="module-head"><span>WHERE THE PROJECT STANDS</span><span>06</span></header>
+        <div class="status-banner"><span>SCIENTIFIC STATUS</span><h2>Scientific freeze<br />pending</h2><p>Repository evidence refreshed 28 OCT 2026</p></div>
         <div class="status-ledger">
           <article><header><i class="ok"></i><span>OFFLINE BASELINE / PROVEN</span></header><ul><li>Four condition cells and three replications project into an executable plan.</li><li>Report disclosure follows committed baseline checkpoints.</li><li>Private artifacts remain outside unauthorized context.</li><li>Committed work survives restart without repeated calls.</li><li>Locked replay starts from a verified parent.</li></ul></article>
           <article><header><i class="wait"></i><span>SCIENTIFIC ADMISSION / OPEN</span></header><ul><li>Approved live deployments and provider qualification.</li><li>Frozen prompts, order, budgets, and report allocation.</li><li>Final replay sampling plan and behavioral codebook.</li><li>Named freeze authority, retention, and access review.</li><li>WP06 analysis approval before interpretation.</li></ul></article>
@@ -138,14 +148,14 @@
       </section>
 
       <section class="module collaboration">
-        <header class="module-head"><span>ORG::COLLABORATION</span><span>07</span></header>
+        <header class="module-head"><span>THE COLLABORATION</span><span>07</span></header>
         <div class="collaboration-title"><h2>Research design and instrument engineering share one review surface.</h2><p>The repository keeps the study contract, architecture decisions, tests, and implementation together.</p></div>
         <div class="people-line"><article><span>IMG</span><div><h3>Isaac Mateo Gavilanes Chavez</h3><p>Technical proposal and Phase 1A blueprint lead</p></div></article><article><span>SH</span><div><h3>Simon Heilles</h3><p>Engineering update and team review</p></div></article><article><span>MIT</span><div><h3>MIT Critical Data</h3><p>Open research community and repository home</p></div></article></div>
         <p class="collab-note">The broader project includes additional scientific collaborators, reviewers, and workshop contributors. Named roles come directly from the current technical materials.</p>
       </section>
 
       <section class="module resources" id="resources">
-        <header class="module-head"><span>SRC::OPEN_REPOSITORY</span><span>08</span></header>
+        <header class="module-head"><span>EXPLORE THE RESEARCH</span><span>08</span></header>
         <div class="resource-title"><h2>Inspect the contract behind the interface.</h2><p>This website summarizes AGORA. GitHub remains authoritative for scope, open decisions, implementation, and evidence requirements.</p></div>
         <div class="command-list">
           <a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><code>$ open source</code><span>Repository</span><b>↗</b></a>
@@ -157,7 +167,7 @@
       </section>
 
       <section class="closing">
-        <div class="closing-code">AGORA / OPEN RESEARCH INFRASTRUCTURE / 2026</div>
+        <div class="closing-code">AGORA · OPEN RESEARCH INFRASTRUCTURE</div>
         <h2>Make every multi-agent claim traceable.</h2>
         <div><p>Review the protocol. Challenge an assumption. Contribute an acceptance test.</p><a class="action acid" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">ENTER THE REPOSITORY ↗</a></div>
       </section>

@@ -12,33 +12,6 @@ const nav=document.querySelector("[data-nav]");
 menuButton.addEventListener("click",()=>{const open=menuButton.getAttribute("aria-expanded")==="true";menuButton.setAttribute("aria-expanded",String(!open));nav.classList.toggle("open",!open)});
 nav.querySelectorAll("a").forEach(link=>{link.addEventListener("click",()=>{menuButton.setAttribute("aria-expanded","false");nav.classList.remove("open")})});
 const reducedMotion=window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-const demo=document.querySelector(".idea-demo");
-if(demo){
-  const stories={
-    positions:"Different models enter with distinct positions.",
-    influence:"Interaction can reshape, merge, or silence those positions.",
-    report:"A shared output may preserve disagreement — or leave it out."
-  };
-  const storyKeys=Object.keys(stories);
-  const progress=[...demo.querySelectorAll(".story-progress i")];
-  const pause=demo.querySelector("[data-demo-pause]");
-  let storyIndex=reducedMotion?2:0,paused=reducedMotion,timer;
-  const setStory=key=>{
-    storyIndex=storyKeys.indexOf(key);
-    demo.dataset.story=key;
-    progress.forEach((dot,index)=>dot.classList.toggle("on",index===storyIndex));
-    demo.querySelector("[data-story-caption]").textContent=stories[key];
-  };
-  const updatePlayback=()=>{
-    clearInterval(timer);
-    pause.textContent=paused?"Play animation":"Pause animation";
-    pause.setAttribute("aria-pressed",String(paused));
-    if(!paused)timer=setInterval(()=>{if(!document.hidden)setStory(storyKeys[(storyIndex+1)%storyKeys.length]);},3600);
-  };
-  pause.addEventListener("click",()=>{paused=!paused;updatePlayback();});
-  setStory(storyKeys[storyIndex]);
-  updatePlayback();
-}
 const reveals=document.querySelectorAll(".reveal");
 if(reducedMotion||!("IntersectionObserver" in window)){reveals.forEach(element=>element.classList.add("visible"))}else{const revealObserver=new IntersectionObserver((entries,observer)=>{entries.forEach(entry=>{if(entry.isIntersecting){entry.target.classList.add("visible");observer.unobserve(entry.target)}})},{threshold:.09,rootMargin:"0px 0px -30px"});reveals.forEach(element=>revealObserver.observe(element))}
 const sections=[...document.querySelectorAll("section[id]")];

@@ -1,41 +1,44 @@
 <!doctype html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="theme-color" content="#f3efe7" />
-    <meta name="description" content="AGORA studies what emerges when AI agents form groups, influence one another, and produce collective knowledge." />
-    <meta property="og:title" content="AGORA — The social life of AI agents" />
-    <meta property="og:description" content="A research program for observing how AI agents deliberate, influence one another, and form collective outputs." />
-    <meta property="og:type" content="website" />
-    <title>AGORA — The social life of AI agents</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='8' fill='%23914839'/%3E%3Ctext x='32' y='44' text-anchor='middle' font-size='38' font-family='Arial' font-weight='700' fill='white'%3EA%3C/text%3E%3C/svg%3E" />
-    <link rel="stylesheet" href="./styles.css?v=9" />
-    <script src="./script.js?v=9" defer></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="AGORA studies how groups of AI agents form judgments, influence one another, preserve disagreement, and produce collective outputs." />
+    <meta property="og:title" content="AGORA — Agentic Game for Research and Academia" />
+    <meta property="og:description" content="A research program for observing what emerges when language-model agents think together." />
+    <title>AGORA — Agentic Game for Research and Academia</title>
+    <link rel="stylesheet" href="./styles.css?v=10" />
+    <script src="./script.js?v=10" defer></script>
   </head>
   <body>
     <a class="skip-link" href="#main">Skip to content</a>
-    <div class="page-noise" aria-hidden="true"></div>
 
     <header class="site-header">
-      <a class="wordmark" href="#home" aria-label="AGORA home"><span>A</span><strong>AGORA</strong><small>RESEARCH INSTRUMENT</small></a>
-      <button class="menu-button" type="button" aria-expanded="false" aria-controls="primary-nav" data-menu-button><span>INDEX</span><i aria-hidden="true"></i></button>
-      <nav id="primary-nav" class="primary-nav" aria-label="Primary navigation" data-nav>
-        <a href="#instrument">Instrument</a><a href="#experiment">Protocol</a><a href="#evidence">Evidence</a><a href="#status">Status</a><a href="#resources">Source</a>
+      <a class="wordmark" href="#home" aria-label="AGORA home"><span>A</span><strong>AGORA</strong><small>AGENTIC GAME FOR RESEARCH AND ACADEMIA</small></a>
+      <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-label="Open navigation">MENU <i aria-hidden="true"></i></button>
+      <nav class="primary-nav" data-nav aria-label="Primary navigation">
+        <a href="#about">About</a>
+        <a href="#questions">Questions</a>
+        <a href="#pilot">Pilot</a>
+        <a href="#method">Method</a>
+        <a href="#programme">Programme</a>
+        <a href="#team">Team</a>
+        <a href="#resources">Resources</a>
       </nav>
-      <a class="mit-link" href="https://criticaldata.mit.edu/" target="_blank" rel="noreferrer">MIT CRITICAL DATA ↗</a>
+      <a class="mit-link" href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">MIT CRITICAL DATA ↗</a>
     </header>
 
     <main id="main">
       <section class="hero" id="home">
-        <div class="hero-bottom">
-          <div class="hero-statement">
-            <p class="signal-label"><i></i>MIT CRITICAL DATA · AGORA</p>
-            <h1>What happens when AI agents begin to form <em>a society?</em></h1>
-            <p>AGORA studies how models deliberate, influence one another, preserve disagreement, and turn many positions into a collective voice.</p>
-            <div class="hero-actions"><a class="action primary" href="#experiment">Explore the protocol <span>↓</span></a><a class="action secondary" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View the research ↗</a></div>
+        <div class="hero-grid">
+          <div class="hero-copy reveal">
+            <p class="eyebrow"><i></i>MIT CRITICAL DATA · AGORA</p>
+            <h1>What happens when AI agents have to <em>think together?</em></h1>
+            <p class="lede">AGORA is a research program for observing how groups of language-model agents form judgments, influence one another, preserve disagreement, and turn many positions into a collective output.</p>
+            <div class="hero-actions"><a class="button primary" href="#about">Discover AGORA <span>↓</span></a><a class="button quiet" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View on GitHub ↗</a></div>
           </div>
-          <figure class="workshop-ring">
+
+          <figure class="workshop-ring reveal">
             <svg viewBox="0 0 600 340" role="img" aria-label="A moderator and five agents exchange messages publicly, then in private groups.">
               <circle class="ring-track" cx="300" cy="170" r="120" />
               <circle class="ring-pulse" cx="300" cy="170" r="120" />
@@ -50,123 +53,119 @@
               <g class="ring-stage stage-1"><text x="300" y="176" class="stage-text">All participants receive the message</text></g>
               <g class="ring-stage stage-2"><text x="300" y="176" class="stage-text">Groups exchange messages privately</text></g>
             </svg>
-            <figcaption><span><i class="legend-dot public"></i>Public</span><span><i class="legend-dot private"></i>Private</span></figcaption>
+            <figcaption><span><i class="legend-dot public"></i>Public exchange</span><span><i class="legend-dot private"></i>Private group</span></figcaption>
           </figure>
         </div>
-        <div class="status-ticker"><span>Agent societies</span><span>Collective influence</span><span>Minority survival</span><span>Institutional design</span></div>
+        <div class="hero-index"><span>Agent interaction</span><span>Collective judgment</span><span>Minority survival</span><span>Auditable evidence</span></div>
       </section>
 
-      <section class="module instrument" id="instrument">
-        <header class="module-head"><span>THE RESEARCH INSTRUMENT</span><span>01</span></header>
-        <div class="instrument-intro"><h2>A research apparatus, not a chat transcript</h2><p>Agents move through a bounded protocol. The host records the environment around every action so analysts can separate behavior from infrastructure and reproduce the conditions of a run.</p></div>
-        <div class="axiom-stack">
-          <article><em>FREEZE</em><div><h3>Conditions become data</h3><p>Prompts, models, settings, permissions, budgets, and scheduling rules live inside the experimental record.</p></div><span>CFG</span></article>
-          <article><em>CONTROL</em><div><h3>The runtime owns the protocol</h3><p>A deterministic host governs order, phase changes, visibility, and retry policy. Models do not steer the experiment.</p></div><span>FSM</span></article>
-          <article><em>TRACE</em><div><h3>Delivered context stays exact</h3><p>Each invocation retains the material received, request, response, timing, attempts, outcome, and code provenance.</p></div><span>EVT</span></article>
-          <article><em>CLASSIFY</em><div><h3>Failure remains distinct</h3><p>Abstention, refusal, timeout, rate limit, and malformed output keep different semantics throughout analysis.</p></div><span>OUT</span></article>
-        </div>
-      </section>
-
-      <section class="module pipeline">
-        <header class="module-head"><span>FROM PROTOCOL TO EVIDENCE</span><span>02</span></header>
-        <div class="pipeline-copy"><p class="signal-label"><i></i>VERSIONED HANDOFFS</p><h2>Scientific meaning survives each transition</h2><p>Five work packages connect a declared study contract to execution, storage, and replay. Every handoff verifies the identifiers and hashes it receives.</p></div>
-        <div class="pipeline-map" role="list" aria-label="AGORA work package sequence">
-          <article role="listitem"><div><span>WP01</span><small>CONTRACT</small></div><h3>Study definition</h3><p>Conditions / prompts / decisions / campaign manifest</p></article>
-          <i aria-hidden="true">HASH</i>
-          <article role="listitem"><div><span>WP02</span><small>ADAPTER</small></div><h3>Runtime admission</h3><p>Provider parity / retries / deployment provenance</p></article>
-          <i aria-hidden="true">TYPE</i>
-          <article role="listitem"><div><span>WP03</span><small>WORKSHOP</small></div><h3>Bounded execution</h3><p>Private baseline / six rounds / report workflow</p></article>
-          <i aria-hidden="true">COMMIT</i>
-          <article role="listitem"><div><span>WP04</span><small>EVIDENCE</small></div><h3>Durable record</h3><p>Public + private data / integrity / recovery</p></article>
-          <i aria-hidden="true">VERIFY</i>
-          <article role="listitem"><div><span>WP05</span><small>REPLAY</small></div><h3>Locked intervention</h3><p>Frozen parent / cue transform / independent trials</p></article>
-        </div>
-        <div class="pipeline-rule"><strong>RULE_05</strong><p>Replay begins with a verified parent request in committed evidence. A new context cannot be reconstructed after the fact.</p></div>
-      </section>
-
-      <section class="module experiment" id="experiment">
-        <header class="module-head"><span>THE EXPERIMENT</span><span>03</span></header>
-        <div class="experiment-layout">
-          <div class="experiment-copy"><p class="signal-label"><i></i>2 × 2 BASELINE</p><h2>One protocol. Four declared conditions.</h2><p>Three participants complete six public rounds with private checkpoints around the discussion. The report requirement appears only after every baseline checkpoint commits.</p><div class="protocol-sequence"><span>T0</span><i></i><span>R1</span><i></i><span>R2</span><i></i><span>R3</span><i></i><span>R4</span><i></i><span>R5</span><i></i><span>R6</span><i></i><span>T6</span><i></i><span>TR*</span></div><small>* TR exists in report conditions only</small></div>
-          <div class="condition-interface">
-            <div class="condition-tabs" role="group" aria-label="Select an experimental condition">
-              <button class="condition active" type="button" data-condition="A" aria-pressed="true"><b>A</b><span>SAME / DISCUSS</span></button>
-              <button class="condition" type="button" data-condition="B" aria-pressed="false"><b>B</b><span>SAME / REPORT</span></button>
-              <button class="condition" type="button" data-condition="C" aria-pressed="false"><b>C</b><span>MIXED / DISCUSS</span></button>
-              <button class="condition" type="button" data-condition="D" aria-pressed="false"><b>D</b><span>MIXED / REPORT</span></button>
-            </div>
-            <div class="condition-readout" aria-live="polite">
-              <div class="readout-head"><span>CONDITION_<b data-condition-name>A</b></span><span>SELECTED</span></div>
-              <h3 data-condition-title>Homogeneous panel, discussion only</h3>
-              <dl><div><dt>PANEL</dt><dd data-panel>Gemma × 3</dd></div><div><dt>REPORT</dt><dd data-report>No joint report</dd></div><div><dt>CHECKPOINTS</dt><dd data-checkpoints>T0 and T6</dd></div></dl>
-              <p data-condition-copy>Three deployments from the same declared model family complete the bounded discussion without a downstream joint-report workflow.</p>
-              <small>Deployment labels remain subject to scientific freeze and live-provider qualification.</small>
-            </div>
+      <section class="section about" id="about">
+        <header class="section-heading reveal"><p class="section-index">01 / WHAT IS AGORA</p><h2>Single-model tests miss what happens between models.</h2></header>
+        <div class="about-grid">
+          <div class="about-copy reveal"><p>Most AI evaluation asks one model to answer one question. AGORA studies a different object: the group. It creates controlled workshops in which agents speak, respond, change position, write together, and leave a complete record of how the result emerged.</p><p>The first workshop is a contained experiment on the way to a larger simulation of academic publishing. It lets the team study interaction before prestige, peer review, editorial roles, and institutional incentives are added.</p></div>
+          <div class="principles reveal">
+            <article><span>01</span><div><h3>Group behaviour</h3><p>Observe patterns that do not exist in an isolated response: herding, role formation, majority influence, and collective bias.</p></div></article>
+            <article><span>02</span><div><h3>Visible process</h3><p>Keep the discussion, private positions, report revisions, model versions, prompts, and failures connected.</p></div></article>
+            <article><span>03</span><div><h3>Repeatable conditions</h3><p>Freeze the protocol so another run — and another team — can test the same research question.</p></div></article>
           </div>
         </div>
       </section>
 
-      <section class="module evidence" id="evidence">
-        <header class="module-head"><span>FOLLOW THE RECORD</span><span>04</span></header>
-        <div class="evidence-title"><h2>A consequential output resolves to five linked records</h2><p>The transcript remains useful, but it cannot stand alone. AGORA traces each action back through context, provider attempt, frozen configuration, and lineage.</p></div>
-        <div class="evidence-strip">
-          <article><span>01 / ID</span><h3>Identity</h3><p>Run<br />Agent<br />Role<br />Opportunity</p></article>
-          <article><span>02 / CTX</span><h3>Context</h3><p>Authorized<br />Exact<br />Ordered<br />Hashed</p></article>
-          <article><span>03 / CALL</span><h3>Attempt</h3><p>Provider<br />Model<br />Settings<br />Timing</p></article>
-          <article><span>04 / OUT</span><h3>Outcome</h3><p>Success<br />Abstention<br />Refusal<br />Failure</p></article>
-          <article><span>05 / LIN</span><h3>Lineage</h3><p>Parent<br />Retries<br />Revision<br />Export</p></article>
-        </div>
-        <div class="replay-lab">
-          <div><span class="lab-code">LAB / WP05</span><h3>Context-locked cue replay</h3><p>One verified request runs across identity and endorsement cues. Only registered cue spans change. Argument bytes, message order, model configuration, and parent context stay locked.</p></div>
-          <div class="cue-array" aria-label="Four-cell cue replay design"><span></span><b>ENDORSE +</b><b>ENDORSE −</b><b>IDENTITY +</b><i>R1</i><i>R3</i><b>IDENTITY −</b><i>R2</i><i>R4</i></div>
+      <section class="section questions" id="questions">
+        <header class="section-heading reveal"><p class="section-index">02 / RESEARCH QUESTIONS</p><h2>Agreement is an outcome. It is not an explanation.</h2><p>A group can end at the same answer through very different social processes.</p></header>
+        <div class="question-list">
+          <article class="reveal"><span>01</span><h3>When agents agree, what moved them?</h3><p>Did an argument persuade them, did they accommodate the group while keeping a reservation, or did a minority position simply disappear?</p></article>
+          <article class="reveal"><span>02</span><h3>Does group composition change the discussion?</h3><p>AGORA compares three agents from one model family with a mixed panel drawn from different model families.</p></article>
+          <article class="reveal"><span>03</span><h3>Does a required report reshape the conversation?</h3><p>The pilot tests whether anticipating a joint output changes position movement, participation, and the survival of dissent.</p></article>
+          <article class="reveal"><span>04</span><h3>What survives into the collective output?</h3><p>The final report is matched back to the transcript: proposals introduced, revised, retained, or omitted.</p></article>
         </div>
       </section>
 
-      <section class="module boundaries">
-        <header class="module-head"><span>SCIENTIFIC BOUNDARIES</span><span>05</span></header>
-        <div class="boundary-split">
-          <div class="measure"><span>MEASURE</span><h2>Recorded behavior under a declared protocol</h2><ul><li>Participation and response opportunities</li><li>Public and private position change</li><li>Role fidelity and report workflow</li><li>Infrastructure-adjusted outcomes</li></ul></div>
-          <div class="reject"><span>DO NOT INFER</span><h2>Hidden mental or human social states</h2><ul><li>Belief or consciousness</li><li>Stable personality</li><li>Human conformity or motive</li><li>General model quality</li></ul></div>
+      <section class="section pilot" id="pilot">
+        <header class="section-heading reveal"><p class="section-index">03 / THE PILOT</p><h2>Three agents. Two variables. Twelve workshops.</h2><p>The feasibility pilot asks whether the protocol can distinguish interaction effects before the study grows.</p></header>
+        <div class="pilot-topic reveal">
+          <div><p class="mini-label">THE WORKSHOP TOPIC</p><h3>Reimagining humans</h3></div>
+          <ol><li><span>01</span>What limitations or problems do agents identify in humans?</li><li><span>02</span>What changes to human capabilities, behaviour, or social arrangements might address them?</li><li><span>03</span>What role, if any, could AI agents play in those changes?</li></ol>
         </div>
-        <div class="boundary-rules"><p><b>RUN-LEVEL INFERENCE</b> Messages inside one workshop share context. Analysis avoids message-level pseudoreplication.</p><p><b>PRIVATE ISOLATION</b> Checkpoints and isolated reviews remain outside unauthorized context.</p><p><b>DECLARED FAULTS</b> Injected failures belong to the frozen configuration and receive a distinct fingerprint.</p><p><b>NO EARLY STOP</b> The host completes scheduled opportunities even when apparent consensus emerges.</p></div>
-      </section>
-
-      <section class="module current-status" id="status">
-        <header class="module-head"><span>WHERE THE PROJECT STANDS</span><span>06</span></header>
-        <div class="status-banner"><span>SCIENTIFIC STATUS</span><h2>Scientific freeze<br />pending</h2><p>Repository evidence refreshed 28 OCT 2026</p></div>
-        <div class="status-ledger">
-          <article><header><i class="ok"></i><span>OFFLINE BASELINE / PROVEN</span></header><ul><li>Four condition cells and three replications project into an executable plan.</li><li>Report disclosure follows committed baseline checkpoints.</li><li>Private artifacts remain outside unauthorized context.</li><li>Committed work survives restart without repeated calls.</li><li>Locked replay starts from a verified parent.</li></ul></article>
-          <article><header><i class="wait"></i><span>SCIENTIFIC ADMISSION / OPEN</span></header><ul><li>Approved live deployments and provider qualification.</li><li>Frozen prompts, order, budgets, and report allocation.</li><li>Final replay sampling plan and behavioral codebook.</li><li>Named freeze authority, retention, and access review.</li><li>WP06 analysis approval before interpretation.</li></ul></article>
+        <div class="condition-lab reveal">
+          <div class="condition-tabs" role="group" aria-label="Select a pilot condition">
+            <button class="condition active" type="button" data-condition="A" aria-pressed="true"><b>A</b><span>SAME MODEL<br />NO REPORT</span></button>
+            <button class="condition" type="button" data-condition="B" aria-pressed="false"><b>B</b><span>SAME MODEL<br />REPORT</span></button>
+            <button class="condition" type="button" data-condition="C" aria-pressed="false"><b>C</b><span>MIXED MODELS<br />NO REPORT</span></button>
+            <button class="condition" type="button" data-condition="D" aria-pressed="false"><b>D</b><span>MIXED MODELS<br />REPORT</span></button>
+          </div>
+          <div class="condition-readout" aria-live="polite">
+            <div class="readout-top"><span>CONDITION <b data-condition-name>A</b></span><span>3 REPETITIONS</span></div>
+            <h3 data-condition-title>Homogeneous panel, discussion only</h3>
+            <dl><div><dt>COMPOSITION</dt><dd data-panel>Gemma × 3</dd></div><div><dt>COLLECTIVE OUTPUT</dt><dd data-report>No joint report</dd></div><div><dt>PRIVATE POSITIONS</dt><dd data-checkpoints>T0 and T6</dd></div></dl>
+            <p data-condition-copy>Three agents from the same declared model family complete the same six-round discussion without a report-writing phase.</p>
+          </div>
         </div>
-        <a class="status-source" href="https://github.com/criticaldata/agoraworkshop/blob/master/docs/phase1a/integrations/CONSOLIDATED_READINESS_2026-10-22.md" target="_blank" rel="noreferrer"><span>READ THE CONSOLIDATED READINESS NOTE</span><b>OPEN ↗</b></a>
+        <p class="status-note reveal"><strong>Current scientific status:</strong> the four-condition design is confirmed; exact model deployments, Model X, final prompts, budgets, replay counts, and freeze authorization remain open.</p>
       </section>
 
-      <section class="module collaboration">
-        <header class="module-head"><span>THE COLLABORATION</span><span>07</span></header>
-        <div class="collaboration-title"><h2>Research design and instrument engineering share one review surface.</h2><p>The repository keeps the study contract, architecture decisions, tests, and implementation together.</p></div>
-        <div class="people-line"><article><span>IMG</span><div><h3>Isaac Mateo Gavilanes Chavez</h3><p>Technical proposal and Phase 1A blueprint lead</p></div></article><article><span>SH</span><div><h3>Simon Heilles</h3><p>Engineering update and team review</p></div></article><article><span>MIT</span><div><h3>MIT Critical Data</h3><p>Open research community and repository home</p></div></article></div>
-        <p class="collab-note">The broader project includes additional scientific collaborators, reviewers, and workshop contributors. Named roles come directly from the current technical materials.</p>
+      <section class="section method" id="method">
+        <header class="section-heading reveal"><p class="section-index">04 / HOW A WORKSHOP RUNS</p><h2>The same sequence, every time.</h2><p>Scheduling and visibility are controlled by ordinary program code. The agents determine the content of the conversation, not the protocol around it.</p></header>
+        <div class="timeline reveal" aria-label="AGORA workshop sequence">
+          <article><span>T0</span><h3>Private baseline</h3><p>Each agent answers the three questions alone. These answers never enter the shared history.</p></article><i>→</i>
+          <article><span>R1–R2</span><h3>Human problems</h3><p>Agents propose limitations and respond to one another.</p></article><i>→</i>
+          <article><span>R3–R4</span><h3>Possible redesigns</h3><p>The group discusses changes to capabilities, behaviour, or institutions.</p></article><i>→</i>
+          <article><span>R5–R6</span><h3>Role of agents</h3><p>Participants consider what role AI systems should have in those changes.</p></article><i>→</i>
+          <article><span>T6</span><h3>Private position</h3><p>Each agent answers alone again before any report is written.</p></article><i>→</i>
+          <article><span>TR*</span><h3>Report and review</h3><p>In report conditions: draft, two reviews, one revision, then a final private position.</p></article>
+        </div>
+        <p class="timeline-note">* The report workflow exists only in conditions B and D. Discussion always stops after round six, whether or not the group agrees.</p>
       </section>
 
-      <section class="module resources" id="resources">
-        <header class="module-head"><span>EXPLORE THE RESEARCH</span><span>08</span></header>
-        <div class="resource-title"><h2>Inspect the contract behind the interface.</h2><p>This website summarizes AGORA. GitHub remains authoritative for scope, open decisions, implementation, and evidence requirements.</p></div>
-        <div class="command-list">
-          <a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><code>$ open source</code><span>Repository</span><b>↗</b></a>
-          <a href="https://github.com/criticaldata/agoraworkshop/tree/master/specs" target="_blank" rel="noreferrer"><code>$ inspect specs</code><span>Phase 1A contract pack</span><b>↗</b></a>
-          <a href="https://github.com/criticaldata/agoraworkshop/blob/master/docs/phase1a/wp01/02_DECISION_REGISTER.md" target="_blank" rel="noreferrer"><code>$ list decisions</code><span>Scientific decision register</span><b>↗</b></a>
-          <a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a/adr" target="_blank" rel="noreferrer"><code>$ trace architecture</code><span>Architecture decision records</span><b>↗</b></a>
-          <a href="https://github.com/criticaldata/agoraworkshop/blob/master/specs/phase1a/requirement-test-matrix.md" target="_blank" rel="noreferrer"><code>$ verify requirements</code><span>Requirement-to-test matrix</span><b>↗</b></a>
+      <section class="section measurement" id="measurement">
+        <header class="section-heading reveal"><p class="section-index">05 / WHAT AGORA MEASURES</p><h2>Follow a position, not just the final sentence.</h2></header>
+        <div class="routes reveal">
+          <article><span>01 / PERSUASION</span><h3>An argument changes the position.</h3><p>The public statement moves after an argument, and the private position moves with it.</p></article>
+          <article><span>02 / ACCOMMODATION</span><h3>The public compromise hides a reservation.</h3><p>The agent agrees with the group in public while its private statement preserves a qualification.</p></article>
+          <article><span>03 / OMISSION</span><h3>A proposal disappears without being withdrawn.</h3><p>The transcript contains the position, but the shared report does not.</p></article>
+        </div>
+        <div class="measurement-grid reveal">
+          <div><p class="mini-label">DURING THE WORKSHOP</p><h3>Participation and position change</h3><p>Word share, proposals, responses, speaking order, refusals, directive language, and public/private movement are recorded by participant and round.</p></div>
+          <div><p class="mini-label">AFTER THE WORKSHOP</p><h3>Context-locked replay</h3><p>Selected changes are replayed from the same prior context with identity and endorsement cues present or removed, separating the argument from the voice that carried it.</p></div>
         </div>
       </section>
 
-      <section class="closing">
-        <div class="closing-code">AGORA · OPEN RESEARCH INFRASTRUCTURE</div>
-        <h2>Make every multi-agent claim traceable.</h2>
-        <div><p>Review the protocol. Challenge an assumption. Contribute an acceptance test.</p><a class="action acid" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">ENTER THE REPOSITORY ↗</a></div>
+      <section class="section programme" id="programme">
+        <header class="section-heading reveal"><p class="section-index">06 / RESEARCH PROGRAMME</p><h2>The workshop is the first contained experiment, not the endpoint.</h2><p>AGORA is being developed toward a multi-agent simulation of academic publishing: a setting where prestige, review, editorial power, and collective judgment can be studied as a system.</p></header>
+        <div class="programme-grid">
+          <article class="featured reveal"><span>NOW / FEASIBILITY PILOT</span><h3>Composition × report requirement</h3><p>Can the protocol run consistently, preserve private branches, support reliable coding, and reveal different routes to a shared output?</p><ul><li>12 planned workshops</li><li>Four experimental conditions</li><li>Independent replication by a second team</li></ul></article>
+          <article class="reveal"><span>NEXT / INTERACTION DESIGN</span><h3>Change the room</h3><p>Moderator model, disclosed identities, committed minority agents, report authorship, observation framing, and memory across workshops.</p></article>
+          <article class="reveal"><span>LATER / INSTITUTIONS</span><h3>Change the institution</h3><p>Extend the instrument to peer review, academic publishing, social media, language, positionality, and incentive pressure.</p></article>
+        </div>
+      </section>
+
+      <section class="section team" id="team">
+        <header class="section-heading reveal"><p class="section-index">07 / RESEARCH TEAM</p><h2>Research design and instrument engineering, reviewed together.</h2><p>AGORA is an open research effort developed through MIT Critical Data and a wider workshop design group.</p></header>
+        <div class="team-grid reveal">
+          <article><span class="initials">IMG</span><div><h3>Isaac Mateo Gavilanes Chavez</h3><p>Technical proposal and Phase 1A blueprint lead</p></div></article>
+          <article><span class="initials">SH</span><div><h3>Simon Heilles</h3><p>Research instrument engineering and implementation</p></div></article>
+          <article><span class="initials">MIT</span><div><h3>MIT Critical Data</h3><p>Research community, scientific review, and repository home</p><a href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">Visit MIT Critical Data ↗</a></div></article>
+        </div>
+        <p class="team-note">The full contributor list will expand as scientific and implementation roles are formally confirmed.</p>
+      </section>
+
+      <section class="section resources" id="resources">
+        <header class="section-heading reveal"><p class="section-index">08 / RESEARCH &amp; RESOURCES</p><h2>Read the protocol behind the website.</h2><p>The public site explains the study. The repository remains authoritative for open decisions, implementation status, and reproducibility evidence.</p></header>
+        <div class="resource-list reveal">
+          <a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><span>01 / SOURCE</span><h3>AGORA repository</h3><p>Instrument code, issues, history, and contribution surface.</p><b>↗</b></a>
+          <a href="https://github.com/criticaldata/agoraworkshop/blob/master/docs/phase1a/wp01/01_STUDY_CONTRACT.md" target="_blank" rel="noreferrer"><span>02 / METHOD</span><h3>Phase 1A study contract</h3><p>The active four-condition pilot design and scientific claim boundary.</p><b>↗</b></a>
+          <a href="https://github.com/criticaldata/agoraworkshop/blob/master/docs/phase1a/wp01/02_DECISION_REGISTER.md" target="_blank" rel="noreferrer"><span>03 / GOVERNANCE</span><h3>Decision register</h3><p>Confirmed, proposed, open, and deferred methodological choices.</p><b>↗</b></a>
+          <a href="https://github.com/criticaldata/agoraworkshop/tree/master/specs/phase1a" target="_blank" rel="noreferrer"><span>04 / SPECIFICATIONS</span><h3>Protocol specification pack</h3><p>Context visibility, evidence schema, report workflow, runtime, and replay.</p><b>↗</b></a>
+          <a href="https://agora-production-046a.up.railway.app" target="_blank" rel="noreferrer"><span>05 / LIVE INSTRUMENT</span><h3>AGORA Workshop</h3><p>Plain-language overview, recorded runs, and technical documentation.</p><b>↗</b></a>
+        </div>
+      </section>
+
+      <section class="contact" id="contact">
+        <div><p class="section-index">09 / GET INVOLVED</p><h2>Help us study what happens between agents.</h2><p>Review the protocol, challenge an assumption, propose an experiment, or help make the instrument reproducible across teams.</p></div>
+        <div class="contact-actions"><a class="button light" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">Explore the repository ↗</a><a class="text-link" href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">MIT Critical Data ↗</a></div>
       </section>
     </main>
 
-    <footer class="site-footer"><span>AGORA // AUDITABLE MULTI-AGENT RESEARCH</span><div><a href="https://criticaldata.mit.edu/" target="_blank" rel="noreferrer">MIT CRITICAL DATA ↗</a><a href="#status">STATUS</a><a href="#home">TOP ↑</a></div><small>© 2026 AGORA COLLABORATORS</small></footer>
+    <footer><a class="wordmark footer-mark" href="#home"><span>A</span><strong>AGORA</strong><small>AGENTIC GAME FOR RESEARCH AND ACADEMIA</small></a><div><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">GitHub</a><a href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">MIT Critical Data</a></div><small>Open research · 2026</small></footer>
   </body>
 </html>

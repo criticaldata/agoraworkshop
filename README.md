@@ -41,6 +41,7 @@ failure evidence.
 - [Phase 1A architecture decision records](docs/phase1a/adr/README.md)
 - [WP03 workshop and report workflow](docs/phase1a/wp03/README.md)
 - [WP06 offline descriptive analysis](docs/phase1a/wp06/README.md)
+- [WP06 local analysis preview](docs/phase1a/wp06/PREVIEW.md) — `npm run phase1a:preview`
 - [WP05 context-locked replay contract](specs/phase1a/context-locked-replay.md)
 - [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
 

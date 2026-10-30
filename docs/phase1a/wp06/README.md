@@ -11,6 +11,10 @@ five-participant role-study metrics under `src/phase1/`.
 
 ## Use
 
+For a read-only visual inspection, run `npm run phase1a:preview` and open
+http://127.0.0.1:3006. The [preview guide](PREVIEW.md) explains file loading,
+synthetic examples, source inspection, data handling and analysis export.
+
 With Node 22 or newer and the repository's locked dependencies installed:
 
 ```sh

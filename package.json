@@ -16,7 +16,8 @@
     "test:watch": "vitest",
     "validate": "tsx src/cli.ts validate",
     "phase1a:fixtures": "tsx src/phase1a/wp01/fixtures/generate.ts",
-    "phase1a:analyze": "tsx src/phase1a/wp06/cli.ts"
+    "phase1a:analyze": "tsx src/phase1a/wp06/cli.ts",
+    "phase1a:preview": "tsx src/phase1a/wp06/preview/server.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

@@ -1,28 +1,63 @@
-# WP06 local analysis preview
+# WP06 pathway and analysis interface
 
 The read-only preview turns one evidence bundle into inspectable coverage tables,
 report measures and coder agreement. It uses the existing WP06 analyzers; it adds
 no alternative metric definitions and makes no model calls.
 
-## Launch
+## Shared application and pipeline
 
-Use Node 22 or newer and the repository's locked dependencies:
+Open **`/wp06/`** on the AGORA application, or select **WP06 analysis** in the
+application navigation. This route ships in the normal production build and Docker
+image. It requires the existing `AGORA_AUTH_PASSWORD` researcher credential for all
+pages, assets and API requests, even when `AGORA_AUTH_SCOPE=write`. Without that
+credential configured, the route fails closed. Use HTTPS for shared deployments,
+as required by the application's HTTP Basic authentication model.
 
-```sh
-npm ci
-npm run phase1a:preview
-```
+With Node 22 or newer, use `npm ci`, `npm run build`, then `npm start` with the
+instance's normal environment configuration. For development use `npm run dev`.
+There is no additional service, database migration or model credential for WP06.
 
-Open **http://127.0.0.1:3006**. A synthetic example loads automatically.
-Set `WP06_PREVIEW_PORT` to use another port; stop with Ctrl+C.
-The built equivalent is `npm run build` followed by
-`node dist/phase1a/wp06/preview/server.js` from the repository root.
-The `static/wp06-preview/` assets must remain with the checkout.
+The pipeline boundary is explicit:
 
-This is a standalone local preview, separate from the older `/phase1` application.
-It does not open the database or start the workshop server. It binds only to
-127.0.0.1; exposing it through a proxy or deploying it as a shared service is outside
-this implementation. The existing app's authentication is not replaced or relaxed.
+1. WP02/WP03 execution produces WP04 evidence through
+   `Phase1aRuntime.exportEvidence(runId)`, including complete or partial runs.
+2. Upload that JSON bundle and optional matching human WP06 annotations to `/wp06/`.
+   WP06 verifies integrity and computes the same summaries as `phase1a:analyze`.
+3. Inspect planned versus observed execution, report dependencies, coverage,
+   source-linked human judgments and unavailable-measure reasons.
+4. Download analysis JSON for subsequent research review or aggregation. Scientific
+   freeze, calibration and campaign-level inference remain separate decisions.
+
+This integration accepts revised Phase 1A evidence bundles. It does not automatically
+read the legacy `/phase1` campaign database or treat its exports as compatible.
+Human annotations are prepared outside this interface using the WP06 annotation
+contract. No uploaded analysis becomes a stored campaign record automatically.
+
+### API integration
+
+Authenticated clients can `POST /wp06/api/analyze` with `Content-Type: application/json`
+and a body of `{ "bundle": <EvidenceBundle>, "annotations": <optional annotation object> }`.
+Omit `annotations` when unavailable. Browser requests must use the instance's origin;
+non-browser authenticated clients may omit `Origin`, following the main app policy.
+The response contains `run`, optional `report`/`records`, `pathway`, eligible `evidence`
+and `input_kind: "uploaded"`. This inspection response includes eligible source text;
+use only `run` and `report` for downstream summaries that must exclude quotations.
+The browser's **Export analysis JSON** does this selection and adds the existing
+`wp06-preview-export-v1` schema and input-kind labels. The schema name remains stable
+for consumers even though the interface now runs in the shared application.
+
+Invalid evidence returns 400 without partial results, oversized requests return 413,
+and non-JSON requests return 415. Authentication failures return 401 (or 503 if the
+instance has no credential configured); cross-origin browser POSTs return 403.
+
+### Optional standalone development preview
+
+`npm run phase1a:preview` starts the same interface at **http://127.0.0.1:3006**,
+without starting the workshop server. `WP06_PREVIEW_PORT` changes its port.
+This development launcher is loopback-only with local-host and browser-origin checks;
+use the main authenticated application for shared hosting.
+The built equivalent is `node dist/phase1a/wp06/preview/server.js` after a build.
+Keep `static/wp06-preview/` with the application, as the Docker image already does.
 
 ## What reviewers can do
 
@@ -65,14 +100,17 @@ coder assignments and adjudication entry are also outside the preview.
 
 ## Data handling and limits
 
-Files are sent to the preview process on this computer for validation and analysis,
-not to an external API. Uploads and results stay in memory; no uploaded file,
+Files are sent to the AGORA instance serving the interface for validation and
+analysis. On a shared deployment this transfers the evidence to that server.
+No model provider or third-party analysis API receives the uploaded evidence. Uploads and results stay in memory; no uploaded file,
 annotation or analysis is written to the server's filesystem or retained between
 requests. JSON downloads are saved only when the browser user requests them.
 This is not a guarantee of secure memory erasure or browser-history deletion.
 
-The combined JSON request limit is 10 MiB. Local host and same-origin checks reject
-cross-site analysis requests, and responses are marked `no-store`. The page has
+The combined JSON request limit is 10 MiB. The shared route authenticates requests
+before parsing bodies and uses the application's same-origin check. The standalone
+launcher additionally restricts hosts to loopback. Responses are marked `no-store`.
+Deployment operators must also avoid request-body logging at proxies or infrastructure. The page has
 no external assets, telemetry or remote scripts. Uploaded strings are rendered as
 text; a restrictive content security policy prevents inline script execution.
 Analysis metadata remains operator-scoped even when source bodies are excluded.
@@ -82,7 +120,9 @@ Analysis metadata remains operator-scoped even when source bodies are excluded.
 `tests/phase1aWp06Preview.test.ts` checks analyzer parity, synthetic scenarios,
 source visibility, input failures, upload isolation, origin/host restrictions and
 request-size limits. Run it with `npm test -- --run tests/phase1aWp06Preview.test.ts`.
-The full suite and TypeScript build remain required checks.
+`tests/phase1aWp06Pipeline.test.ts` covers the shared mount, authentication before
+body parsing, relative assets, upload limits and API/CLI parity under a deployment
+hostname. The full suite and TypeScript build remain required checks.
 
 ## Interactive protocol pathway
 

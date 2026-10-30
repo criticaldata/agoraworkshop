@@ -30,6 +30,11 @@ Phase 0 export, or a WP05 replay grid. The output remains operator-scoped. The
 CLI writes JSON to stdout and returns a nonzero status on invalid evidence.
 Use `--silent` when redirecting npm output to keep its script banner out of JSON.
 
+For the shared application workflow, open **`/wp06/`** on the AGORA instance and
+sign in with its researcher credential. The [pathway interface](PREVIEW.md) accepts
+the same bundles and optional annotations, and exports analysis JSON for downstream
+review. It uses the same analyzers as the CLI.
+
 Import `analyzeRun` from `src/phase1a/wp06/index.ts` for direct use.
 
 ## What the summary means

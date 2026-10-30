@@ -28,9 +28,6 @@ export function createPreviewApp() {
   const app = express();
   app.disable('x-powered-by');
   app.use((req, res, next) => {
-    res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
-      'Referrer-Policy': 'no-referrer',
-      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'" });
     const allowed = [`127.0.0.1:${req.socket.localPort}`, `localhost:${req.socket.localPort}`];
     if (!allowed.includes(req.get('host') ?? '') || req.get('sec-fetch-site') === 'cross-site') {
       res.status(403).json({ error: 'Use this preview from its local address.' }); return;
@@ -38,6 +35,19 @@ export function createPreviewApp() {
     if (req.method === 'POST' && req.get('origin') !== `http://${req.get('host')}`) {
       res.status(403).json({ error: 'Analysis requests must originate from this preview.' }); return;
     }
+    next();
+  });
+  app.use(createAnalysisRouter());
+  return app;
+}
+
+/** Stateless WP06 HTTP interface; callers supply their deployment access controls. */
+export function createAnalysisRouter() {
+  const app = express.Router();
+  app.use((_req, res, next) => {
+    res.set({ 'Cache-Control': 'no-store', 'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
+      'Content-Security-Policy': "default-src 'self'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; object-src 'none'; base-uri 'none'; frame-ancestors 'none'; form-action 'self'" });
     next();
   });
   app.get('/api/demo/:scenario', async (req, res, next) => {

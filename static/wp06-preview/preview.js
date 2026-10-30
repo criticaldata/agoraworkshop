@@ -68,7 +68,7 @@ async function load(action, message) {
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || 'The analysis request failed.');
     current = data; render();
-    $('status').textContent = data.input_kind === 'synthetic' ? 'Synthetic example loaded. All content and coder labels are scripted.' : 'Uploaded files verified and analyzed locally. Inspect provenance before interpreting results.';
+    $('status').textContent = data.input_kind === 'synthetic' ? 'Synthetic example loaded. All content and coder labels are scripted.' : 'Uploaded files verified and analyzed by this AGORA server. Inspect provenance before interpreting results.';
   } catch (error) {
     discard(); $('error').textContent = error.message || 'Unable to load this input.'; $('error').hidden = false;
     $('status').textContent = 'No results available. Correct the input or load an example.';
@@ -157,7 +157,7 @@ function renderJudgments() {
     $('judgments').append(details);
   }
 }
-$('demo').addEventListener('click', () => load(() => fetch(`/api/demo/${encodeURIComponent($('scenario').value)}`, { cache: 'no-store' }), 'Loading a synthetic example…'));
+$('demo').addEventListener('click', () => load(() => fetch(`./api/demo/${encodeURIComponent($('scenario').value)}`, { cache: 'no-store' }), 'Loading a synthetic example…'));
 $('upload').addEventListener('submit', event => {
   event.preventDefault();
   load(async () => {
@@ -165,7 +165,7 @@ $('upload').addEventListener('submit', event => {
     if (!bundle) throw new Error('Choose an evidence bundle first.');
     if (bundle.size + (annotations?.size ?? 0) > 10 * 1024 * 1024) throw new Error('Combined files exceed 10 MiB.');
     const body = JSON.stringify({ bundle: JSON.parse(await bundle.text()), ...(annotations ? { annotations: JSON.parse(await annotations.text()) } : {}) });
-    return fetch('/api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
+    return fetch('./api/analyze', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body });
   }, 'Verifying evidence and annotations…');
 });
 $('filter').addEventListener('change', renderOpportunities);
@@ -178,4 +178,4 @@ $('download').addEventListener('click', () => {
   const anchor = element('a'); anchor.href = url; anchor.download = 'wp06-analysis.json'; anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 });
-load(() => fetch('/api/demo/complete', { cache: 'no-store' }), 'Loading a synthetic example…');
+load(() => fetch('./api/demo/complete', { cache: 'no-store' }), 'Loading a synthetic example…');

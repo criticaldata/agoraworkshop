@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>WP06 Analysis Preview · AGORA</title>
-  <link rel="stylesheet" href="/preview.css">
-  <link rel="stylesheet" href="/pathway.css">
-  <script src="/preview.js" type="module"></script>
+  <title>WP06 Pathway Analysis · AGORA</title>
+  <link rel="stylesheet" href="./preview.css">
+  <link rel="stylesheet" href="./pathway.css">
+  <script src="./preview.js" type="module"></script>
 </head>
 <body>
   <a class="skip" href="#results">Skip to results</a>
@@ -36,10 +36,10 @@
         <input id="annotations" type="file" accept=".json,application/json">
         <button type="submit">Analyze files</button>
       </form>
-      <p class="small">JSON files go to the local preview process on this computer. They stay in memory and are not saved. Maximum combined request: 10 MiB.</p>
+      <p class="small">JSON files are sent to this AGORA server for analysis. Uploads are processed in memory and are not saved by the application. Maximum combined request: 10 MiB.</p>
     </section>
     <button id="clear" class="quiet" type="button">Clear loaded data</button>
-    <p class="sidebar-footer">READ-ONLY · LOCAL PREVIEW<br>No annotation edits or run execution.</p>
+    <p class="sidebar-footer">READ-ONLY · WP06 ANALYSIS<br>No annotation edits or run execution.</p>
   </aside>
   <main id="results" tabindex="-1">
     <header class="page-heading">
@@ -75,7 +75,7 @@
       </div>
       <details class="panel"><summary>Provenance, missing usage and interpretation limits</summary><div id="provenance"></div></details>
     </div>
-    <footer>WP06 engineering preview · One run at a time · Campaign comparisons and scientific validation remain separate work.</footer>
+    <footer>WP06 pathway analysis · One run at a time · Campaign comparisons and scientific validation remain separate work.</footer>
   </main>
 </body>
 </html>

@@ -5,15 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>WP06 Analysis Preview · AGORA</title>
   <link rel="stylesheet" href="/preview.css">
-  <script src="/preview.js" defer></script>
+  <link rel="stylesheet" href="/pathway.css">
+  <script src="/preview.js" type="module"></script>
 </head>
 <body>
   <a class="skip" href="#results">Skip to results</a>
   <aside class="sidebar">
     <a class="brand" href="/">AGORA<span>WORKSHOP</span></a>
     <div class="sidebar-heading">WP06 / ANALYSIS</div>
-    <h1>Evidence<br> preview</h1>
-    <p class="sidebar-intro">Explore one run, understand what is missing, and trace a result to its source.</p>
+    <h1>Pathway analysis</h1>
+    <p class="sidebar-intro">Phase 1A execution, report dependencies and source evidence.</p>
     <section aria-labelledby="demo-heading">
       <h2 id="demo-heading">Explore an example</h2>
       <label for="scenario">Synthetic scenario</label>
@@ -42,7 +43,7 @@
   </aside>
   <main id="results" tabindex="-1">
     <header class="page-heading">
-      <div><p class="eyebrow">AGORA / PHASE 1A</p><h2>Make the analysis inspectable.</h2><p>Coverage, report measures and agreement, with the evidence kept in view.</p></div>
+      <div><p class="eyebrow">WORK PACKAGE 06 / PHASE 1A</p><h2>Run pathway</h2><p>Execution sequence, report inputs and observed operation states.</p></div>
       <button id="download" class="outline" disabled type="button">Export analysis JSON</button>
     </header>
     <div class="notice"><strong>Scientific approval pending.</strong> The codebook is a draft. Numerical report measures are exploratory; tests and complete records do not validate scientific claims.</div>
@@ -52,14 +53,25 @@
     <div id="analysis" hidden>
       <section class="run-heading"><div><span id="source" class="badge"></span><h3 id="run-title"></h3><p id="run-subtitle"></p></div><span id="run-state" class="badge"></span></section>
       <div id="cards" class="cards"></div>
-      <section class="panel" aria-labelledby="coverage-heading"><div class="section-heading"><div><p class="eyebrow">01 / COVERAGE</p><h3 id="coverage-heading">Every planned opportunity counts</h3></div></div><p>Participants and attempts are nested within this run. Missing observations remain visible.</p><div id="coverage" class="table-wrap"></div></section>
+      <section class="pathway" aria-labelledby="pathway-heading">
+        <div class="section-heading"><div><h3 id="pathway-heading">Protocol pathway</h3><p id="pathway-caption">Select a stage to inspect its operations.</p></div>
+          <div class="pathway-modes" role="group" aria-label="Pathway view"><button id="execution-view" type="button" aria-pressed="true">Execution order</button><button id="report-view" type="button" aria-pressed="false">Report inputs</button></div>
+        </div>
+        <div class="pathway-toolbar"><label><input id="expand-rounds" type="checkbox"> Expand six public rounds</label><button id="first-uncommitted" type="button">First uncommitted operation</button><span id="pathway-count"></span></div>
+        <div class="pathway-workspace">
+          <div><div id="pathway-diagram" class="pathway-diagram" tabindex="0" role="region" aria-label="Scrollable protocol diagram"></div><p class="pathway-legend" id="pathway-legend"></p><p class="pathway-help">Select with Enter or Space. Use arrow keys to move between nodes. Status labels remain visible without color.</p></div>
+          <aside class="pathway-inspector" aria-label="Selected pathway operation"><div id="pathway-detail" aria-live="polite"></div>
+            <section class="inspector" aria-labelledby="inspector-heading" tabindex="-1" id="inspector"><h3 id="inspector-heading">Source evidence</h3><p id="evidence-meta">Select an eligible public turn or final report.</p><pre id="evidence-text"></pre><code id="evidence-hash"></code></section>
+          </aside>
+        </div>
+      </section>
+      <section class="panel" aria-labelledby="coverage-heading"><div class="section-heading"><div><p class="eyebrow">COVERAGE</p><h3 id="coverage-heading">Planned and observed opportunities</h3></div></div><p>Participants and attempts are nested within this run. Missing observations remain visible.</p><div id="coverage" class="table-wrap"></div></section>
       <section class="panel" aria-labelledby="measures-heading"><p class="eyebrow">02 / REPORT MEASURES</p><h3 id="measures-heading">Retention and dissent</h3><p id="annotation-status"></p><div id="measures" class="measure-grid"></div><div id="reliability" class="table-wrap"></div><details id="agreement-details"><summary>Coder pairs and label counts</summary><div id="agreement-content"></div></details></section>
       <div class="evidence-layout">
         <div>
           <section class="panel" aria-labelledby="opportunities-heading"><div class="section-heading"><div><p class="eyebrow">03 / SOURCE INSPECTION</p><h3 id="opportunities-heading">Opportunity ledger</h3></div><label class="filter" for="filter">Show<select id="filter"><option value="all">All opportunities</option><option value="PUBLIC">Public turns</option><option value="REPORT">Report stages</option><option value="incomplete">Uncommitted only</option></select></label></div><p>Only successful public turns and the final report can be opened here. Private checkpoints, intermediate reports and raw provider material are withheld.</p><div id="opportunities" class="table-wrap"></div></section>
           <section class="panel" aria-labelledby="annotations-heading"><p class="eyebrow">04 / HUMAN JUDGMENTS</p><h3 id="annotations-heading">Labels and their evidence</h3><p>Original ratings stay separate from adjudication. Open a record to inspect its rationale and exact quoted span.</p><div id="judgments"></div></section>
         </div>
-        <aside class="panel inspector" aria-labelledby="inspector-heading" tabindex="-1" id="inspector"><p class="eyebrow">EVIDENCE INSPECTOR</p><h3 id="inspector-heading">Select a source</h3><p id="evidence-meta">Use a source link in the ledger or a judgment below.</p><pre id="evidence-text"></pre><code id="evidence-hash"></code></aside>
       </div>
       <details class="panel"><summary>Provenance, missing usage and interpretation limits</summary><div id="provenance"></div></details>
     </div>

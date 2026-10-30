@@ -1,4 +1,6 @@
 /* Read-only client. Treat every uploaded string as text, never HTML. */
+import { PathwayView } from './pathway.js';
+
 const $ = id => document.getElementById(id);
 let current = null;
 let busy = false;
@@ -6,6 +8,7 @@ const names = { T0: 'T0 · baseline', PUBLIC: 'Public discussion', T6: 'T6 · af
 const human = value => String(value).toLowerCase().replaceAll('_', ' ');
 const percent = value => value === null ? 'Unavailable' : `${(value * 100).toFixed(1)}%`;
 const decimal = value => value === null ? 'Unavailable' : value.toFixed(3);
+const pathway = new PathwayView({ inspectEvidence: inspect, clearEvidence: resetInspector });
 
 function element(tag, text, className) {
   const node = document.createElement(tag);
@@ -32,6 +35,7 @@ function sourceLink(id, label = 'View source', span) {
 function inspect(id, span) {
   const artifact = current.evidence.find(a => a.artifact_id === id);
   if (!artifact) return;
+  pathway.selectEvidence(id);
   $('inspector-heading').textContent = human(artifact.kind.replaceAll('.', ' '));
   $('evidence-meta').textContent = `${id}${span ? ` · UTF-16 span ${span.start}–${span.end}` : ''}`;
   $('evidence-text').replaceChildren();
@@ -40,16 +44,17 @@ function inspect(id, span) {
       element('mark', artifact.content.slice(span.start, span.end)), document.createTextNode(artifact.content.slice(span.end)));
   } else $('evidence-text').textContent = artifact.content;
   $('evidence-hash').textContent = artifact.content_hash;
-  $('inspector').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  $('inspector').scrollIntoView({ block: 'nearest' });
   $('inspector').focus({ preventScroll: true });
 }
 function resetInspector() {
-  $('inspector-heading').textContent = 'Select a source';
-  $('evidence-meta').textContent = 'Use a source link in the ledger or a judgment below.';
+  $('inspector-heading').textContent = 'Source evidence';
+  $('evidence-meta').textContent = 'Select an eligible public turn or final report.';
   $('evidence-text').replaceChildren(); $('evidence-hash').textContent = '';
 }
 function discard() {
   current = null; $('analysis').hidden = true; $('download').disabled = true;
+  pathway.clear();
   for (const id of ['cards', 'coverage', 'measures', 'reliability', 'agreement-content', 'opportunities', 'judgments', 'provenance']) $(id).replaceChildren();
   resetInspector(); $('empty').hidden = false;
 }
@@ -71,6 +76,7 @@ async function load(action, message) {
     busy = false; $('results').removeAttribute('aria-busy');
     document.querySelectorAll('button, input, select').forEach(node => { node.disabled = false; });
     $('download').disabled = current === null;
+    pathway.refreshControls();
   }
 }
 function render() {
@@ -80,6 +86,7 @@ function render() {
   $('run-title').textContent = `Condition ${run.condition} · Replicate ${run.replication}`;
   $('run-subtitle').textContent = `Admission: ${run.source.admissionClass} · ${human(run.evidence_completeness)} opportunity coverage · analysis unit: one run`;
   $('run-state').textContent = run.state;
+  pathway.setData(current);
   const totals = run.totals;
   const cards = [
     ['Committed / planned', `${totals.committed} / ${totals.planned}`, `${totals.not_attempted} never attempted · ${totals.pending} pending`],

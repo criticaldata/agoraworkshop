@@ -83,3 +83,40 @@ Analysis metadata remains operator-scoped even when source bodies are excluded.
 source visibility, input failures, upload isolation, origin/host restrictions and
 request-size limits. Run it with `npm test -- --run tests/phase1aWp06Preview.test.ts`.
 The full suite and TypeScript build remain required checks.
+
+## Interactive protocol pathway
+
+The pathway uses the WP03 plan in the loaded manifest and the validated WP06
+opportunity records. It retains every planned operation, including those never
+attempted. Participant ordering and report roles follow the manifest rather than
+hard-coded display assumptions.
+
+- **Execution order** groups T0, public discussion, T6, report operations and TR.
+  Expand the public discussion into six rounds. Arrows represent scheduled
+  succession, not information sharing or proof that the next stage executed.
+- **Report inputs** shows the draft branching to the two reviews, followed by
+  revision using the draft and both reviews. It reuses WP03 context-isolation
+  rules. The reviews still execute sequentially; the branching view describes
+  inputs, not concurrent execution. A solid dependency has a matching source
+  artifact in at least one recorded target call; a dashed dependency remains
+  planned. A failed attempt can have received an input without committing output.
+- **Selection** highlights a node and incident connectors. The operation inspector
+  lists observed status, participant, last outcome, attempts and source references.
+  Recorded transitions retain the committing event ID and previous/next state.
+  Planned target states are identified as planned; runtime T1/T2 correspond to
+  scientific T6/TR. Private and isolated source text remains withheld.
+- **First uncommitted operation** locates the earliest scheduled operation without
+  a commitment. It is not an inferred causal root or a measured critical path.
+  No-report conditions contain no report/TR operations or report-input graph.
+
+Node status is explicit text. A group is committed only when all its operations
+are committed; otherwise pending, technical failure or uncommitted response takes
+precedence over a partial or unattempted group. Committed does not mean successful:
+individual outcomes remain available in the operation inspector.
+
+Use Tab to enter the graph, arrow keys or Home/End to move node focus, and Enter
+or Space to select. The diagram reflows at narrow widths without scaling down its text;
+long execution paths scroll vertically.
+Selection does not change evidence or analyzer values. No animation runs at rest;
+reduced-motion settings disable hover transitions. Neutral surfaces and borders
+carry the hierarchy; one accent is reserved for active selection and focus.

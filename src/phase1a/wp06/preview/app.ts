@@ -4,6 +4,7 @@ import type { EvidenceBundle } from '../../index.js';
 import { analyzeRun } from '../index.js';
 import { analyzeReportAnnotations, ReportAnnotationsSchema } from '../annotations.js';
 import { previewDemo, type DemoScenario } from './demo.js';
+import { buildPreviewPathway } from './pathway.js';
 
 export const PREVIEW_LIMIT_BYTES = 10 * 1024 * 1024;
 const assets = fileURLToPath(new URL('../../../../static/wp06-preview/', import.meta.url));
@@ -15,7 +16,7 @@ export function previewAnalysis(bundle: EvidenceBundle, annotations?: unknown) {
   // Only successful public turns and the final report are eligible source text.
   const visible = new Set(run.opportunities.filter(row => row.status === 'committed' && row.outcome === 'success'
     && (row.stage === 'PUBLIC' || row.opportunity_id === 'report:revised')).map(row => row.output_artifact_id));
-  return { run, report, records,
+  return { run, report, records, pathway: buildPreviewPathway(bundle, run),
     evidence: bundle.artifacts.filter(a => visible.has(a.artifact_id)).map(a => ({
       artifact_id: a.artifact_id, kind: a.kind, content: a.content, content_hash: a.content_hash,
     })),

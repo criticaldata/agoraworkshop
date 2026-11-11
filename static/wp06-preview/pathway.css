@@ -1,0 +1,57 @@
+.pathway { padding: 24px 0; }
+#pathway-caption { color: var(--muted); font-size: 12px; max-width: 570px; margin: 0; }
+.pathway-modes { display: flex; flex-shrink: 0; border-bottom: 1px solid var(--line); }
+.pathway-modes button { border: 0; border-radius: 0; border-bottom: 2px solid transparent; padding: 9px 12px; font-size: 12px; }
+.pathway-modes button[aria-pressed="true"] { border-bottom-color: var(--accent); color: var(--accent); }
+.pathway-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin: 20px 0 14px; font-size: 12px; }
+.pathway-toolbar label { display: flex; align-items: center; gap: 7px; }
+.pathway-toolbar input { accent-color: var(--accent); }
+.pathway-toolbar button { padding: 5px 8px; font-size: 11px; }
+#pathway-count { margin-left: auto; color: var(--muted); font-size: 11px; }
+.pathway-workspace { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 26px; align-items: start; }
+.pathway-workspace > div { min-width: 0; }
+.pathway-diagram { max-height: 590px; overflow: auto; border-block: 1px solid var(--line); background: #fafbfb; scrollbar-gutter: stable; }
+.pathway-diagram svg { display: block; margin: 0 auto; }
+.pathway-edge { fill: none; stroke: #8b969e; stroke-width: 1.3; }
+.pathway-edge.planned { stroke-dasharray: 5 4; }
+.pathway-edge.selected { stroke: var(--accent); stroke-width: 1.8; }
+.arrow-neutral { fill: #8b969e; }
+.arrow-selected { fill: var(--accent); }
+.pathway-node { cursor: pointer; outline: none; }
+.pathway-node rect { fill: #fff; stroke: #aab4bc; stroke-width: 1; transition: fill 100ms ease, stroke 100ms ease; }
+.pathway-node:hover rect { fill: #f0f3f4; stroke: #53616a; }
+.pathway-node.state-not_attempted rect { stroke-dasharray: 4 3; }
+.pathway-node.state-technical_failure rect, .pathway-node.state-uncommitted_response rect { stroke: #20272d; stroke-width: 2; }
+.pathway-node.selected rect { stroke: var(--accent); stroke-width: 2; fill: #eef5f3; }
+.pathway-node:focus-visible rect { stroke: var(--accent); stroke-width: 3; }
+.node-title { font-size: 14px; font-weight: 650; fill: var(--ink); }
+.node-count { font-size: 12px; fill: var(--muted); }
+.node-status { font-size: 11px; font-weight: 600; fill: var(--ink); }
+.node-number { font: 11px ui-monospace, monospace; fill: var(--muted); }
+.pathway-legend, .pathway-help { font-size: 11px; color: var(--muted); margin: 9px 0 0; }
+.pathway-empty { padding: 45px 24px; font-size: 13px; }
+.pathway-inspector { min-width: 0; border-left: 1px solid var(--line); padding-left: 22px; }
+.pathway-inspector h4 { font-size: 13px; margin: 0 0 12px; }
+.pathway-inspector p { font-size: 12px; color: var(--muted); }
+.operation-list { max-height: 170px; overflow-y: auto; border-block: 1px solid var(--line); margin-bottom: 20px; }
+.operation-choice { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; width: 100%; text-align: left; padding: 8px 7px; border: 0; border-bottom: 1px solid #e6e9eb; border-radius: 0; font-size: 11px; font-weight: 500; }
+.operation-choice span:first-child { overflow-wrap: anywhere; }
+.operation-choice span:last-child { font-size: 10px; color: var(--muted); flex-shrink: 0; }
+.operation-choice[aria-pressed="true"] { color: var(--accent); background: #eef5f3; box-shadow: inset 2px 0 var(--accent); }
+.operation-metadata { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 7px 13px; font-size: 11px; margin: 0 0 18px; }
+.operation-metadata dt { color: var(--muted); }
+.operation-metadata dd { margin: 0; overflow-wrap: anywhere; }
+@media (max-width: 1200px) {
+  .pathway > .section-heading { align-items: flex-start; flex-direction: column; }
+  .pathway-workspace { grid-template-columns: minmax(0, 1fr) 260px; gap: 18px; }
+  .pathway-inspector { padding-left: 16px; }
+}
+@media (max-width: 1000px) {
+  .pathway-workspace { grid-template-columns: minmax(0, 1fr); }
+  .pathway-inspector { border-left: 0; padding: 18px 0 0; border-top: 1px solid var(--line); }
+  .operation-metadata { grid-template-columns: 170px minmax(0, 1fr); }
+  #pathway-count { margin-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pathway-node rect { transition: none; }
+}

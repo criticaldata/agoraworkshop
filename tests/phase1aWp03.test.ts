@@ -115,6 +115,7 @@ describe('WP03 runtime integration', () => {
     const bundle = runtime.evidence(runId);
     expect(bundle.events.find((event) => event.event_type === 'report.roles_allocated')?.payload).toEqual({
       policy: REPORT_ALLOCATION_POLICY,
+      workflow_version: WP03_WORKFLOW_VERSION,
       replication: 2,
       writer_id: 'agent_2',
       reviewer_1_id: 'agent_3',

@@ -14,9 +14,9 @@ function normativeRequirementIds(): string[] {
     .sort();
 }
 
-function matrixRows() {
-  return readFileSync(matrixPath, 'utf8')
-    .split('\n')
+function matrixRows(source = readFileSync(matrixPath, 'utf8')) {
+  return source
+    .split(/\r?\n/)
     .map((line) => {
       const match = line.match(/^\| `((?:CTX|EXP|ORCH|VIS|RPT|EVD|DRY|RPL|TST)-\d{2})` \| `([^`]+)`(?: plus [^|]+)? \| ([^|]+) \| (GREEN|PARTIAL|RED|BLOCKED) \|$/);
       return match
@@ -34,6 +34,12 @@ function behavioralTestSource(): string {
 }
 
 describe('Phase 1A specification traceability', () => {
+  it('parses the strict requirement matrix with LF or CRLF line endings', () => {
+    const source = readFileSync(matrixPath, 'utf8').replace(/\r?\n/g, '\r\n');
+
+    expect(matrixRows(source)).toHaveLength(80);
+  });
+
   it('accounts for every normative requirement exactly once', () => {
     const expected = normativeRequirementIds();
     const actual = matrixRows().map((row) => row.id).sort();

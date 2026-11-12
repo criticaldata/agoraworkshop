@@ -208,10 +208,16 @@ export function createFixtureManifest(overrides: Partial<Phase1aManifest> = {}):
   });
 }
 
-function redactSecrets(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(redactSecrets);
+function redactSecrets(value: unknown, ancestors = new WeakSet<object>()): unknown {
+  // Keep malformed adapter diagnostics serializable without bypassing key redaction.
+  if (typeof value === 'bigint') return { non_json_type: 'bigint', decimal: value.toString() };
   if (!value || typeof value !== 'object') return typeof value === 'string' && secretPattern.test(value) ? '[REDACTED]' : value;
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /secret|token|authorization|api.?key/i.test(key) ? '[REDACTED]' : redactSecrets(entry)]));
+  if (ancestors.has(value)) return { non_json_type: 'circular_reference' };
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) return value.map((entry) => redactSecrets(entry, ancestors));
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /secret|token|authorization|api.?key/i.test(key) ? '[REDACTED]' : redactSecrets(entry, ancestors)]));
+  } finally { ancestors.delete(value); }
 }
 
 export class EvidenceLedger {
@@ -531,6 +537,19 @@ export class Phase1aRuntime {
       let response: ProviderResponse;
       try { response = await provider.invoke(spec); }
       catch (error) { response = { outcome: 'provider_error', provider: spec.provider, model: spec.model, content: null, usage: null, finishReason: null, raw: { error: error instanceof Error ? error.message : String(error) } }; }
+      // As in Phase 0, missing text is technical failure, not invented behavior.
+      // Retain the received envelope before normalization in operator-only evidence.
+      if (response.outcome === 'success' && (typeof response.content !== 'string' || response.content.trim().length === 0)) {
+        response = {
+          ...response, outcome: 'invalid_response', content: null,
+          raw: {
+            provider_response: response, provider_response_format: 'redacted-json-v1',
+            validation_error: 'success_requires_nonempty_text',
+            content_present: Object.hasOwn(response, 'content'),
+            content_type: response.content === null ? 'null' : typeof response.content,
+          },
+        };
+      }
       if (response.provider !== spec.provider || response.model !== spec.model) {
         response = {
           outcome: 'invalid_response', provider: spec.provider, model: spec.model, content: null, usage: response.usage,

@@ -1,5 +1,5 @@
 {
-  "plan_hash": "sha256:7cc7856b24496cec9cf1bff34c9a37f4d331f35fe83d167fba74de30de3a1f54",
+  "plan_hash": "sha256:4180680aff05e77a44ba7c368c5a00fb3eaf8b04f1f0ed518dc08ea533f911a1",
   "notice": "ENGINEERING PREVIEW. Synthetic identities; exact current adapter prompts and operation order. Approval required.",
   "unused_registry_prompts": [
     "no-report-condition"
@@ -13,7 +13,7 @@
   },
   "runs": [
     {
-      "id": "agora-phase1a-pilot-20261111-A-r1",
+      "id": "agora-phase1a-qwen-pilot-20261112-A-r1",
       "cell": "A",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -262,7 +262,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-B-r1",
+      "id": "agora-phase1a-qwen-pilot-20261112-B-r1",
       "cell": "B",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",
@@ -588,7 +588,7 @@
       }
     },
     {
-      "id": "agora-phase1a-pilot-20261111-C-r1",
+      "id": "agora-phase1a-qwen-pilot-20261112-C-r1",
       "cell": "C",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -837,7 +837,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-D-r1",
+      "id": "agora-phase1a-qwen-pilot-20261112-D-r1",
       "cell": "D",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",
@@ -1163,7 +1163,7 @@
       }
     },
     {
-      "id": "agora-phase1a-pilot-20261111-A-r2",
+      "id": "agora-phase1a-qwen-pilot-20261112-A-r2",
       "cell": "A",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -1412,7 +1412,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-B-r2",
+      "id": "agora-phase1a-qwen-pilot-20261112-B-r2",
       "cell": "B",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",
@@ -1738,7 +1738,7 @@
       }
     },
     {
-      "id": "agora-phase1a-pilot-20261111-C-r2",
+      "id": "agora-phase1a-qwen-pilot-20261112-C-r2",
       "cell": "C",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -1987,7 +1987,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-D-r2",
+      "id": "agora-phase1a-qwen-pilot-20261112-D-r2",
       "cell": "D",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",
@@ -2313,7 +2313,7 @@
       }
     },
     {
-      "id": "agora-phase1a-pilot-20261111-A-r3",
+      "id": "agora-phase1a-qwen-pilot-20261112-A-r3",
       "cell": "A",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -2562,7 +2562,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-B-r3",
+      "id": "agora-phase1a-qwen-pilot-20261112-B-r3",
       "cell": "B",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",
@@ -2888,7 +2888,7 @@
       }
     },
     {
-      "id": "agora-phase1a-pilot-20261111-C-r3",
+      "id": "agora-phase1a-qwen-pilot-20261112-C-r3",
       "cell": "C",
       "report_disclosure": null,
       "workflowVersion": "wp03-workflow-v2",
@@ -3137,7 +3137,7 @@
       "reportAllocation": null
     },
     {
-      "id": "agora-phase1a-pilot-20261111-D-r3",
+      "id": "agora-phase1a-qwen-pilot-20261112-D-r3",
       "cell": "D",
       "report_disclosure": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
       "workflowVersion": "wp03-workflow-v2",

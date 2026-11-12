@@ -2,7 +2,7 @@
 
 The implementation combines the t0 integrity, audit remediation and WP06 analysis branches. It can rehearse all 12 workshops, preserve their evidence and resume at a completed operation boundary. **Scientific execution remains blocked until Mateo validates the exact protocol and the real deployments are documented.** This is a proposed pilot, not an approved study or an experimental result.
 
-Simon confirmed the core-only scope and requested Mateo's scientific review on 11 November 2026. InterSystems, Wild West, Grok and additional identity-cue replay experiments are outside this campaign.
+Simon confirmed the core-only scope and requested Mateo's scientific review on 11 November 2026. On 12 November he selected Qwen; this proposed amendment replaces Gemini in C/D, keeps A/B homogeneous Gemma, and retains the 12-workshop design. InterSystems, Wild West, Grok and additional identity-cue replay experiments are outside this campaign.
 
 ## Design for Mateo to approve
 
@@ -10,8 +10,8 @@ Simon confirmed the core-only scope and requested Mateo's scientific review on 1
 | --- | --- | --- | --- | --- |
 | A | Gemma, Gemma, Gemma | No | 3 | 24 |
 | B | Gemma, Gemma, Gemma | Yes | 3 | 31 |
-| C | Gemma, Gemini, Model X | No | 3 | 24 |
-| D | Gemma, Gemini, Model X | Yes | 3 | 31 |
+| C | Gemma, Qwen, Model X | No | 3 | 24 |
+| D | Gemma, Qwen, Model X | Yes | 3 | 31 |
 
 The 12 workshops contain 216 public opportunities, 90 private checkpoints and 24 report operations: **330 planned model calls**. The workshop is the independent unit. Three repetitions per cell support an exploratory descriptive pilot; turns and propositions are not independent experimental replicates. Composition comparisons concern these particular model assignments, not model diversity in general.
 
@@ -33,7 +33,9 @@ The historical candidate registry and archived manifests remain readable. The [r
 
 ## Operational proposal
 
-The [plan](proposal/plan.json) contains the topic, candidate registry, deployments, parameters, budgets, analysis rules and approval records. Model IDs, immutable revisions and deployment identifiers must be filled from actual infrastructure evidence. No Gemma, Gemini or Model X substitute is selected automatically. NVIDIA cluster access alone does not establish access to a Gemini endpoint.
+The [plan](proposal/plan.json) contains the topic, candidate registry, deployments, parameters, budgets, analysis rules and approval records. Model IDs, immutable revisions and deployment identifiers must be filled from actual infrastructure evidence. Qwen is explicitly named in the new `gemma-qwen-model-x-v1` composition variant; historical Gemini contracts retain their original meaning and remain valid. The new campaign has a distinct ID and requires its own scientific approval. The Gemini API is no longer a dependency of this proposal. Gemma and Model X still require exact bindings.
+
+The selected Qwen candidate is **Qwen3 32B, Q4_K_M**, exposed in the cluster's cached model catalog as `qwen3:32b`. Its Ollama manifest digest is `sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840`, verified on 12 November. The digest identifies the quantized artifact, not a new model version called Gemini. Cached availability does not constitute a dedicated AGORA deployment or a successful inference canary: `deployment_id` and the approved endpoint remain unset. Provision and test those before live execution, including full context capacity and Qwen thinking/output behavior. The existing shared services were inspected read-only.
 
 Proposed generation parameters are temperature 0.7, top-p 1, and at most 1024 generated tokens per call. Calls are sequential, with a 120-second timeout and at most one retry. The per-workshop thresholds are 62 calls and 500,000 accounted tokens, checked before the next call. These are not a guaranteed monetary cap: the final call can exceed the token threshold. Unknown token usage or ambiguous network completion stops further network calls and requires reconciliation. HTTP 429 can receive the single recorded retry; 401/403 is terminal. No SDK retry, model fallback, streaming, tools or silent parameter removal is used.
 

@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { configHash } from '../../../config/hash.js';
-import { CONDITION_MATRIX, ConditionIdSchema, ModelFamilySchema, type ConditionId } from '../conditions/matrix.js';
+import { CONDITION_MATRIX, QWEN_CONDITION_MATRIX, ConditionIdSchema, ModelFamilySchema, type ConditionId } from '../conditions/matrix.js';
 import { createDefaultDecisionRegister, DecisionRegisterSchema, type DecisionRegister } from '../contracts/decisions.js';
 import { SELECTED_REPORT_NOTICE_TIMING, StudyContractSchema, createStudyContract, expectedPlanningCounts, type ReportNoticeTiming, type StudyContract } from '../contracts/study.js';
 import { createSyntheticDeploymentBinding, DeploymentBindingSchema, validateDeploymentBinding, type DeploymentBinding } from '../deployments/bindings.js';
@@ -223,7 +223,8 @@ export function validateCampaignManifest(value: unknown): { valid: boolean; issu
   if (JSON.stringify(expectedCounts) !== JSON.stringify(campaign.planning_counts)) issues.push('planning counts do not match the study contract');
   const expectedIds = new Set<string>();
   for (const run of campaign.runs) {
-    const condition = CONDITION_MATRIX.find(candidate => candidate.id === run.condition_id)!;
+    const matrix = campaign.study_contract.composition_variant === 'gemma-qwen-model-x-v1' ? QWEN_CONDITION_MATRIX : CONDITION_MATRIX;
+    const condition = matrix.find(candidate => candidate.id === run.condition_id)!;
     if (!condition) { issues.push(`unknown condition: ${run.condition_id}`); continue; }
     const expectedId = `${campaign.campaign_id}-${run.condition_id}-r${run.replicate}`;
     expectedIds.add(expectedId);

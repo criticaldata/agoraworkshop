@@ -1,7 +1,7 @@
 import { z } from 'zod';
 import { implementationHash } from './provenance.js';
 import { configHash } from '../../config/hash.js';
-import { buildSyntheticCampaign, createPilotPromptRegistry, CampaignManifestSchema, validateCampaignManifest, validateDeploymentBinding, type CampaignManifest, configHashPayload, runHashPayload, campaignHashPayload } from '../wp01/index.js';
+import { buildSyntheticCampaign, QWEN_CONDITION_MATRIX, createPilotPromptRegistry, CampaignManifestSchema, validateCampaignManifest, validateDeploymentBinding, type CampaignManifest, configHashPayload, runHashPayload, campaignHashPayload } from '../wp01/index.js';
 import { adaptWp01Run } from '../wp02/adapter.js';
 import { REPORT_CODEBOOK, REPORT_CODEBOOK_HASH } from '../wp06/codebook.js';
 
@@ -75,14 +75,22 @@ export function planHash(plan: ExperimentPlan): string {
 
 export function createExperimentProposal(): ExperimentPlan {
   let campaign = buildSyntheticCampaign({ report_notice_timing: 'AFTER_T0_BEFORE_PUBLIC' });
-  campaign.campaign_id = 'agora-phase1a-pilot-20261111';
+  campaign.campaign_id = 'agora-phase1a-qwen-pilot-20261112';
+  campaign.study_contract.protocol_revision = 'phase1a-qwen-pilot-20261112';
+  campaign.study_contract.composition_variant = 'gemma-qwen-model-x-v1';
+  campaign.study_contract.conditions = structuredClone([...QWEN_CONDITION_MATRIX]);
+  campaign.source_references.push('Simon selected Qwen on 2026-11-12; replaces Gemini in this proposed variant, pending Mateo scientific approval.');
+  const deploymentDecision = campaign.decision_register.decisions.find(d => d.id === 'D02')!;
+  deploymentDecision.question = 'Which exact deployments instantiate GEMMA and QWEN in the proposed Qwen variant?';
+  deploymentDecision.current_evidence = 'Simon selected Qwen on 2026-11-12. This model-selection direction is not scientific protocol approval.';
   campaign.profile = 'draft';
   campaign.prompt_registry = createPilotPromptRegistry();
   campaign.lifecycle = 'SCIENTIFIC_FREEZE_PENDING';
   for (const run of campaign.runs) {
     run.report_allocation_policy = run.report_required ? 'COUNTERBALANCED_ROTATION' : 'NONE';
     for (const binding of run.bindings) {
-      binding.provider = binding.logical_family === 'GEMINI' ? 'gemini' : `nvidia_${binding.logical_family.toLowerCase()}`;
+      if (binding.logical_family === 'GEMINI') binding.logical_family = 'QWEN';
+      binding.provider = `nvidia_${binding.logical_family.toLowerCase()}`;
       binding.model_id = null;
       binding.endpoint_ref = `env:AGORA_${binding.logical_family}_URL`;
       binding.deployment_id = null;
@@ -90,6 +98,13 @@ export function createExperimentProposal(): ExperimentPlan {
       binding.hosting = 'unknown';
       binding.source = 'unresolved';
       binding.parameters = { temperature: 0.7, top_p: 1, max_tokens: 1024 };
+      if (binding.logical_family === 'QWEN') {
+        binding.model_id = 'qwen3:32b';
+        binding.revision = 'sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840';
+        binding.hosting = 'local';
+        binding.source = 'real';
+        // Verified cached Q4_K_M artifact. A dedicated endpoint/canary is still required.
+      }
     }
   }
   campaign = sealCampaign(campaign);
@@ -98,14 +113,14 @@ export function createExperimentProposal(): ExperimentPlan {
     topic: 'Which human limitations should societies address, what changes could address them, and what role and limits should AI agents have?',
     limits: { maxCalls: 62, maxTokens: 500000, maxRetries: 1 }, timeout_ms: 120000,
     execution_order: [1, 2, 3].flatMap(r => ['A', 'B', 'C', 'D'].map(c => `${campaign.campaign_id}-${c}-r${r}`)),
-    endpoints: ['GEMMA', 'GEMINI', 'MODEL_X'].map(family => ({
-      provider: family === 'GEMINI' ? 'gemini' : `nvidia_${family.toLowerCase()}`,
+    endpoints: ['GEMMA', 'QWEN', 'MODEL_X'].map(family => ({
+      provider: `nvidia_${family.toLowerCase()}`,
       endpoint_ref: `env:AGORA_${family}_URL`, expected_url: null, credential_env: `AGORA_${family}_CREDENTIAL`, transport: 'chat-completions',
     })),
     analysis: { codebook_hash: REPORT_CODEBOOK_HASH, codebook: structuredClone(REPORT_CODEBOOK), independent_unit: 'run', inference: 'exploratory_descriptive_only', replay_trials: 0, wild_west: false, missingness: 'retain_all_planned_runs_no_automatic_replacement', calibration_evidence_ref: null, reviewers: [] },
     data_policy: { operator: 'Simon Heilles', storage_location: null, backup_location: null, retention: null, access: 'named_operators_only_no_public_raw_exports' },
     decision_proposals: {
-      D02: 'Pin exact Gemma and Gemini deployment IDs and revisions after access verification. NVIDIA hosting requested by Simon; Gemini availability remains to verify.',
+      D02: 'Simon selected Qwen on 2026-11-12. Proposed C/D composition: Gemma, Qwen, Model X; A/B remain three Gemma instances. Pin Qwen3 32B Q4_K_M from the verified cached Ollama manifest digest; provision a dedicated endpoint and verify its revision, context capacity and thinking/output behavior before approval. Gemma and Model X remain to be bound. This is an explicit amendment to the Gemini protocol and requires Mateo approval.',
       D05: 'Fixed P1/P2/P3 speaking order in all six rounds, as directed at the 13 October meeting. No speaking-order treatment in this pilot.',
       D06: 'Approve pilot-candidate-2 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.',
       D07: 'Pin an available open-source Model X on the NVIDIA cluster; no Grok treatment in this pilot.',

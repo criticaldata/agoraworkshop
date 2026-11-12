@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os';
 import { compileExperiment, createExperimentProposal, planHash, readiness, sealCampaign } from '../src/phase1a/experiment/plan.js';
 import { ChatCompletionsProvider, resolveEndpoints } from '../src/phase1a/experiment/provider.js';
 import { executeExperiment, hasUnresolvedCall } from '../src/phase1a/experiment/runner.js';
+import { buildSyntheticCampaign, QWEN_CONDITION_MATRIX, validateCampaignManifest } from '../src/phase1a/wp01/index.js';
 import { DeterministicMockProvider, type ProviderCallSpec } from '../src/phase1a/index.js';
 
 // Test-only attestations. Never exported as actual approval evidence.
@@ -23,6 +24,35 @@ const spec: ProviderCallSpec = { operationKey: 't0:P1', participantId: 'P1', pro
 const response = (overrides = {}) => ({ model: 'test-model', choices: [{ message: { content: 'A position' }, finish_reason: 'stop' }], usage: { prompt_tokens: 12, completion_tokens: 3 }, ...overrides });
 const directories: string[] = [];
 afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
+describe('Qwen protocol amendment', () => {
+  it('replaces Gemini explicitly while preserving the four cells and 12 runs', () => {
+    const p = createExperimentProposal();
+    expect(p.campaign.study_contract.composition_variant).toBe('gemma-qwen-model-x-v1');
+    expect(p.campaign.runs).toHaveLength(12);
+    const bindings = p.campaign.runs.flatMap(r => r.bindings);
+    expect(bindings.some(b => b.logical_family === 'GEMINI')).toBe(false);
+    const qwen = bindings.filter(b => b.logical_family === 'QWEN');
+    expect(qwen).toHaveLength(6);
+    expect(qwen.every(b => b.model_id === 'qwen3:32b' && b.revision?.startsWith('sha256:030ee887'))).toBe(true);
+    expect(qwen.every(b => b.deployment_id === null)).toBe(true);
+    expect(p.endpoints.some(e => e.endpoint_ref.includes('GEMINI'))).toBe(false);
+    expect(validateCampaignManifest(p.campaign).valid).toBe(true);
+    expect(p.approvals).toEqual([]);
+  });
+  it('rejects a Qwen composition declared as the historical Gemini protocol even after rehashing', () => {
+    const p = createExperimentProposal();
+    delete p.campaign.study_contract.composition_variant;
+    expect(validateCampaignManifest(sealCampaign(p.campaign)).valid).toBe(false);
+  });
+  it('preserves historical Gemini campaigns and rejects mixed contract/binding variants', () => {
+    const c = buildSyntheticCampaign({ report_notice_timing: 'AFTER_T0_BEFORE_PUBLIC' });
+    expect(validateCampaignManifest(c).valid).toBe(true);
+    expect(c.runs.some(r => r.bindings.some(b => b.logical_family === 'GEMINI'))).toBe(true);
+    c.study_contract.composition_variant = 'gemma-qwen-model-x-v1';
+    c.study_contract.conditions = structuredClone([...QWEN_CONDITION_MATRIX]);
+    expect(validateCampaignManifest(sealCampaign(c)).issues.join(' ')).toMatch(/composition mismatch/);
+  });
+});
 describe('experiment admission', () => {
   it('keeps a draft blocked and compiles every cell only with complete evidence', () => {
     expect(readiness(createExperimentProposal()).valid).toBe(false);

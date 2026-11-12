@@ -2,7 +2,7 @@
   "schema_version": "phase1a-experiment-plan-v1",
   "campaign": {
     "schema_version": "wp01-campaign-manifest-v1",
-    "campaign_id": "agora-phase1a-pilot-20261111",
+    "campaign_id": "agora-phase1a-qwen-pilot-20261112",
     "profile": "draft",
     "timing_disposition": "SELECTED_METHOD",
     "lifecycle": "SCIENTIFIC_FREEZE_PENDING",
@@ -10,7 +10,7 @@
     "study_contract": {
       "schema_version": "wp01-study-contract-v1",
       "study_id": "agora-phase1a-reimagining-humans",
-      "protocol_revision": "phase1a-reimagining-humans-october-draft",
+      "protocol_revision": "phase1a-qwen-pilot-20261112",
       "lifecycle": "IMPLEMENTATION_READY",
       "design_factors": {
         "composition": "specified_group_composition",
@@ -39,7 +39,7 @@
           "id": "C",
           "composition": [
             "GEMMA",
-            "GEMINI",
+            "QWEN",
             "MODEL_X"
           ],
           "report_required": false
@@ -48,7 +48,7 @@
           "id": "D",
           "composition": [
             "GEMMA",
-            "GEMINI",
+            "QWEN",
             "MODEL_X"
           ],
           "report_required": true
@@ -131,9 +131,10 @@
         "AGORA Workshop Technical Architecture and Experimental Protocol v0.9, revised Phase 1A sections",
         "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
         "AGORA Phase 1A WP01 Full Implementation Mandate, sections 3-8"
-      ]
+      ],
+      "composition_variant": "gemma-qwen-model-x-v1"
     },
-    "study_contract_hash": "sha256:d80a8e71ad1d87c98b63eb07721edad75d27e13325ae1370df997450b8c73dda",
+    "study_contract_hash": "sha256:44ff38ec49e5aaec8ff05c795a2b98bc0399626789ef7e5fa8a1805212dbcabf",
     "decision_register": {
       "schema_version": "wp01-decision-register-v1",
       "register_id": "agora-phase1a-pre-freeze-decisions",
@@ -173,12 +174,12 @@
         },
         {
           "id": "D02",
-          "question": "Which exact deployments instantiate GEMMA and GEMINI?",
+          "question": "Which exact deployments instantiate GEMMA and QWEN in the proposed Qwen variant?",
           "alternatives": [
             "APPROVE_DEPLOYMENTS",
             "DEFER_DEPLOYMENTS"
           ],
-          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "current_evidence": "Simon selected Qwen on 2026-11-12. This model-selection direction is not scientific protocol approval.",
           "status": "OPEN",
           "required_approver": "scientific and infrastructure owners",
           "approval_level": "none",
@@ -569,7 +570,7 @@
         }
       ]
     },
-    "decision_register_ref": "sha256:a11ae24a529f463337d721180e075c82771a955c00a83b7f24e61ba0f9604a2f",
+    "decision_register_ref": "sha256:b92b2fb94f8e02fb8b39dd7c12da825cbcfe1a9df4a4cc22bd4b937a0818da67",
     "prompt_registry": {
       "schema_version": "wp01-prompt-registry-v1",
       "namespace": "phase1a-reimagining-humans-candidate",
@@ -987,8 +988,8 @@
     "runs": [
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-A-r1",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-A-r1",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "A",
         "replicate": 1,
         "participant_slots": [
@@ -1261,12 +1262,12 @@
           "expected_model_invocations": 24
         },
         "config_hash": "sha256:79601a0b8c9f509b5e3ea7ece366d8396d07d102f3e377d6c6d91644f8b6652a",
-        "manifest_hash": "sha256:8eb2b98a6a4477eb2f3ee21cec81fb74e9aefa49cc7b7c1e9c32041530028f51"
+        "manifest_hash": "sha256:9107275e90b96eac6794b34458c12ffa23232cecca208ba3d62104e040e7cea2"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-A-r2",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-A-r2",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "A",
         "replicate": 2,
         "participant_slots": [
@@ -1539,12 +1540,12 @@
           "expected_model_invocations": 24
         },
         "config_hash": "sha256:6b3683c5cf98f3c9d37cf36ca0ad1233b08dd12ac9abbc58964a30ff6028cc82",
-        "manifest_hash": "sha256:fa96bbe97959f47055770d0cf8afe82f3a21a162be0db5f66f864eb7f0cd2807"
+        "manifest_hash": "sha256:84437243b0e3bdfeb4637ea0295a7834e335613f1af418f769c104ec20d7dd48"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-A-r3",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-A-r3",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "A",
         "replicate": 3,
         "participant_slots": [
@@ -1817,12 +1818,12 @@
           "expected_model_invocations": 24
         },
         "config_hash": "sha256:34daf2d499e75b5d0323daccf153aa5b3e01c1af60803e0ba04d2e39c7d94772",
-        "manifest_hash": "sha256:a83023cd12a3521c44f95c097cc3aa6fa20b3a40dcaf3e42016baaa16dd7d32f"
+        "manifest_hash": "sha256:01b186658cf69ebc648bf706dfa53ac9844bf1c9df5c303e9a11dc16f7606050"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-B-r1",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-B-r1",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "B",
         "replicate": 1,
         "participant_slots": [
@@ -2159,12 +2160,12 @@
           "expected_model_invocations": 31
         },
         "config_hash": "sha256:b5cb23a23b36a54b3632a95e26dda8422cabccd3b63c004650e60d4a4ec07b93",
-        "manifest_hash": "sha256:e4c42a226c40e8887cb0c953828d4c2815ba622e0b979faa0e6a2b9044971c3c"
+        "manifest_hash": "sha256:087661c4ee236bc45dd82ef76049bed27961a07e824008c80c11b52ccade1666"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-B-r2",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-B-r2",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "B",
         "replicate": 2,
         "participant_slots": [
@@ -2501,12 +2502,12 @@
           "expected_model_invocations": 31
         },
         "config_hash": "sha256:46e5a959cfbfda4896edf4166707c5f56785eecdaa6f3bac0d2c30e64151725c",
-        "manifest_hash": "sha256:fa024ff637b09ec9cd4d24905bd998add93596d7c81490a7357026746d3e7315"
+        "manifest_hash": "sha256:c082a5c16432a4cd40c3a71711fa4b46377508b35b30764c91f90bbd33e4e7c1"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-B-r3",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-B-r3",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "B",
         "replicate": 3,
         "participant_slots": [
@@ -2843,12 +2844,12 @@
           "expected_model_invocations": 31
         },
         "config_hash": "sha256:6a785b5001213b746470cf98554191b93b372571e7f15b8d69e34264e49b6df7",
-        "manifest_hash": "sha256:180d284472122b36875ffd3f80c3d3cac0d09eecea8263066d6029a93e163ef2"
+        "manifest_hash": "sha256:06ef15fab2ab97ed99bd03ebc6bd6371a92caf1e020f448d49171e736456194b"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-C-r1",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-C-r1",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "C",
         "replicate": 1,
         "participant_slots": [
@@ -2885,14 +2886,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -3120,13 +3121,13 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:52a9665cec1fcc6bd72b87b5b57372d9d525745092d336c638d593c1e30e51bf",
-        "manifest_hash": "sha256:022cea5ac9c84c9ea734e63430832692391c66039c599c072626bc1635a030cb"
+        "config_hash": "sha256:c8c3c037edd484af4528ef305e70b6756ebb2b424cdd6585a8a25ee656e8681f",
+        "manifest_hash": "sha256:5aec5701f92dc938a56482bb45bd4d51f3eaef7a5444575ec6614d6e662f09a9"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-C-r2",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-C-r2",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "C",
         "replicate": 2,
         "participant_slots": [
@@ -3163,14 +3164,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -3398,13 +3399,13 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:4a9c4b667eced4de5dfad46fa227eaf7acd59d5d6a7301e439bcf27068ccc39d",
-        "manifest_hash": "sha256:9a818b44384bda39c927d48475d5435b90fc3dc53125dfb3518eea397d76e443"
+        "config_hash": "sha256:ea69ff605f74aa54c108d75da04405f547b54f4afd6372ba6d24a6abdd238820",
+        "manifest_hash": "sha256:93a97698d015e1ccdd0e57b87743eeb86f968eae2bae237f26fe7e527f770602"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-C-r3",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-C-r3",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "C",
         "replicate": 3,
         "participant_slots": [
@@ -3441,14 +3442,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -3676,13 +3677,13 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:150d2b2f19902a46fc83741dbcb61c216d92481b4ccc1cafb8bfa038ccf9dee4",
-        "manifest_hash": "sha256:74c6445da881c1c8ad5836186edcc7f365855d0e79b6bec9662cccaf886bef1f"
+        "config_hash": "sha256:7797c01d574a89959249edca745a218216a43a367193038b1187a0c7c6f9f93e",
+        "manifest_hash": "sha256:45a29d7256ba45d8d82ea2b2593b63f66ed927f19dc09e3bd9b10c3886d093ef"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-D-r1",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-D-r1",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "D",
         "replicate": 1,
         "participant_slots": [
@@ -3719,14 +3720,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -4018,13 +4019,13 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:ad8784ea80ef3ddd1e41ddb1f07439bcaf7fb38cc17b48c7d090fc92a911d75d",
-        "manifest_hash": "sha256:1dcf7f804a950fbd2eebf8948637dc08e428edf7061d395466a569f3c78f6115"
+        "config_hash": "sha256:856c3fa10f3783e0ea3d56a6f5b84f0dbbb02edfbeb6aa72e12bb8a07e11b894",
+        "manifest_hash": "sha256:fa999a2945ddc542b93d2607ad7b580deaba6627befd6159d1a34fb281b9c357"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-D-r2",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-D-r2",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "D",
         "replicate": 2,
         "participant_slots": [
@@ -4061,14 +4062,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -4360,13 +4361,13 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:3c770bfc5e337a3ae2f2b839a0da797c67e629ca5e363ac96ef1a22d52890497",
-        "manifest_hash": "sha256:fbe4ef2ea1610c3f5afec6d60c1c34d979810baa90668b3fe410151f16dea94a"
+        "config_hash": "sha256:7f1f2dc57a563f10fb9733bcd1e26e6612d979a753e32d5df96e375c997192cd",
+        "manifest_hash": "sha256:0da509dda7baf1b73b8fec1a87ecaa5c78eb9f5453cc9f13981465a030adce94"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
-        "run_id": "agora-phase1a-pilot-20261111-D-r3",
-        "campaign_id": "agora-phase1a-pilot-20261111",
+        "run_id": "agora-phase1a-qwen-pilot-20261112-D-r3",
+        "campaign_id": "agora-phase1a-qwen-pilot-20261112",
         "condition_id": "D",
         "replicate": 3,
         "participant_slots": [
@@ -4403,14 +4404,14 @@
           },
           {
             "participant_slot": "P2",
-            "logical_family": "GEMINI",
-            "provider": "gemini",
-            "model_id": null,
-            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "logical_family": "QWEN",
+            "provider": "nvidia_qwen",
+            "model_id": "qwen3:32b",
+            "endpoint_ref": "env:AGORA_QWEN_URL",
             "deployment_id": null,
-            "revision": null,
-            "hosting": "unknown",
-            "source": "unresolved",
+            "revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "hosting": "local",
+            "source": "real",
             "parameters": {
               "temperature": 0.7,
               "top_p": 1,
@@ -4702,18 +4703,19 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:67ee273a00b29ba506605e26ba86e8c7a19869f22aad724a39ce3337d96f06a5",
-        "manifest_hash": "sha256:f9525e47a5f81e90dea94bd66256be53cc02f4b33c13e93ba875f9ea1e21efa1"
+        "config_hash": "sha256:e13be404d81a8fa1e06d4930f9c34f728bf9acbd156c94b0a1180bbf3b35a47d",
+        "manifest_hash": "sha256:92c9d3a9f3ca531df630f19dad8510d5a7a96a734847e10d3764903a69d7450d"
       }
     ],
     "source_references": [
       "Selected method fixture: Simon Option A places the report notice after t0 and before public discussion",
       "WP01 synthetic fixture: no provider calls or runtime records are generated",
-      "AGORA Phase 1A revised October pilot"
+      "AGORA Phase 1A revised October pilot",
+      "Simon selected Qwen on 2026-11-12; replaces Gemini in this proposed variant, pending Mateo scientific approval."
     ],
-    "campaign_hash": "sha256:54d9b060aa4d264df6b7cf0e55a3f031ad0e3730fa534490d375e17c5b540d9c"
+    "campaign_hash": "sha256:8a38de0a2dff13a86942fb7f459667c0a19077b90a15c783801623bf9b0e0489"
   },
-  "implementation_hash": "sha256:34dd83b636dff400686077732598c4d926952868cf6c5b6c0915455b58cc5e03",
+  "implementation_hash": "sha256:48c2044bea09eb1192428b3e5f0a948e382c8685949ecb87e20e497bcc1b7368",
   "scientific_reviewer": "Mateo",
   "topic": "Which human limitations should societies address, what changes could address them, and what role and limits should AI agents have?",
   "limits": {
@@ -4723,18 +4725,18 @@
   },
   "timeout_ms": 120000,
   "execution_order": [
-    "agora-phase1a-pilot-20261111-A-r1",
-    "agora-phase1a-pilot-20261111-B-r1",
-    "agora-phase1a-pilot-20261111-C-r1",
-    "agora-phase1a-pilot-20261111-D-r1",
-    "agora-phase1a-pilot-20261111-A-r2",
-    "agora-phase1a-pilot-20261111-B-r2",
-    "agora-phase1a-pilot-20261111-C-r2",
-    "agora-phase1a-pilot-20261111-D-r2",
-    "agora-phase1a-pilot-20261111-A-r3",
-    "agora-phase1a-pilot-20261111-B-r3",
-    "agora-phase1a-pilot-20261111-C-r3",
-    "agora-phase1a-pilot-20261111-D-r3"
+    "agora-phase1a-qwen-pilot-20261112-A-r1",
+    "agora-phase1a-qwen-pilot-20261112-B-r1",
+    "agora-phase1a-qwen-pilot-20261112-C-r1",
+    "agora-phase1a-qwen-pilot-20261112-D-r1",
+    "agora-phase1a-qwen-pilot-20261112-A-r2",
+    "agora-phase1a-qwen-pilot-20261112-B-r2",
+    "agora-phase1a-qwen-pilot-20261112-C-r2",
+    "agora-phase1a-qwen-pilot-20261112-D-r2",
+    "agora-phase1a-qwen-pilot-20261112-A-r3",
+    "agora-phase1a-qwen-pilot-20261112-B-r3",
+    "agora-phase1a-qwen-pilot-20261112-C-r3",
+    "agora-phase1a-qwen-pilot-20261112-D-r3"
   ],
   "endpoints": [
     {
@@ -4745,10 +4747,10 @@
       "transport": "chat-completions"
     },
     {
-      "provider": "gemini",
-      "endpoint_ref": "env:AGORA_GEMINI_URL",
+      "provider": "nvidia_qwen",
+      "endpoint_ref": "env:AGORA_QWEN_URL",
       "expected_url": null,
-      "credential_env": "AGORA_GEMINI_CREDENTIAL",
+      "credential_env": "AGORA_QWEN_CREDENTIAL",
       "transport": "chat-completions"
     },
     {
@@ -4818,7 +4820,7 @@
     "access": "named_operators_only_no_public_raw_exports"
   },
   "decision_proposals": {
-    "D02": "Pin exact Gemma and Gemini deployment IDs and revisions after access verification. NVIDIA hosting requested by Simon; Gemini availability remains to verify.",
+    "D02": "Simon selected Qwen on 2026-11-12. Proposed C/D composition: Gemma, Qwen, Model X; A/B remain three Gemma instances. Pin Qwen3 32B Q4_K_M from the verified cached Ollama manifest digest; provision a dedicated endpoint and verify its revision, context capacity and thinking/output behavior before approval. Gemma and Model X remain to be bound. This is an explicit amendment to the Gemini protocol and requires Mateo approval.",
     "D05": "Fixed P1/P2/P3 speaking order in all six rounds, as directed at the 13 October meeting. No speaking-order treatment in this pilot.",
     "D06": "Approve pilot-candidate-2 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.",
     "D07": "Pin an available open-source Model X on the NVIDIA cluster; no Grok treatment in this pilot.",
@@ -4833,5 +4835,5 @@
     "D16": "A second operator reconstructs a saved mock run and checks the restored archive before live execution; retain their evidence reference."
   },
   "approvals": [],
-  "plan_hash": "sha256:7cc7856b24496cec9cf1bff34c9a37f4d331f35fe83d167fba74de30de3a1f54"
+  "plan_hash": "sha256:4180680aff05e77a44ba7c368c5a00fb3eaf8b04f1f0ed518dc08ea533f911a1"
 }

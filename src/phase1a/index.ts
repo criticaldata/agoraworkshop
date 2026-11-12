@@ -242,10 +242,16 @@ export function createFixtureManifest(overrides: Partial<Phase1aManifest> = {}):
   });
 }
 
-function redactSecrets(value: unknown): unknown {
-  if (Array.isArray(value)) return value.map(redactSecrets);
+function redactSecrets(value: unknown, ancestors = new WeakSet<object>()): unknown {
+  // Keep malformed adapter diagnostics serializable without bypassing key redaction.
+  if (typeof value === 'bigint') return { non_json_type: 'bigint', decimal: value.toString() };
   if (!value || typeof value !== 'object') return typeof value === 'string' && secretPattern.test(value) ? '[REDACTED]' : value;
-  return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /^(authorization|api[_-]?key|secret[_-]?key|access[_-]?token|refresh[_-]?token|bearer[_-]?token|session[_-]?token|token|password|passwd|pwd)$/i.test(key) ? '[REDACTED]' : redactSecrets(entry)]));
+  if (ancestors.has(value)) return { non_json_type: 'circular_reference' };
+  ancestors.add(value);
+  try {
+    if (Array.isArray(value)) return value.map((entry) => redactSecrets(entry, ancestors));
+    return Object.fromEntries(Object.entries(value as Record<string, unknown>).map(([key, entry]) => [key, /^(authorization|api[_-]?key|secret[_-]?key|access[_-]?token|refresh[_-]?token|bearer[_-]?token|session[_-]?token|token|password|passwd|pwd)$/i.test(key) ? '[REDACTED]' : redactSecrets(entry, ancestors)]));
+  } finally { ancestors.delete(value); }
 }
 
 export class EvidenceLedger {
@@ -518,7 +524,7 @@ export function verifyEvidenceBundle(bundle: EvidenceBundle): { valid: boolean; 
         errors.push(`operation_completion_link:${event.event_id}`);
       }
       const calls = callsByOperation.get(expected.key) ?? [];
-      const terminal = calls.at(-1);
+      const terminal = [...calls].sort((a, b) => a.attempt - b.attempt).at(-1);
       if (!terminal || isTechnical(terminal.terminal_status) || completed[0]?.payload.outcome !== terminal.terminal_status) {
         errors.push(`operation_terminal_evidence:${event.event_id}`);
       }
@@ -699,6 +705,7 @@ export class Phase1aRuntime {
         const code = typeof error === 'object' && error !== null && 'code' in error ? String((error as { code?: unknown }).code) : '';
         const outcome: Outcome = /permission[_ -]?denied/i.test(`${code} ${message}`) ? 'permission_denied' : 'provider_error';
         response = { outcome, provider: spec.provider, model: spec.model, content: null, usage: null, finishReason: null, raw: { error: message, error_code: code || null } };
+
       }
       response = validateProviderResponseAtBoundary(spec, response);
       const endedAt = this.clock(); record.callsUsed += 1;

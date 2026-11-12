@@ -35,6 +35,8 @@ function rechain(bundle: EvidenceBundle) {
     event.event_hash = configHash(base);
     previous = event.event_hash;
   });
+  bundle.integrity.event_count = bundle.events.length;
+  bundle.integrity.event_head_hash = previous;
 }
 
 describe('WP06 run-level descriptive analysis', () => {
@@ -173,7 +175,7 @@ describe('WP06 run-level descriptive analysis', () => {
     completion.payload = {};
     bundle.events.push(completion);
     rechain(bundle);
-    expect(() => analyzeRun(bundle)).toThrow(/missing committed opportunities/);
+    expect(() => analyzeRun(bundle)).toThrow(/completed_operation_count/);
   });
 
   it('[ANA-06] rejects tampering instead of trusting the supplied integrity flag', async () => {
@@ -188,13 +190,13 @@ describe('WP06 run-level descriptive analysis', () => {
     const commit = bundle.events.find(event => event.event_type === 'operation.committed')!;
     commit.artifact_refs = [];
     rechain(bundle);
-    expect(() => analyzeRun(bundle)).toThrow(/inconsistent committed evidence/);
+    expect(() => analyzeRun(bundle)).toThrow(/operation_commit_artifact/);
     const other = await fixture();
     const duplicate = structuredClone(other.events.find(event => event.event_type === 'operation.committed')!);
     duplicate.event_id = 'duplicate-commit';
     other.events.push(duplicate);
     rechain(other);
-    expect(() => analyzeRun(other)).toThrow(/duplicate committed/);
+    expect(() => analyzeRun(other)).toThrow(/operation_commit_order/);
   });
 
   it('[ANA-07] derives reproducible results with exact references and leaves source evidence unchanged', async () => {
@@ -207,7 +209,7 @@ describe('WP06 run-level descriptive analysis', () => {
     expect(result.totals.response_rate.source_event_ids.every(id => ids.has(id))).toBe(true);
     expect(result.opportunities.every(row => row.source_event_ids.length > 0)).toBe(true);
     const reverified = structuredClone(bundle);
-    reverified.integrity.verified_at = 'later';
+    reverified.integrity.verified_at = '2026-11-11T23:00:00.000Z';
     expect(analyzeRun(reverified).evidence_hash).toBe(result.evidence_hash);
   });
 

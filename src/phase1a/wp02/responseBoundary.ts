@@ -77,6 +77,16 @@ export function validateProviderResponseAtBoundary(
       finishReason: typeof response.finishReason === 'string' ? response.finishReason : null,
       raw: {
         ...(isRecord(response.raw) ? response.raw : {}),
+        provider_response: input,
+        provider_response_format: 'redacted-json-v1',
+        ...(outcome === 'success' && violations.includes('delivered_outcome_requires_nonempty_text') ? {
+          validation_error: 'success_requires_nonempty_text',
+          content_present: Object.hasOwn(response, 'content'),
+          content_type: response.content === null ? 'null' : typeof response.content,
+        } : {}),
+        ...(response.provider !== spec.provider || response.model !== spec.model ? {
+          adapter_identity_mismatch: { provider: response.provider, model: response.model },
+        } : {}),
         wp02_boundary_rejection: {
           violations,
           received_outcome: typeof response.outcome === 'string' ? response.outcome : null,

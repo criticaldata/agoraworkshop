@@ -17,7 +17,9 @@ deterministic operation plan and context messages without importing provider
 credentials, deployment bindings or adapter code. WP02 remains responsible for
 executing those operations against model providers. WP04 remains responsible for
 durable evidence storage; the current ledger records the WP03 plan and role
-allocation for integration testing.
+allocation, including the workflow version, for integration testing. Evidence
+verification independently recomputes the selected roles from the frozen manifest
+before a bundle can be restored, and binds every report call to that allocation.
 
 The counterbalanced allocation is recorded as WP03-D01. It remains subject to
 scientific review before a live pilot.

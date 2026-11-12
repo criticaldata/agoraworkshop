@@ -8,7 +8,7 @@ Every persisted event contains:
 
 ```json
 {
-  "schema_version": "phase1a-0.1",
+  "schema_version": "phase1a-0.2",
   "event_id": "uuid",
   "run_id": "uuid",
   "sequence": 1,
@@ -41,3 +41,10 @@ Every persisted event contains:
 - `EVD-07` — Hash chaining detects removal or reordering of events.
 - `EVD-08` — Derived metrics reference the exact event IDs and algorithm version used.
 - `EVD-09` — Exports include the manifest, schema version, artifacts index, and integrity verification result.
+Version `phase1a-0.2` adds the export head/count seals and the independent
+manifest/operation-plan binding. The seal covers the final event count and
+head hash, plus artifact and provider-call counts; provider-call identity,
+configuration, prompts, context, actor and artifact ownership are checked
+against the admitted manifest and deterministic operation plan. Evidence
+produced under `phase1a-0.1` is not silently rewritten; it requires an explicit
+migration or remains rejected by the current verifier.

@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import { mkdirSync } from 'node:fs';
 import { dirname } from 'node:path';
 import { configHash } from '../config/hash.js';
-import { verifyEvidenceBundle, type Phase1aPersistedSnapshot, type Phase1aStore } from './index.js';
+import { inferState, providerCallTokenCharge, verifyEvidenceBundle, type Phase1aPersistedSnapshot, type Phase1aStore } from './index.js';
 
 interface SnapshotRow {
   run_id: string;
@@ -38,6 +38,9 @@ export class Phase1aSqliteStore implements Phase1aStore {
   }
 
   appendSnapshot(snapshot: Phase1aPersistedSnapshot): void {
+    const verification = verifyEvidenceBundle(snapshot.bundle);
+    if (!verification.valid) throw new Error(`Cannot persist invalid Phase 1A evidence: ${verification.errors.join(', ')}`);
+    this.assertSnapshotMetadata(snapshot);
     const bundleJson = JSON.stringify(snapshot.bundle);
     const transaction = this.db.transaction(() => {
       const row = this.db.prepare('SELECT COALESCE(MAX(revision), 0) AS revision FROM phase1a_snapshots WHERE run_id = ?').get(snapshot.runId) as { revision: number };
@@ -57,7 +60,9 @@ export class Phase1aSqliteStore implements Phase1aStore {
     if (configHash(bundle) !== row.bundle_hash) throw new Error(`Durable Phase 1A snapshot hash mismatch for ${runId}`);
     const verification = verifyEvidenceBundle(bundle);
     if (!verification.valid) throw new Error(`Durable Phase 1A snapshot is invalid: ${verification.errors.join(', ')}`);
-    return { runId: row.run_id, state: row.state, callsUsed: row.calls_used, tokensUsed: row.tokens_used, bundle };
+    const snapshot = { runId: row.run_id, state: row.state, callsUsed: row.calls_used, tokensUsed: row.tokens_used, bundle };
+    this.assertSnapshotMetadata(snapshot);
+    return snapshot;
   }
 
   revisions(runId: string): number {
@@ -65,4 +70,13 @@ export class Phase1aSqliteStore implements Phase1aStore {
   }
 
   close(): void { this.db.close(); }
+
+  private assertSnapshotMetadata(snapshot: Phase1aPersistedSnapshot): void {
+    const bundleRunId = snapshot.bundle.events[0]?.run_id;
+    if (!bundleRunId || snapshot.runId !== bundleRunId) throw new Error('Durable Phase 1A snapshot run id does not match its evidence');
+    if (snapshot.state !== inferState(snapshot.bundle.events)) throw new Error('Durable Phase 1A snapshot state does not match its evidence');
+    if (snapshot.callsUsed !== snapshot.bundle.provider_calls.length) throw new Error('Durable Phase 1A snapshot call count does not match its evidence');
+    const expectedTokens = snapshot.bundle.provider_calls.reduce((sum, call) => sum + providerCallTokenCharge(call.usage), 0);
+    if (snapshot.tokensUsed !== expectedTokens) throw new Error('Durable Phase 1A snapshot token count does not match its evidence');
+  }
 }

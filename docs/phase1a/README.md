@@ -76,3 +76,7 @@ npm run phase1a:fixtures
 The fixture command writes ignored offline planning artifacts under
 `exports/phase1a_wp01_synthetic/`. It performs no provider calls and does not
 create event, message, or scientific-result records.
+
+## Core pilot review package
+
+The [12-workshop pilot package](experiment/README.md) consolidates audit remediation and WP06, adds a durable campaign CLI, and provides the exact candidate prompts and approval gates for scientific review. See its [validation evidence](experiment/VALIDATION.md) before attempting a live campaign.

@@ -11,7 +11,7 @@ import {
 } from '../wp01/index.js';
 import { markCanonicalWp01Admission } from './admission.js';
 
-export const WP01_RUNTIME_ADAPTER_VERSION = 'wp01-runtime-adapter-v1' as const;
+export const WP01_RUNTIME_ADAPTER_VERSION = 'wp01-runtime-adapter-v2' as const;
 
 export interface Wp01RuntimeAdmission {
   admissionClass: 'engineering' | 'scientific';
@@ -28,7 +28,7 @@ function prompt(campaign: CampaignManifest, id: string, variables: Record<string
 
 function assertScientificAdmission(campaign: CampaignManifest, run: RunManifest): void {
   const blockers = campaign.decision_register.decisions.filter((decision) =>
-    decision.blocking_effect === 'scientific_freeze' && decision.status !== 'CONFIRMED');
+    decision.blocking_effect === 'scientific_freeze' && (decision.status !== 'CONFIRMED' || decision.approval_level !== 'scientific_freeze' || !decision.approved_wording?.trim() || !decision.decision_date || !Number.isFinite(Date.parse(decision.decision_date))));
   const errors: string[] = [];
   if (campaign.profile !== 'scientific') errors.push('campaign profile is not scientific');
   if (campaign.lifecycle !== 'FROZEN' || campaign.freeze_status !== 'FROZEN' || campaign.study_contract.lifecycle !== 'FROZEN') errors.push('campaign and study contract are not frozen');
@@ -115,6 +115,7 @@ export function adaptWp01Run(
       review2: prompt(campaign, 'report-review-2', variables),
       revision: prompt(campaign, 'report-revision', variables),
     },
+    participantInstructions: ['common-participant', 'agent-framing', 'host-opening', 'abstention'].map(id => prompt(campaign, id, variables)).join('\n\n'),
     speakingOrder: [orderedIds, orderedIds, orderedIds, orderedIds, orderedIds, orderedIds],
     speakingOrderDecision: campaign.decision_register.decisions.find((decision) => decision.id === 'D05')!.id,
     replayPolicy: {

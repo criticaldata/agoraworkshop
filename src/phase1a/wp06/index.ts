@@ -6,7 +6,7 @@ import {
 import { buildWorkshopPlan } from '../wp03/workflow.js';
 
 export const WP06_ANALYSIS_VERSION = 'wp06-descriptive-v1';
-const outcomes: readonly Outcome[] = ['success', 'abstained', 'refused', 'timeout', 'provider_error', 'invalid_response', 'rate_limit'];
+const outcomes: readonly Outcome[] = ['success', 'abstained', 'refused', 'timeout', 'provider_error', 'invalid_response', 'rate_limit', 'permission_denied'];
 const behavioral = new Set<Outcome>(['success', 'abstained', 'refused']);
 
 /** Operator-facing metadata only. Never includes checkpoint text or raw prompts. */

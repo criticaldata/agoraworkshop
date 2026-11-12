@@ -41,6 +41,7 @@ export interface Phase1aManifest {
   rounds: readonly [RoundDefinition, RoundDefinition, RoundDefinition, RoundDefinition, RoundDefinition, RoundDefinition];
   checkpoints: Readonly<{ t0: string; t1: string; t2: string }>;
   reportPrompts: Readonly<{ disclosure: string; draft: string; review1: string; review2: string; revision: string }>;
+  participantInstructions?: string;
   speakingOrder: readonly (readonly [string, string, string])[];
   speakingOrderDecision: string;
   replayPolicy: Readonly<{ decisionId: string; mode: 'exact' | 'semantic'; tolerance: number }>;
@@ -204,6 +205,7 @@ export function createManifest(input: Phase1aManifest): Phase1aManifest {
     throw new Error('Explicit finite integer limits are required');
   }
   if (!copy.approvedAt.trim()) throw new Error('An explicit approval marker is required');
+  if (copy.participantInstructions !== undefined && (typeof copy.participantInstructions !== 'string' || !copy.participantInstructions.trim() || /\breport\b|\bjoint\b/i.test(copy.participantInstructions))) throw new Error('Shared participant instructions must be nonempty and must not anticipate the report condition');
   if (/\breport\b|\bjoint\b/i.test(copy.checkpoints.t0)) throw new Error('The t0 prompt must not anticipate the report condition');
   if (secretPattern.test(canonicalize(copy))) throw new Error('Secrets are forbidden in manifests and prompts');
   if (copy.source.admissionClass === 'fixture') assertSafeFixtureManifest(copy);

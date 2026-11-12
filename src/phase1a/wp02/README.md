@@ -3,7 +3,7 @@
 Status: `ENGINEERING_BASELINE_IMPLEMENTED_SCIENTIFIC_FREEZE_PENDING`.
 
 WP02 consumes the validated study, campaign and run manifests exported by
-`src/phase1a/wp01/index.ts` through `wp01-runtime-adapter-v1`. It owns core orchestration, stage execution,
+`src/phase1a/wp01/index.ts` through `wp01-runtime-adapter-v2`. It owns core orchestration, stage execution,
 opportunity lifecycle, model-provider adapter selection/invocation, provenance,
 and retry behavior. Engineering admission accepts explicitly labelled synthetic
 campaigns. Scientific admission rejects every non-frozen campaign, unresolved

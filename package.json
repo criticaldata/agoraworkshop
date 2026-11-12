@@ -2,7 +2,7 @@
   "name": "agora-phase0",
   "version": "0.1.0",
   "private": true,
-  "description": "AGORA Phase 0 — a controlled, replayable multi-agent workshop instrument",
+  "description": "AGORA Phase 0 \u2014 a controlled, replayable multi-agent workshop instrument",
   "type": "module",
   "engines": {
     "node": ">=22"
@@ -17,7 +17,8 @@
     "validate": "tsx src/cli.ts validate",
     "phase1a:fixtures": "tsx src/phase1a/wp01/fixtures/generate.ts",
     "phase1a:analyze": "tsx src/phase1a/wp06/cli.ts",
-    "phase1a:preview": "tsx src/phase1a/wp06/preview/server.ts"
+    "phase1a:preview": "tsx src/phase1a/wp06/preview/server.ts",
+    "phase1a:experiment": "tsx src/phase1a/experiment/cli.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

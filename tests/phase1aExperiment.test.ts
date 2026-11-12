@@ -1,0 +1,103 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
+import { compileExperiment, createExperimentProposal, planHash, readiness, sealCampaign } from '../src/phase1a/experiment/plan.js';
+import { ChatCompletionsProvider, resolveEndpoints } from '../src/phase1a/experiment/provider.js';
+import { executeExperiment, hasUnresolvedCall } from '../src/phase1a/experiment/runner.js';
+import { DeterministicMockProvider, type ProviderCallSpec } from '../src/phase1a/index.js';
+
+// Test-only attestations. Never exported as actual approval evidence.
+function approvedFixture() {
+  const p = createExperimentProposal();
+  for (const run of p.campaign.runs) for (const b of run.bindings) Object.assign(b, { model_id: `test-${b.logical_family}`, deployment_id: `test-deployment-${b.logical_family}`, revision: 'test-sha', hosting: 'local', source: 'real' });
+  for (const endpoint of p.endpoints) endpoint.expected_url = 'https://example.invalid/v1/chat/completions';
+  p.campaign = sealCampaign(p.campaign);
+  p.analysis.reviewers = ['Test coder A', 'Test coder B']; p.analysis.calibration_evidence_ref = 'test-only-calibration';
+  Object.assign(p.data_policy, { storage_location: 'test-only', backup_location: 'test-only-backup', retention: 'test-only-duration' });
+  p.plan_hash = planHash(p);
+  p.approvals = ['scientific', 'infrastructure', 'reconstruction'].map(role => ({ role: role as 'scientific' | 'infrastructure' | 'reconstruction', reviewer: role === 'scientific' ? p.scientific_reviewer : `Test ${role} reviewer`, approved_at: '2026-11-11T00:00:00.000Z', evidence_ref: 'test-fixture-not-real-approval', plan_hash: p.plan_hash }));
+  return p;
+}
+const spec: ProviderCallSpec = { operationKey: 't0:P1', participantId: 'P1', provider: 'test', model: 'test-model', configuration: { max_tokens: 16, temperature: 0.7 }, systemPrompt: 'system', userPrompt: 'question', context: [{ role: 'assistant', content: 'previous', sourceArtifactId: 'a1' }], attempt: 1 };
+const response = (overrides = {}) => ({ model: 'test-model', choices: [{ message: { content: 'A position' }, finish_reason: 'stop' }], usage: { prompt_tokens: 12, completion_tokens: 3 }, ...overrides });
+const directories: string[] = [];
+afterEach(() => { for (const path of directories.splice(0)) rmSync(path, { recursive: true, force: true }); });
+describe('experiment admission', () => {
+  it('keeps a draft blocked and compiles every cell only with complete evidence', () => {
+    expect(readiness(createExperimentProposal()).valid).toBe(false);
+    const result = compileExperiment(approvedFixture());
+    expect(result.manifests).toHaveLength(12);
+    expect(new Set(result.manifests.map(m => m.cell))).toEqual(new Set(['A', 'B', 'C', 'D']));
+    expect(result.manifests.every(m => m.source.admissionClass === 'scientific')).toBe(true);
+    expect(result.manifests[0]!.participantInstructions).toContain('Treat the other participants');
+    expect(result.manifests[1]!.reportPrompts.review1).toBe(result.manifests[1]!.reportPrompts.review2);
+    expect(result.manifests[0]!.rounds[0]!.prompt).toContain('human limitation');
+    expect(result.manifests[0]!.rounds[4]!.prompt).toContain('AI agents');
+  });
+  it('invalidates approvals when text, limits or deployment changes', () => {
+    for (const mutate of [(p: any) => p.topic += ' changed', (p: any) => p.limits.maxTokens++, (p: any) => p.campaign.runs[0].bindings[0].revision = 'different']) {
+      const p = approvedFixture(); mutate(p); expect(() => compileExperiment(p)).toThrow();
+      p.plan_hash = planHash(p); expect(() => compileExperiment(p)).toThrow(/stale/);
+    }
+  });
+  it('rejects a changed roster and cross-run model drift', () => {
+    const p = approvedFixture(); p.execution_order[1] = p.execution_order[0]!;
+    expect(readiness(p).blockers.join(' ')).toMatch(/each planned run/);
+    const q = approvedFixture(); q.campaign.runs[1]!.bindings[0]!.model_id = 'other'; q.campaign = sealCampaign(q.campaign);
+    expect(readiness(q).blockers.join(' ')).toMatch(/varies across runs/);
+  });
+  it('rejects unsafe endpoint addresses and missing credentials', () => {
+    const p = approvedFixture();
+    expect(() => resolveEndpoints(p, {})).toThrow(/Missing endpoint/);
+    expect(() => resolveEndpoints(p, { AGORA_GEMMA_URL: 'http://external.invalid/v1/chat/completions' })).toThrow(/approved plan|HTTPS/);
+  });
+});
+describe('live transport', () => {
+  it('sends the exact context once, keeps usage, and never archives credentials', async () => {
+    const fetcher = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify(response())));
+    const provider = new ChatCompletionsProvider([{ provider: 'test', url: 'https://example.invalid/v1/chat/completions', credential: 'test-secret' }], 1000, fetcher);
+    const result = await provider.invoke(spec);
+    expect(result.outcome).toBe('success'); expect(result.usage).toEqual({ inputTokens: 12, outputTokens: 3 });
+    expect(fetcher).toHaveBeenCalledTimes(1);
+    const request = JSON.parse(fetcher.mock.calls[0]![1]!.body as string);
+    expect(request.messages.map((m: any) => m.content)).toEqual(['system', 'previous', 'question']);
+    expect(JSON.stringify(result)).not.toContain('test-secret');
+  });
+  it('halts network calls after missing usage or an unexpected model', async () => {
+    for (const overrides of [{ usage: null }, { model: 'other' }]) {
+      const fetcher = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify(response(overrides))));
+      const provider = new ChatCompletionsProvider([{ provider: 'test', url: 'https://example.invalid' }], 1000, fetcher);
+      expect((await provider.invoke(spec)).outcome).toBe('invalid_response');
+      await provider.invoke(spec); expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+  });
+  it('archives explicit refusal, does not guess abstentions, and never follows redirects', async () => {
+    const fetcher = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify(response({ choices: [{ message: { content: null, refusal: 'I decline' }, finish_reason: 'stop' }] }))));
+    const provider = new ChatCompletionsProvider([{ provider: 'test', url: 'https://example.invalid' }], 1000, fetcher);
+    expect((await provider.invoke(spec)).outcome).toBe('refused');
+    expect(fetcher.mock.calls[0]![1]!.redirect).toBe('error');
+  });
+});
+describe('durable campaign runner', () => {
+  it('retains all 12 rows and resumes without reissuing completed calls', async () => {
+    const path = mkdtempSync(join(tmpdir(), 'agora-experiment-test-')); directories.push(path);
+    const p = createExperimentProposal(); const provider = new DeterministicMockProvider();
+    const first = await executeExperiment(p, path, 'mock', { provider, stopAfterRuns: 1 });
+    expect(first.rows).toHaveLength(12); expect(first.rows.filter(r => r.status === 'COMPLETE')).toHaveLength(1); expect(provider.calls).toHaveLength(24);
+    const second = await executeExperiment(p, path, 'mock', { provider });
+    expect(second.rows.every(r => r.status === 'COMPLETE')).toBe(true); expect(provider.calls).toHaveLength(330);
+    await executeExperiment(p, path, 'mock', { provider }); expect(provider.calls).toHaveLength(330);
+    const bundle = JSON.parse(readFileSync(join(path, '1-evidence.json'), 'utf8'));
+    expect(hasUnresolvedCall(bundle)).toBe(false);
+    bundle.events.push({ event_type: 'provider_call.started' }); expect(hasUnresolvedCall(bundle)).toBe(true);
+  }, 120000);
+  it('stops the campaign on failed t0 and retains missingness for the other 11 runs', async () => {
+    const path = mkdtempSync(join(tmpdir(), 'agora-experiment-test-')); directories.push(path);
+    const provider = new DeterministicMockProvider({ 't0:P1': ['permission_denied'] });
+    const p = createExperimentProposal();
+    const first = await executeExperiment(p, path, 'mock', { provider });
+    expect(first.rows[0]!.status).toBe('FAILED'); expect(first.rows.slice(1).every(r => r.status === 'NOT_STARTED')).toBe(true);
+    await executeExperiment(p, path, 'mock', { provider }); expect(provider.calls).toHaveLength(1);
+  });
+});

@@ -6,6 +6,7 @@ export type Wp03RunState = 'CREATED' | 'T0' | 'ROUND_1' | 'ROUND_2' | 'ROUND_3' 
 
 export interface Wp03Manifest {
   replication: number;
+  participantInstructions?: string;
   reportEnabled: boolean;
   participants: readonly { id: string }[];
   rounds: readonly { number: 1 | 2 | 3 | 4 | 5 | 6; prompt: string }[];
@@ -130,6 +131,13 @@ export function buildWorkshopPlan(manifest: Wp03Manifest): WorkshopPlan {
     for (const participantId of ids) {
       operations.push({ key: `t2:${participantId}`, state: 'T2', kind: 'checkpoint.t2', participantId, visibility: 'private-agent', ownerId: participantId, system: 'Deterministic Phase 1A private checkpoint', prompt: manifest.checkpoints.t2 });
     }
+  }
+  if (manifest.participantInstructions) for (const operation of operations) {
+    const role = operation.kind === 'report.review1' || operation.kind === 'report.review2' ? 'Review the supplied draft independently.'
+      : operation.kind.startsWith('checkpoint.') ? 'Answer the private checkpoint.'
+      : operation.kind.startsWith('round.') ? 'Respond as a discussion participant at your scheduled opportunity.'
+      : operation.kind === 'report.draft' ? 'Prepare the report draft from the supplied discussion.' : 'Revise the draft using the supplied reviews.';
+    operation.system = `${manifest.participantInstructions}\n\n${role}`;
   }
   return { workflowVersion: WP03_WORKFLOW_VERSION, operations, reportAllocation };
 }

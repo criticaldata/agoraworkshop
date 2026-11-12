@@ -33,7 +33,7 @@ export const RunManifestSchema = z.object({
   order: z.tuple([z.literal('P1'), z.literal('P2'), z.literal('P3')]),
   report_required: z.boolean(),
   report_notice_timing: z.enum(['BEFORE_T0', 'AFTER_T0_BEFORE_PUBLIC', 'NONE']),
-  report_allocation_policy: z.literal('UNRESOLVED'),
+  report_allocation_policy: z.enum(['UNRESOLVED', 'COUNTERBALANCED_ROTATION', 'NONE']),
   bindings: z.array(BoundDeploymentSchema).length(3),
   prompt_registry_namespace: z.literal('phase1a-reimagining-humans-candidate'),
   prompt_registry_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/),
@@ -70,12 +70,12 @@ export const CampaignManifestSchema = z.object({
 }).strict();
 export type CampaignManifest = z.infer<typeof CampaignManifestSchema>;
 
-function runHashPayload(run: RunManifest | Omit<RunManifest, 'manifest_hash'>): Omit<RunManifest, 'manifest_hash'> {
+export function runHashPayload(run: RunManifest | Omit<RunManifest, 'manifest_hash'>): Omit<RunManifest, 'manifest_hash'> {
   const { manifest_hash: _manifest_hash, ...payload } = run as RunManifest;
   return payload;
 }
 
-function configHashPayload(run: Omit<RunManifest, 'manifest_hash'>): unknown {
+export function configHashPayload(run: Omit<RunManifest, 'manifest_hash'>): unknown {
   return {
     condition_id: run.condition_id,
     replicate: run.replicate,
@@ -91,7 +91,7 @@ function configHashPayload(run: Omit<RunManifest, 'manifest_hash'>): unknown {
   };
 }
 
-function campaignHashPayload(campaign: CampaignManifest): Omit<CampaignManifest, 'campaign_hash'> {
+export function campaignHashPayload(campaign: CampaignManifest): Omit<CampaignManifest, 'campaign_hash'> {
   const { campaign_hash: _campaign_hash, ...payload } = campaign;
   return payload;
 }
@@ -230,6 +230,12 @@ export function validateCampaignManifest(value: unknown): { valid: boolean; issu
     if (run.run_id !== expectedId) issues.push(`run ID mismatch: ${run.run_id}`);
     if (run.report_required !== condition.report_required) issues.push(`report assignment mismatch: ${run.run_id}`);
     if (JSON.stringify(run.bindings.map(binding => binding.logical_family)) !== JSON.stringify(condition.composition)) issues.push(`composition mismatch: ${run.run_id}`);
+    if (run.campaign_id !== campaign.campaign_id) issues.push(`run campaign ID mismatch: ${run.run_id}`);
+    if (run.prompt_registry_hash !== campaign.prompt_registry_hash) issues.push(`run prompt registry mismatch: ${run.run_id}`);
+    if (JSON.stringify(run.expected_counts) !== JSON.stringify(runExpectedCounts(run.report_required))) issues.push(`run expected counts mismatch: ${run.run_id}`);
+    if (new Set(run.bindings.map(binding => binding.participant_slot)).size !== 3
+      || run.bindings.some((binding, i) => binding.participant_slot !== run.participant_slots[i])) issues.push(`participant binding order mismatch: ${run.run_id}`);
+    if (campaign.profile === 'scientific' && run.report_allocation_policy !== (run.report_required ? 'COUNTERBALANCED_ROTATION' : 'NONE')) issues.push(`unresolved report allocation: ${run.run_id}`);
     const agendaIssues = validateRunAgenda(run.condition_id, run.report_notice_timing, run.agenda);
     issues.push(...agendaIssues.map(issue => `${run.run_id}: ${issue}`));
     if (run.manifest_hash !== configHash(runHashPayload(run))) issues.push(`run manifest hash mismatch: ${run.run_id}`);

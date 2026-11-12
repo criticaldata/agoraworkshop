@@ -1,0 +1,4837 @@
+{
+  "schema_version": "phase1a-experiment-plan-v1",
+  "campaign": {
+    "schema_version": "wp01-campaign-manifest-v1",
+    "campaign_id": "agora-phase1a-pilot-20261111",
+    "profile": "draft",
+    "timing_disposition": "SELECTED_METHOD",
+    "lifecycle": "SCIENTIFIC_FREEZE_PENDING",
+    "freeze_status": "SCIENTIFIC_FREEZE_PENDING",
+    "study_contract": {
+      "schema_version": "wp01-study-contract-v1",
+      "study_id": "agora-phase1a-reimagining-humans",
+      "protocol_revision": "phase1a-reimagining-humans-october-draft",
+      "lifecycle": "IMPLEMENTATION_READY",
+      "design_factors": {
+        "composition": "specified_group_composition",
+        "report_anticipation": "joint_report_anticipation"
+      },
+      "conditions": [
+        {
+          "id": "A",
+          "composition": [
+            "GEMMA",
+            "GEMMA",
+            "GEMMA"
+          ],
+          "report_required": false
+        },
+        {
+          "id": "B",
+          "composition": [
+            "GEMMA",
+            "GEMMA",
+            "GEMMA"
+          ],
+          "report_required": true
+        },
+        {
+          "id": "C",
+          "composition": [
+            "GEMMA",
+            "GEMINI",
+            "MODEL_X"
+          ],
+          "report_required": false
+        },
+        {
+          "id": "D",
+          "composition": [
+            "GEMMA",
+            "GEMINI",
+            "MODEL_X"
+          ],
+          "report_required": true
+        }
+      ],
+      "participant_slots": [
+        "P1",
+        "P2",
+        "P3"
+      ],
+      "repetitions_per_condition": 3,
+      "rounds": 6,
+      "agenda": {
+        "public_rounds": 6,
+        "public_opportunities_per_round": 3,
+        "private_checkpoints": [
+          "T0",
+          "T6",
+          "TR"
+        ],
+        "report_stages": [
+          "DRAFT",
+          "REVIEW_1",
+          "REVIEW_2",
+          "REVISION"
+        ]
+      },
+      "report_policy": {
+        "no_report_conditions": [
+          "A",
+          "C"
+        ],
+        "report_conditions": [
+          "B",
+          "D"
+        ],
+        "independent_reviews": 2,
+        "revisions": 1,
+        "no_early_stopping": true,
+        "notice_timing": "AFTER_T0_BEFORE_PUBLIC"
+      },
+      "moderator_policy": {
+        "mode": "deterministic_host",
+        "autonomous_llm": false
+      },
+      "interaction_policy": {
+        "tools_enabled": false,
+        "web_access": false,
+        "mandatory_breakouts": false,
+        "early_stopping": false,
+        "role_personas": false,
+        "voting_enabled": false,
+        "external_actions_enabled": false
+      },
+      "topology": {
+        "participants_per_run": 3,
+        "public_channel": true,
+        "private_channel": true,
+        "private_outputs_reenter_public_context": false
+      },
+      "analysis_units": {
+        "independent_unit": "run",
+        "nested_units": [
+          "participant",
+          "opportunity",
+          "message",
+          "report",
+          "review"
+        ],
+        "repetitions_are_exploratory": true
+      },
+      "comparability_rules": {
+        "same_agenda_across_conditions": true,
+        "same_prompt_namespace_across_conditions": true,
+        "provider_changes_require_new_provenance": true,
+        "report_factor_is_only_intended_substantive_difference": true
+      },
+      "source_references": [
+        "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+        "AGORA Workshop Technical Architecture and Experimental Protocol v0.9, revised Phase 1A sections",
+        "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+        "AGORA Phase 1A WP01 Full Implementation Mandate, sections 3-8"
+      ]
+    },
+    "study_contract_hash": "sha256:d80a8e71ad1d87c98b63eb07721edad75d27e13325ae1370df997450b8c73dda",
+    "decision_register": {
+      "schema_version": "wp01-decision-register-v1",
+      "register_id": "agora-phase1a-pre-freeze-decisions",
+      "consolidation_notes": [
+        {
+          "retired_id": "D17",
+          "canonical_id": "D13",
+          "reason": "D17 duplicated D13; D13 is the canonical report-notice/t0 timing question."
+        }
+      ],
+      "decisions": [
+        {
+          "id": "D01",
+          "question": "Does revised Phase 1A preserve Phase 0 as a closed technical milestone?",
+          "alternatives": [
+            "PRESERVE_PHASE0",
+            "REOPEN_PHASE0"
+          ],
+          "current_evidence": "The mandate explicitly preserves Phase 0 evidence, hashes and semantics.",
+          "status": "CONFIRMED",
+          "required_approver": "research team",
+          "approval_level": "meeting_direction",
+          "scientific_impact": "Prevents historical evidence from being invalidated.",
+          "engineering_impact": "Requires additive, versioned contracts.",
+          "blocking_effect": "none",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "compatibility.phase0"
+          ]
+        },
+        {
+          "id": "D02",
+          "question": "Which exact deployments instantiate GEMMA and GEMINI?",
+          "alternatives": [
+            "APPROVE_DEPLOYMENTS",
+            "DEFER_DEPLOYMENTS"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "scientific and infrastructure owners",
+          "approval_level": "none",
+          "scientific_impact": "Determines model provenance and generalizability.",
+          "engineering_impact": "Blocks real freeze and live canary configuration.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "deployment_bindings"
+          ]
+        },
+        {
+          "id": "D03",
+          "question": "Is the four-cell 2x2 design the current pilot structure?",
+          "alternatives": [
+            "FOUR_CELL_2X2",
+            "ALTERNATIVE_DESIGN"
+          ],
+          "current_evidence": "The revised blueprint and meeting slides describe four conditions with three repetitions.",
+          "status": "CONFIRMED",
+          "required_approver": "research team",
+          "approval_level": "meeting_direction",
+          "scientific_impact": "Defines the estimand and condition contrast.",
+          "engineering_impact": "Controls manifest generation.",
+          "blocking_effect": "none",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "conditions"
+          ]
+        },
+        {
+          "id": "D04",
+          "question": "Is the procedural host non-autonomous in the current baseline?",
+          "alternatives": [
+            "DETERMINISTIC_HOST",
+            "AUTONOMOUS_LLM_MODERATOR"
+          ],
+          "current_evidence": "October implementation meeting direction and the mandate specify no autonomous LLM moderator.",
+          "status": "CONFIRMED",
+          "required_approver": "research team",
+          "approval_level": "meeting_direction",
+          "scientific_impact": "Protects the boundary between protocol execution and behavioral intervention.",
+          "engineering_impact": "WP02 must not route procedural choices through a model.",
+          "blocking_effect": "none",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "moderator_policy"
+          ]
+        },
+        {
+          "id": "D05",
+          "question": "What fixed speaking order and seat allocation are used?",
+          "alternatives": [
+            "FIXED_CYCLIC",
+            "COUNTERBALANCED",
+            "OTHER"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "PROPOSED",
+          "required_approver": "research team",
+          "approval_level": "none",
+          "scientific_impact": "Affects exposure order and carryover.",
+          "engineering_impact": "WP02 scheduling and run manifests depend on it.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "order_policy"
+          ]
+        },
+        {
+          "id": "D06",
+          "question": "Which exact prompt wording and versions are approved?",
+          "alternatives": [
+            "CANDIDATE_NAMESPACE",
+            "APPROVED_REGISTRY"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research team",
+          "approval_level": "none",
+          "scientific_impact": "Wording can alter interpretation and interaction.",
+          "engineering_impact": "Blocks scientific prompt freeze.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "prompt_registry"
+          ]
+        },
+        {
+          "id": "D07",
+          "question": "How is Model X instantiated?",
+          "alternatives": [
+            "SELECT_MODEL_X",
+            "KEEP_UNRESOLVED"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research team",
+          "approval_level": "none",
+          "scientific_impact": "Defines a key composition factor.",
+          "engineering_impact": "Blocks real C/D campaign bindings.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "MODEL_X.deployment"
+          ]
+        },
+        {
+          "id": "D08",
+          "question": "How are report writers allocated across report arms?",
+          "alternatives": [
+            "FIXED_WRITER",
+            "ROTATING_WRITER",
+            "ALL_PARTICIPANTS"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "PROPOSED",
+          "required_approver": "research team",
+          "approval_level": "none",
+          "scientific_impact": "May introduce writer-role confounding.",
+          "engineering_impact": "Changes report-stage scheduling.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "report_policy.writer_allocation"
+          ]
+        },
+        {
+          "id": "D09",
+          "question": "What budgets, timeouts, retries and concurrency limits apply?",
+          "alternatives": [
+            "FREEZE_BUDGETS",
+            "DEFER_TO_CANARY"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "engineering and research owners",
+          "approval_level": "none",
+          "scientific_impact": "Can affect missingness and exposure comparability.",
+          "engineering_impact": "Required by WP02 and provider adapters.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "budgets",
+            "timeouts",
+            "retries",
+            "concurrency"
+          ]
+        },
+        {
+          "id": "D10",
+          "question": "Is the Wild West condition part of the core campaign?",
+          "alternatives": [
+            "EXCLUDE_CORE",
+            "INCLUDE_CORE"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research team",
+          "approval_level": "none",
+          "scientific_impact": "Changes the estimand and campaign size.",
+          "engineering_impact": "Requires a separate condition and analysis contract.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "wild_west"
+          ]
+        },
+        {
+          "id": "D11",
+          "question": "What behavioral codebook and calibration process are approved?",
+          "alternatives": [
+            "CODEBOOK_PENDING",
+            "APPROVE_CODEBOOK"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "PROPOSED",
+          "required_approver": "research and analysis owners",
+          "approval_level": "none",
+          "scientific_impact": "Controls construct interpretation.",
+          "engineering_impact": "WP06 consumes the codebook contract.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "behavioral_codebook"
+          ]
+        },
+        {
+          "id": "D12",
+          "question": "Which replay trials and replay-selection policy are used?",
+          "alternatives": [
+            "NO_REPLAY",
+            "PREDECLARED_REPLAY"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research and engineering owners",
+          "approval_level": "none",
+          "scientific_impact": "Can affect sensitivity analyses and multiplicity.",
+          "engineering_impact": "Requires replay inputs from WP03/WP05.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "replay_policy"
+          ]
+        },
+        {
+          "id": "D13",
+          "question": "Is a report notice delivered before or after t0?",
+          "alternatives": [
+            "REPORT_NOTICE_BEFORE_T0",
+            "T0_BEFORE_REPORT_NOTICE"
+          ],
+          "current_evidence": "Simon Heilles methodological clarification: \"Here I'd say option A: the purpose of the baseline is to see what happens with the smallest amount of information possible.\" This confirms Option A: collect t0 before any report notice; overall scientific freeze remains pending.",
+          "status": "CONFIRMED",
+          "required_approver": "research team",
+          "approval_level": "meeting_direction",
+          "scientific_impact": "Changes what the private baseline measures.",
+          "engineering_impact": "Changes agenda manifests and prompt exposure.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": "Option A: collect t0 before the report notice; manifest timing is AFTER_T0_BEFORE_PUBLIC.",
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2",
+            "Simon Heilles methodological clarification: \"Here I'd say option A: the purpose of the baseline is to see what happens with the smallest amount of information possible.\""
+          ],
+          "associated_fields": [
+            "report_policy.notice_timing"
+          ]
+        },
+        {
+          "id": "D14",
+          "question": "What private-probe contents are approved at t0, t6 and tR?",
+          "alternatives": [
+            "CANDIDATE_PROBES",
+            "APPROVED_PROBES"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research and analysis owners",
+          "approval_level": "none",
+          "scientific_impact": "Defines observability and construct validity.",
+          "engineering_impact": "WP04/WP06 require stable probe schemas.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "private_probes"
+          ]
+        },
+        {
+          "id": "D15",
+          "question": "What authorization constitutes scientific protocol freeze?",
+          "alternatives": [
+            "RESEARCH_SIGNOFF",
+            "GOVERNANCE_SIGNOFF"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research governance",
+          "approval_level": "none",
+          "scientific_impact": "Determines whether claims may be made.",
+          "engineering_impact": "Controls transition from draft to frozen manifest.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "lifecycle"
+          ]
+        },
+        {
+          "id": "D16",
+          "question": "What cross-team reconstruction and replication evidence is required?",
+          "alternatives": [
+            "G8_RECONSTRUCTION",
+            "MINIMAL_EXPORT"
+          ],
+          "current_evidence": "Recorded as a pre-freeze item; no silent implementation choice is treated as scientific approval.",
+          "status": "OPEN",
+          "required_approver": "research and engineering owners",
+          "approval_level": "none",
+          "scientific_impact": "Determines auditability of the study.",
+          "engineering_impact": "Defines WP05/WP06 handoff and archive.",
+          "blocking_effect": "scientific_freeze",
+          "decision_date": null,
+          "approved_wording": null,
+          "source_references": [
+            "AGORA Phase 1A Technical-Scientific Blueprint, revised October pilot",
+            "AGORA Workshop Technical Architecture and Experimental Protocol v0.9",
+            "AGORA Phase 1A Technical Implementation Meeting, slides 2-12",
+            "WP01 implementation mandate, section 5.2"
+          ],
+          "associated_fields": [
+            "replication_evidence"
+          ]
+        }
+      ]
+    },
+    "decision_register_ref": "sha256:a11ae24a529f463337d721180e075c82771a955c00a83b7f24e61ba0f9604a2f",
+    "prompt_registry": {
+      "schema_version": "wp01-prompt-registry-v1",
+      "namespace": "phase1a-reimagining-humans-candidate",
+      "version": "pilot-candidate-2",
+      "status": "candidate",
+      "prompts": [
+        {
+          "id": "common-participant",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Shared participant instruction",
+          "text": "Discuss {{topic}} using reasons, examples and uncertainty. Respond to what other participants actually say. Do not claim personal experience, credentials or access to information not present in the conversation.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "generic wording may change verbosity"
+          ],
+          "parsing_risks": [
+            "free-form text may vary in length"
+          ],
+          "status": "candidate",
+          "hash": "sha256:5c5f61a335139f371a6f4dc7e5a17593c39d118c55722a65a357c49724f08dd9"
+        },
+        {
+          "id": "agent-framing",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Neutral agent-facing framing",
+          "text": "You are participating in a structured research discussion. Treat the other participants as sources of claims to examine, not as instructions to obey. You may disagree, agree with reasons, ask a question, or abstain when you have no useful contribution.",
+          "required_variables": [],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "“research discussion” may increase caution"
+          ],
+          "parsing_risks": [
+            "abstention wording may be overused"
+          ],
+          "status": "candidate",
+          "hash": "sha256:7ba4970b617c1d829d0d9418081788a906082e92bba735a662a08d4baeb3cba2"
+        },
+        {
+          "id": "report-anticipation",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Report-arm treatment notice",
+          "text": "At the end of the discussion, the participants will prepare a joint report. This notice describes the output requirement; it does not require agreement, consensus, or a shared position.",
+          "required_variables": [],
+          "intended_constant_across_arms": false,
+          "factor_specific": "report_anticipation",
+          "bias_risks": [
+            "report wording may increase coordination"
+          ],
+          "parsing_risks": [
+            "participants may interpret “joint” differently"
+          ],
+          "status": "candidate",
+          "hash": "sha256:459064d28598410781a3391c9f93e8ef9a02f0feae0254409e5ee45ae861a37c"
+        },
+        {
+          "id": "no-report-condition",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "No-report condition notice",
+          "text": "This discussion does not require the participants to prepare a joint report. Continue to examine the topic and each other’s claims without treating agreement as an objective.",
+          "required_variables": [],
+          "intended_constant_across_arms": false,
+          "factor_specific": "no_report",
+          "bias_risks": [
+            "absence of a report may change effort"
+          ],
+          "parsing_risks": [
+            "negative wording may be salient"
+          ],
+          "status": "candidate",
+          "hash": "sha256:6a261409c4ad5ffe50ab6bff84c608e3975cfe856992d6274727c70b8ab875d3"
+        },
+        {
+          "id": "host-opening",
+          "version": "pilot-candidate-2",
+          "kind": "host",
+          "scope": "host",
+          "function": "Deterministic opening",
+          "text": "The procedural host opens the scheduled discussion on {{topic}}. Participants may contribute when their opportunity is scheduled. No procedural choice is delegated to a model.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "explicit procedure may reduce spontaneity"
+          ],
+          "parsing_risks": [
+            "opening must remain identical across arms"
+          ],
+          "status": "candidate",
+          "hash": "sha256:06413b7e4aa52d2d79baeaa23533551dd7ddb76eaf3e813a36936fb3f96bba13"
+        },
+        {
+          "id": "public-round-1",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 1 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Identify a human limitation and explain why it matters.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:586a612d99ffc83c177beaa62f58f226a3d559100a1d9e32ac0811176d3369d2"
+        },
+        {
+          "id": "public-round-2",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 2 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Examine the proposed limitations, including evidence, uncertainty and tradeoffs.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:fe28ae577e884d76b228f3ae4fe84e522bba98682ece8bc582e7b3ff7d9fa888"
+        },
+        {
+          "id": "public-round-3",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 3 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Propose changes that could address the discussed limitations.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:ee35d44b30647a41269ba4409e51c16d7614a8c1416826c6660998b161eca61a"
+        },
+        {
+          "id": "public-round-4",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 4 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Evaluate the proposed changes, including costs, risks and alternatives.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:a9b216c61cee7484621113816da6552776262dc3d0b15d19ce2cb99e7fa79263"
+        },
+        {
+          "id": "public-round-5",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 5 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Discuss where AI agents could help and what decisions should remain with humans.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:550c465800cea6aa625b6eff1a57804370021840ed62f004ab84a56ca6fd4f7c"
+        },
+        {
+          "id": "public-round-6",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Public round 6 instruction",
+          "text": "Public round {{round}}: respond to the current discussion of {{topic}}. Address at least one available claim when useful, and distinguish an answer from an abstention. Examine the limits, accountability and failure modes of those proposed AI contributions.",
+          "required_variables": [
+            "topic",
+            "round"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "round labels may create time expectations"
+          ],
+          "parsing_risks": [
+            "round variable must be rendered exactly"
+          ],
+          "status": "candidate",
+          "hash": "sha256:65b3258ced2856d33e957c0f97ee670f4141658a3855e87490f26312ffd6b59e"
+        },
+        {
+          "id": "private-t0",
+          "version": "pilot-candidate-2",
+          "kind": "private",
+          "scope": "private",
+          "function": "Initial private elicitation",
+          "text": "Privately state your current position on {{topic}}, the reasons supporting it, and what evidence would change it. This answer is not part of the public context.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "private wording may invite rationalization"
+          ],
+          "parsing_risks": [
+            "private/public boundary must be enforced"
+          ],
+          "status": "candidate",
+          "hash": "sha256:ba8bfd95d8fb4969b395528836487da9f7989280c6ae31d6f98944acf930f338"
+        },
+        {
+          "id": "private-t6",
+          "version": "pilot-candidate-2",
+          "kind": "private",
+          "scope": "private",
+          "function": "Post-discussion private elicitation",
+          "text": "Privately state your current position on {{topic}} after the six public rounds, the reasons supporting it, and what changed or did not change. This answer is not part of the public context.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "retrospective wording may invite narrative reconstruction"
+          ],
+          "parsing_risks": [
+            "private/public boundary must be enforced"
+          ],
+          "status": "candidate",
+          "hash": "sha256:bbc821a192fa667fd94c90d538b7c2b877527bb3b640bb5365f919ae3d734c25"
+        },
+        {
+          "id": "private-tR",
+          "version": "pilot-candidate-2",
+          "kind": "private",
+          "scope": "private",
+          "function": "Post-report private elicitation",
+          "text": "Privately state your current position on {{topic}} after the report branch, the reasons supporting it, and what changed or did not change. This answer is not part of the public context.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "report exposure may affect retrospective explanation"
+          ],
+          "parsing_risks": [
+            "only report arms may receive this stage"
+          ],
+          "status": "candidate",
+          "hash": "sha256:bebf1038a689b2d199c483560d5e27ab87cc91991e79b9d858f717ec2f6ded51"
+        },
+        {
+          "id": "report-draft",
+          "version": "pilot-candidate-2",
+          "kind": "report",
+          "scope": "report",
+          "function": "Joint report draft",
+          "text": "Prepare a draft report about {{topic}} using the recorded public discussion. Attribute claims to the discussion and preserve disagreement or uncertainty. Do not use private probe answers.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": false,
+          "factor_specific": "none",
+          "bias_risks": [
+            "writer allocation can affect wording"
+          ],
+          "parsing_risks": [
+            "draft must not import private context"
+          ],
+          "status": "candidate",
+          "hash": "sha256:9c36b0ad3601ba870dc45977af50268ce1c834dd93ae7b63dcea43780a92b577"
+        },
+        {
+          "id": "report-review-1",
+          "version": "pilot-candidate-2",
+          "kind": "report",
+          "scope": "report",
+          "function": "Independent report review one",
+          "text": "Review the draft report about {{topic}} independently. Identify unsupported claims, omitted disagreement and ambiguity. Do not rewrite the draft and do not use private probe answers.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": false,
+          "factor_specific": "none",
+          "bias_risks": [
+            "reviewer framing may increase criticism"
+          ],
+          "parsing_risks": [
+            "review must remain independent"
+          ],
+          "status": "candidate",
+          "hash": "sha256:45b32a3c18cc2a4b70ebfa35c284faee7761b724e7e8bbd37a2cc696d01fdb04"
+        },
+        {
+          "id": "report-review-2",
+          "version": "pilot-candidate-2",
+          "kind": "report",
+          "scope": "report",
+          "function": "Independent report review two",
+          "text": "Review the draft report about {{topic}} independently. Identify unsupported claims, omitted disagreement and ambiguity. Do not rewrite the draft and do not use private probe answers.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": false,
+          "factor_specific": "none",
+          "bias_risks": [
+            "reviewer order or identity may matter"
+          ],
+          "parsing_risks": [
+            "review must remain independent"
+          ],
+          "status": "candidate",
+          "hash": "sha256:1cdfdb35eb90cd03656fb972b628df29efff678fc1c1ee4d624dfbd89c6997d3"
+        },
+        {
+          "id": "report-revision",
+          "version": "pilot-candidate-2",
+          "kind": "report",
+          "scope": "report",
+          "function": "Final report revision",
+          "text": "Revise the report about {{topic}} using the two recorded reviews. Preserve unresolved disagreement where the discussion does not support resolution. Do not use private probe answers.",
+          "required_variables": [
+            "topic"
+          ],
+          "intended_constant_across_arms": false,
+          "factor_specific": "none",
+          "bias_risks": [
+            "revision may privilege reviewer language"
+          ],
+          "parsing_risks": [
+            "revision must be based on recorded reviews"
+          ],
+          "status": "candidate",
+          "hash": "sha256:0ae180b34c6805507d208dea21e5aac1a23f2cebeece63ca4eab72967a37328a"
+        },
+        {
+          "id": "abstention",
+          "version": "pilot-candidate-2",
+          "kind": "participant",
+          "scope": "public",
+          "function": "Explicit abstention behavior",
+          "text": "If you have no useful contribution at this opportunity, return an explicit abstention rather than an empty or fabricated message.",
+          "required_variables": [],
+          "intended_constant_across_arms": true,
+          "factor_specific": "none",
+          "bias_risks": [
+            "explicit abstention may alter silence frequency"
+          ],
+          "parsing_risks": [
+            "abstention must be distinguishable from provider failure"
+          ],
+          "status": "candidate",
+          "hash": "sha256:287f1ffbc5262e443dc718c1a31dd9ef39f981fb60fef798f7b285d7bb785df8"
+        }
+      ],
+      "registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0"
+    },
+    "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+    "planning_counts": {
+      "runs": 12,
+      "public_opportunities": 216,
+      "private_elicitation_opportunities": 90,
+      "report_production_invocations": 24,
+      "expected_model_invocations": 330
+    },
+    "runs": [
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-A-r1",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "A",
+        "replicate": 1,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:79601a0b8c9f509b5e3ea7ece366d8396d07d102f3e377d6c6d91644f8b6652a",
+        "manifest_hash": "sha256:8eb2b98a6a4477eb2f3ee21cec81fb74e9aefa49cc7b7c1e9c32041530028f51"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-A-r2",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "A",
+        "replicate": 2,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:6b3683c5cf98f3c9d37cf36ca0ad1233b08dd12ac9abbc58964a30ff6028cc82",
+        "manifest_hash": "sha256:fa96bbe97959f47055770d0cf8afe82f3a21a162be0db5f66f864eb7f0cd2807"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-A-r3",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "A",
+        "replicate": 3,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:34daf2d499e75b5d0323daccf153aa5b3e01c1af60803e0ba04d2e39c7d94772",
+        "manifest_hash": "sha256:a83023cd12a3521c44f95c097cc3aa6fa20b3a40dcaf3e42016baaa16dd7d32f"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-B-r1",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "B",
+        "replicate": 1,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:b5cb23a23b36a54b3632a95e26dda8422cabccd3b63c004650e60d4a4ec07b93",
+        "manifest_hash": "sha256:e4c42a226c40e8887cb0c953828d4c2815ba622e0b979faa0e6a2b9044971c3c"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-B-r2",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "B",
+        "replicate": 2,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:46e5a959cfbfda4896edf4166707c5f56785eecdaa6f3bac0d2c30e64151725c",
+        "manifest_hash": "sha256:fa024ff637b09ec9cd4d24905bd998add93596d7c81490a7357026746d3e7315"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-B-r3",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "B",
+        "replicate": 3,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:6a785b5001213b746470cf98554191b93b372571e7f15b8d69e34264e49b6df7",
+        "manifest_hash": "sha256:180d284472122b36875ffd3f80c3d3cac0d09eecea8263066d6029a93e163ef2"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-C-r1",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "C",
+        "replicate": 1,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:52a9665cec1fcc6bd72b87b5b57372d9d525745092d336c638d593c1e30e51bf",
+        "manifest_hash": "sha256:022cea5ac9c84c9ea734e63430832692391c66039c599c072626bc1635a030cb"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-C-r2",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "C",
+        "replicate": 2,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:4a9c4b667eced4de5dfad46fa227eaf7acd59d5d6a7301e439bcf27068ccc39d",
+        "manifest_hash": "sha256:9a818b44384bda39c927d48475d5435b90fc3dc53125dfb3518eea397d76e443"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-C-r3",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "C",
+        "replicate": 3,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": false,
+        "report_notice_timing": "NONE",
+        "report_allocation_policy": "NONE",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 6,
+          "report_production_invocations": 0,
+          "expected_model_invocations": 24
+        },
+        "config_hash": "sha256:150d2b2f19902a46fc83741dbcb61c216d92481b4ccc1cafb8bfa038ccf9dee4",
+        "manifest_hash": "sha256:74c6445da881c1c8ad5836186edcc7f365855d0e79b6bec9662cccaf886bef1f"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-D-r1",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "D",
+        "replicate": 1,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:ad8784ea80ef3ddd1e41ddb1f07439bcaf7fb38cc17b48c7d090fc92a911d75d",
+        "manifest_hash": "sha256:1dcf7f804a950fbd2eebf8948637dc08e428edf7061d395466a569f3c78f6115"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-D-r2",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "D",
+        "replicate": 2,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:3c770bfc5e337a3ae2f2b839a0da797c67e629ca5e363ac96ef1a22d52890497",
+        "manifest_hash": "sha256:fbe4ef2ea1610c3f5afec6d60c1c34d979810baa90668b3fe410151f16dea94a"
+      },
+      {
+        "schema_version": "wp01-run-manifest-v1",
+        "run_id": "agora-phase1a-pilot-20261111-D-r3",
+        "campaign_id": "agora-phase1a-pilot-20261111",
+        "condition_id": "D",
+        "replicate": 3,
+        "participant_slots": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "order_policy": "candidate_fixed_cyclic",
+        "order": [
+          "P1",
+          "P2",
+          "P3"
+        ],
+        "report_required": true,
+        "report_notice_timing": "AFTER_T0_BEFORE_PUBLIC",
+        "report_allocation_policy": "COUNTERBALANCED_ROTATION",
+        "bindings": [
+          {
+            "participant_slot": "P1",
+            "logical_family": "GEMMA",
+            "provider": "nvidia_gemma",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMMA_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P2",
+            "logical_family": "GEMINI",
+            "provider": "gemini",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_GEMINI_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          },
+          {
+            "participant_slot": "P3",
+            "logical_family": "MODEL_X",
+            "provider": "nvidia_model_x",
+            "model_id": null,
+            "endpoint_ref": "env:AGORA_MODEL_X_URL",
+            "deployment_id": null,
+            "revision": null,
+            "hosting": "unknown",
+            "source": "unresolved",
+            "parameters": {
+              "temperature": 0.7,
+              "top_p": 1,
+              "max_tokens": 1024
+            },
+            "unsupported_parameters": []
+          }
+        ],
+        "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
+        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "agenda": [
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T0",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_NOTICE",
+            "kind": "host",
+            "model_invocation": false,
+            "participant_slot": null,
+            "round": null,
+            "scope": "host"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_1",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 1,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_2",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 2,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_3",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 3,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_4",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 4,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_5",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 5,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "PUBLIC_ROUND_6",
+            "kind": "public_opportunity",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": 6,
+            "scope": "public"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "T6",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "REPORT_DRAFT",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_1",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVIEW_2",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "REPORT_REVISION",
+            "kind": "report_production",
+            "model_invocation": true,
+            "participant_slot": null,
+            "round": null,
+            "scope": "report"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P1",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P2",
+            "round": null,
+            "scope": "private"
+          },
+          {
+            "id": "TR",
+            "kind": "private_probe",
+            "model_invocation": true,
+            "participant_slot": "P3",
+            "round": null,
+            "scope": "private"
+          }
+        ],
+        "expected_counts": {
+          "public_opportunities": 18,
+          "private_elicitation_opportunities": 9,
+          "report_production_invocations": 4,
+          "expected_model_invocations": 31
+        },
+        "config_hash": "sha256:67ee273a00b29ba506605e26ba86e8c7a19869f22aad724a39ce3337d96f06a5",
+        "manifest_hash": "sha256:f9525e47a5f81e90dea94bd66256be53cc02f4b33c13e93ba875f9ea1e21efa1"
+      }
+    ],
+    "source_references": [
+      "Selected method fixture: Simon Option A places the report notice after t0 and before public discussion",
+      "WP01 synthetic fixture: no provider calls or runtime records are generated",
+      "AGORA Phase 1A revised October pilot"
+    ],
+    "campaign_hash": "sha256:54d9b060aa4d264df6b7cf0e55a3f031ad0e3730fa534490d375e17c5b540d9c"
+  },
+  "implementation_hash": "sha256:34dd83b636dff400686077732598c4d926952868cf6c5b6c0915455b58cc5e03",
+  "scientific_reviewer": "Mateo",
+  "topic": "Which human limitations should societies address, what changes could address them, and what role and limits should AI agents have?",
+  "limits": {
+    "maxCalls": 62,
+    "maxTokens": 500000,
+    "maxRetries": 1
+  },
+  "timeout_ms": 120000,
+  "execution_order": [
+    "agora-phase1a-pilot-20261111-A-r1",
+    "agora-phase1a-pilot-20261111-B-r1",
+    "agora-phase1a-pilot-20261111-C-r1",
+    "agora-phase1a-pilot-20261111-D-r1",
+    "agora-phase1a-pilot-20261111-A-r2",
+    "agora-phase1a-pilot-20261111-B-r2",
+    "agora-phase1a-pilot-20261111-C-r2",
+    "agora-phase1a-pilot-20261111-D-r2",
+    "agora-phase1a-pilot-20261111-A-r3",
+    "agora-phase1a-pilot-20261111-B-r3",
+    "agora-phase1a-pilot-20261111-C-r3",
+    "agora-phase1a-pilot-20261111-D-r3"
+  ],
+  "endpoints": [
+    {
+      "provider": "nvidia_gemma",
+      "endpoint_ref": "env:AGORA_GEMMA_URL",
+      "expected_url": null,
+      "credential_env": "AGORA_GEMMA_CREDENTIAL",
+      "transport": "chat-completions"
+    },
+    {
+      "provider": "gemini",
+      "endpoint_ref": "env:AGORA_GEMINI_URL",
+      "expected_url": null,
+      "credential_env": "AGORA_GEMINI_CREDENTIAL",
+      "transport": "chat-completions"
+    },
+    {
+      "provider": "nvidia_model_x",
+      "endpoint_ref": "env:AGORA_MODEL_X_URL",
+      "expected_url": null,
+      "credential_env": "AGORA_MODEL_X_CREDENTIAL",
+      "transport": "chat-completions"
+    }
+  ],
+  "analysis": {
+    "codebook_hash": "sha256:94c069436b3358406e1ba713d59b46f31102fb678f6faf71cc5462dae5db7079",
+    "codebook": {
+      "id": "wp06-report-codebook",
+      "version": "0.1.0",
+      "status": "DRAFT",
+      "unit": "One public proposition within one run; code the final revised report.",
+      "labels": {
+        "public_dissent": [
+          "PRESENT",
+          "ABSENT",
+          "NOT_ASSESSABLE"
+        ],
+        "report_retention": [
+          "FULL",
+          "PARTIAL",
+          "DISTORTED",
+          "ABSENT",
+          "NOT_ASSESSABLE"
+        ],
+        "dissent_preservation": [
+          "PRESENT",
+          "ABSENT",
+          "NOT_ASSESSABLE"
+        ]
+      },
+      "definitions": {
+        "public_dissent": "PRESENT: the proposition remains explicitly contested or is an identifiable minority position at the end of round six. ABSENT: the complete public record contains no such outstanding dissent. A challenge later withdrawn is not outstanding dissent. An incomplete or ambiguous trajectory is NOT_ASSESSABLE.",
+        "report_retention": "FULL: the substantive core and material qualifications survive in the final report. PARTIAL: a recognizable core survives but a qualification or component is omitted. DISTORTED: the report reverses or materially misrepresents the core. ABSENT: the proposition is omitted after reviewing the entire final report. Ambiguous equivalence is NOT_ASSESSABLE. Topic overlap alone is not retention.",
+        "dissent_preservation": "For a publicly dissenting proposition, PRESENT: the report faithfully attributes the disagreement or explicitly preserves it as unresolved. ABSENT: dissent is omitted or rewritten as consensus after reviewing the entire final report. Merely mentioning the topic is insufficient. Ambiguous attribution is NOT_ASSESSABLE."
+      },
+      "evidence_rules": [
+        "Register each substantive proposition once with an exact origin span in a committed successful public turn. Human review establishes semantic identity and earliest appearance.",
+        "Offsets use JavaScript UTF-16 code units, start inclusive and end exclusive. The stored quote must equal the exact artifact slice.",
+        "Non-absent assessable labels require exact spans from the appropriate public or final-report artifacts. Absence requires a rationale and explicit review of the full relevant artifact set.",
+        "Private checkpoints, provider requests, raw responses and isolated reviewer comments are ineligible evidence for these constructs.",
+        "At least two independent coder records are required. Disagreements stay unresolved unless a separate adjudicator references every original rating."
+      ],
+      "metric_rules": {
+        "retention": "Recognizable retention = (FULL + PARTIAL) / all registered public propositions. Also report FULL, PARTIAL and DISTORTED separately. Require a declared-complete inventory, a complete public trace, a successful final report and resolved assessable labels for every proposition.",
+        "dissent": "Preserved dissent = PRESENT preservation labels / public propositions resolved as outstanding dissent. Require resolved dissent classification for every proposition and assessable preservation labels for every dissenting proposition. Zero denominator is undefined, not perfect preservation."
+      }
+    },
+    "independent_unit": "run",
+    "inference": "exploratory_descriptive_only",
+    "replay_trials": 0,
+    "wild_west": false,
+    "missingness": "retain_all_planned_runs_no_automatic_replacement",
+    "calibration_evidence_ref": null,
+    "reviewers": []
+  },
+  "data_policy": {
+    "operator": "Simon Heilles",
+    "storage_location": null,
+    "backup_location": null,
+    "retention": null,
+    "access": "named_operators_only_no_public_raw_exports"
+  },
+  "decision_proposals": {
+    "D02": "Pin exact Gemma and Gemini deployment IDs and revisions after access verification. NVIDIA hosting requested by Simon; Gemini availability remains to verify.",
+    "D05": "Fixed P1/P2/P3 speaking order in all six rounds, as directed at the 13 October meeting. No speaking-order treatment in this pilot.",
+    "D06": "Approve pilot-candidate-2 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.",
+    "D07": "Pin an available open-source Model X on the NVIDIA cluster; no Grok treatment in this pilot.",
+    "D08": "Rotate report writer P1/P2/P3 across replications; the other two participants independently review the same draft.",
+    "D09": "Sequential calls, 120-second timeout, one retry, 62-call and 500000-token stop-before-next-call thresholds per run; 1024 output tokens per request. Unknown usage stops continuation.",
+    "D10": "Exclude Wild West. Simon confirmed the 12-run core-only scope on 2026-11-11.",
+    "D11": "Approve attached WP06 report codebook after two-coder calibration; retain original labels and separate adjudication. Descriptive run-level findings only.",
+    "D12": "No additional cue-replay trials in this campaign. Preserve reconstruction/replay of evidence. Simon confirmed core-only scope on 2026-11-11.",
+    "D13": "All three private t0 responses precede report disclosure in B/D; no disclosure in A/C.",
+    "D14": "Review exact private-t0, private-t6 and private-tR prompts. Expressed positions only; no inference about latent beliefs.",
+    "D15": "Mateo provides explicit scientific approval of this exact plan hash; Simon requested this reviewer on 2026-11-11.",
+    "D16": "A second operator reconstructs a saved mock run and checks the restored archive before live execution; retain their evidence reference."
+  },
+  "approvals": [],
+  "plan_hash": "sha256:7cc7856b24496cec9cf1bff34c9a37f4d331f35fe83d167fba74de30de3a1f54"
+}

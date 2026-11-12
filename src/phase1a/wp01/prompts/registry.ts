@@ -99,3 +99,24 @@ export function validatePromptRegistry(value: unknown): { valid: boolean; issues
   if (configHash(registryBase) !== parsed.data.registry_hash) issues.push('prompt registry hash mismatch');
   return { valid: issues.length === 0, issues };
 }
+
+/** New candidate wording for the pilot; historical registry remains reproducible. */
+export function createPilotPromptRegistry(): PromptRegistry {
+  const registry = createPromptRegistry();
+  const focus = [
+    'Identify a human limitation and explain why it matters.',
+    'Examine the proposed limitations, including evidence, uncertainty and tradeoffs.',
+    'Propose changes that could address the discussed limitations.',
+    'Evaluate the proposed changes, including costs, risks and alternatives.',
+    'Discuss where AI agents could help and what decisions should remain with humans.',
+    'Examine the limits, accountability and failure modes of those proposed AI contributions.',
+  ];
+  for (const p of registry.prompts) {
+    if (p.id.startsWith('public-round-')) p.text += ` ${focus[Number(p.id.split('-').at(-1)) - 1]}`;
+    if (p.id === 'report-review-2') p.text = registry.prompts.find(other => other.id === 'report-review-1')!.text;
+    p.version = 'pilot-candidate-2'; p.hash = hashCandidate(p);
+  }
+  registry.version = 'pilot-candidate-2';
+  const { registry_hash: _, ...base } = registry; registry.registry_hash = configHash(base);
+  return registry;
+}

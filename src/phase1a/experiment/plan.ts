@@ -1,4 +1,6 @@
 import { z } from 'zod';
+import { readFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { implementationHash } from './provenance.js';
 import { configHash } from '../../config/hash.js';
 import { buildSyntheticCampaign, QWEN_CONDITION_MATRIX, createPilotPromptRegistry, CampaignManifestSchema, validateCampaignManifest, validateDeploymentBinding, type CampaignManifest, configHashPayload, runHashPayload, campaignHashPayload } from '../wp01/index.js';
@@ -25,6 +27,8 @@ export const ExperimentPlanSchema = z.object({
     provider: z.string().min(1),
     endpoint_ref: z.string().regex(/^env:[A-Z][A-Z0-9_]+$/),
     expected_url: z.string().url().nullable(),
+    deployment_config_hash: z.string().regex(/^sha256:[0-9a-f]{64}$/).optional(),
+    expected_model_revision: z.string().regex(/^sha256:[0-9a-f]{64}$/).optional(),
     credential_env: z.string().regex(/^[A-Z][A-Z0-9_]+$/).nullable(),
     transport: z.literal('chat-completions'),
   }).strict()).length(3),
@@ -46,6 +50,13 @@ export const ExperimentPlanSchema = z.object({
     retention: z.string().nullable(),
     access: z.literal('named_operators_only_no_public_raw_exports'),
   }).strict(),
+  collection_gate: z.object({
+    policy: z.literal('mateo_reviewed_collection_before_human_coding_v1'),
+    calibration: z.literal('two_independent_coders_on_external_material_before_human_analysis'),
+    reconstruction: z.literal('automated_restore_not_independent_human_attestation'),
+    canary: z.object({ path: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
+    restore: z.object({ path: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
+  }).strict().optional(),
   decision_proposals: z.record(z.string(), z.string().min(1)),
   approvals: z.array(approvalSchema),
   plan_hash: z.string(),
@@ -152,10 +163,11 @@ export function readiness(planInput: unknown): { valid: boolean; blockers: strin
   const runIds = plan.campaign.runs.map(r => r.run_id);
   if (new Set(plan.execution_order).size !== 12 || plan.execution_order.some(id => !runIds.includes(id))) blockers.push('Execution order must contain each planned run exactly once');
   if (configHash(plan.analysis.codebook) !== REPORT_CODEBOOK_HASH) blockers.push('Codebook content/hash mismatch');
-  if (new Set(plan.analysis.reviewers).size < 2) blockers.push('Two independent human coders must be named');
-  if (!plan.analysis.calibration_evidence_ref?.trim()) blockers.push('Human calibration evidence is missing');
+  if (!plan.collection_gate && new Set(plan.analysis.reviewers).size < 2) blockers.push('Two independent human coders must be named');
+  if (!plan.collection_gate && !plan.analysis.calibration_evidence_ref?.trim()) blockers.push('Human calibration evidence is missing');
   for (const field of ['storage_location', 'backup_location', 'retention'] as const) if (!plan.data_policy[field]?.trim()) blockers.push(`Data policy ${field} is missing`);
-  for (const role of ['scientific', 'infrastructure', 'reconstruction'] as const) {
+  const requiredRoles = plan.collection_gate ? ['scientific'] as const : ['scientific', 'infrastructure', 'reconstruction'] as const;
+  for (const role of requiredRoles) {
     const approvals = plan.approvals.filter(a => a.role === role);
     if (approvals.length !== 1 || approvals[0]!.plan_hash !== plan.plan_hash) blockers.push(`Missing or stale ${role} approval`);
   }
@@ -164,6 +176,32 @@ export function readiness(planInput: unknown): { valid: boolean; blockers: strin
   const reconstruction = plan.approvals.find(a => a.role === 'reconstruction');
   if (reconstruction?.reviewer === plan.data_policy.operator) blockers.push('Reconstruction must be checked by a second operator');
   for (const endpoint of plan.endpoints) if (!endpoint.expected_url) blockers.push(`Infrastructure must pin endpoint URL: ${endpoint.provider}`);
+  if (plan.collection_gate) {
+    const loadEvidence = (kind: 'canary' | 'restore'): any => {
+      const ref = plan.collection_gate![kind];
+      try {
+        const bytes = readFileSync(ref.path);
+        if (createHash('sha256').update(bytes).digest('hex') !== ref.sha256) throw new Error('digest mismatch');
+        const evidence = JSON.parse(bytes.toString('utf8'));
+        if (!evidence || typeof evidence !== 'object' || Array.isArray(evidence)) throw new Error('evidence must be an object');
+        return evidence;
+      } catch { blockers.push(`Missing or changed ${kind} evidence`); return null; }
+    };
+    const canary = loadEvidence('canary');
+    if (canary) {
+      if (canary.result !== 'pass' || canary.mode !== 'engineering_only_not_scientific_data' || !canary.overflow_rejection?.passed || !canary.unauthenticated_rejection?.passed || canary.final_health?.halted !== null) blockers.push('Deployment canary is incomplete or failed');
+      for (const endpoint of plan.endpoints) {
+        if (!endpoint.deployment_config_hash || endpoint.deployment_config_hash !== canary.deployment_config_hash || !endpoint.expected_model_revision) blockers.push(`Missing or inconsistent deployment pin: ${endpoint.provider}`);
+      }
+      for (const binding of plan.campaign.runs.flatMap(r => r.bindings)) {
+        if (!['short', 'long-context'].every(kind => (Array.isArray(canary.results) ? canary.results : []).some((r: any) => r.kind === kind && r.passed === true && r.model === binding.model_id && r.model_revision === binding.revision))) blockers.push(`Missing model canary: ${binding.logical_family}`);
+        const endpoint = plan.endpoints.find(e => e.provider === binding.provider);
+        if (endpoint?.expected_model_revision !== binding.revision) blockers.push(`Endpoint revision differs from binding: ${binding.logical_family}`);
+      }
+    }
+    const restore = loadEvidence('restore');
+    if (restore && (restore.result !== 'pass' || restore.mode !== 'automated_encrypted_backup_restore' || restore.verified_bundles !== 12 || restore.verified_calls !== 330 || !restore.remote_ciphertext_sha256 || !restore.byte_identical || !restore.separate_process)) blockers.push('Encrypted backup/restore verification is incomplete or failed');
+  }
   const deployments = new Map<string, string>();
   for (const run of plan.campaign.runs) for (const binding of run.bindings) {
     const parameters = z.object({ temperature: z.number().min(0).max(2), top_p: z.number().min(0).max(1), max_tokens: z.number().int().positive().max(16384), seed: z.number().int().optional() }).strict().safeParse(binding.parameters);

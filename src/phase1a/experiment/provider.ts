@@ -1,7 +1,7 @@
 import type { Phase1aProvider, ProviderCallSpec, ProviderResponse, Outcome } from '../index.js';
 import type { ExperimentPlan } from './plan.js';
 
-export interface ResolvedEndpoint { provider: string; url: string; credential?: string }
+export interface ResolvedEndpoint { provider: string; url: string; credential?: string; expectedConfigHash?: string; expectedRevision?: string }
 export function resolveEndpoints(plan: ExperimentPlan, env: NodeJS.ProcessEnv = process.env): ResolvedEndpoint[] {
   return plan.endpoints.map(endpoint => {
     const value = env[endpoint.endpoint_ref.slice(4)];
@@ -11,7 +11,7 @@ export function resolveEndpoints(plan: ExperimentPlan, env: NodeJS.ProcessEnv = 
     if ((url.protocol !== 'https:' && !(url.protocol === 'http:' && ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname))) || url.username || url.password || url.search || url.hash || !url.pathname.endsWith('/chat/completions')) throw new Error(`Endpoint must be HTTPS (or loopback HTTP), without embedded credentials, and end in /chat/completions: ${endpoint.provider}`);
     const credential = endpoint.credential_env ? env[endpoint.credential_env] : undefined;
     if (endpoint.credential_env && !credential) throw new Error(`Missing credential environment variable ${endpoint.credential_env}`);
-    return { provider: endpoint.provider, url: url.href, credential };
+    return { provider: endpoint.provider, url: url.href, credential, expectedConfigHash: endpoint.deployment_config_hash, expectedRevision: endpoint.expected_model_revision };
   });
 }
 
@@ -47,6 +47,10 @@ export class ChatCompletionsProvider implements Phase1aProvider {
     const knownUsage = Number.isSafeInteger(usage?.prompt_tokens) && usage.prompt_tokens >= 0 && Number.isSafeInteger(usage?.completion_tokens) && usage.completion_tokens >= 0;
     if (!knownUsage) this.haltedReason = 'Missing or invalid token accounting';
     const raw = { http_status: response.status, response: data, transport_stop: this.haltedReason };
+    if ((endpoint.expectedConfigHash && data?.agora_deployment?.config_hash !== endpoint.expectedConfigHash) || (endpoint.expectedRevision && data?.agora_deployment?.model_revision !== endpoint.expectedRevision)) {
+      this.haltedReason = 'Deployment configuration or model revision differs from approved plan';
+      return result('invalid_response', { ...raw, transport_stop: this.haltedReason });
+    }
     const choice = data?.choices?.[0];
     if (!knownUsage || data?.model !== spec.model || !Array.isArray(data?.choices) || data.choices.length !== 1) {
       this.haltedReason ??= 'Unexpected model identity or response shape';

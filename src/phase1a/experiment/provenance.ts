@@ -7,7 +7,7 @@ import { configHash } from '../../config/hash.js';
 export function implementationHash(): string {
   const root = fileURLToPath(new URL('../../../', import.meta.url));
   function files(directory: string): string[] {
-    return readdirSync(directory, { withFileTypes: true }).flatMap(entry => entry.isDirectory() ? files(join(directory, entry.name)) : [join(directory, entry.name)]);
+    return readdirSync(directory, { withFileTypes: true }).filter(entry => entry.name !== '__pycache__').flatMap(entry => entry.isDirectory() ? files(join(directory, entry.name)) : [join(directory, entry.name)]);
   }
   const paths = [...files(join(root, 'src')), join(root, 'package.json'), join(root, 'package-lock.json')].sort();
   return configHash(paths.map(path => ({ path: relative(root, path), content_hash: configHash(readFileSync(path, 'utf8')) })));

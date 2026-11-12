@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { createHash } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { compileExperiment, createExperimentProposal, planHash, readiness, sealCampaign } from '../src/phase1a/experiment/plan.js';
 import { ChatCompletionsProvider, resolveEndpoints } from '../src/phase1a/experiment/provider.js';
@@ -65,6 +66,36 @@ describe('experiment admission', () => {
     expect(result.manifests[0]!.rounds[0]!.prompt).toContain('human limitation');
     expect(result.manifests[0]!.rounds[4]!.prompt).toContain('AI agents');
   });
+  it('permits the explicit collection-only gate with verified technical evidence and still requires Mateo', () => {
+    const path = mkdtempSync(join(tmpdir(), 'agora-gate-test-')); directories.push(path);
+    const p = approvedFixture();
+    const hash = 'sha256:' + 'a'.repeat(64);
+    for (const r of p.campaign.runs) for (const b of r.bindings) b.revision = hash;
+    p.campaign = sealCampaign(p.campaign);
+    for (const e of p.endpoints) { e.deployment_config_hash = hash; e.expected_model_revision = hash; }
+    const put = (name: string, value: unknown) => {
+      const bytes = JSON.stringify(value); const file = join(path, name); writeFileSync(file, bytes);
+      return {path: file, sha256: createHash('sha256').update(bytes).digest('hex')};
+    };
+    p.collection_gate = {
+      policy: 'mateo_reviewed_collection_before_human_coding_v1',
+      calibration: 'two_independent_coders_on_external_material_before_human_analysis',
+      reconstruction: 'automated_restore_not_independent_human_attestation',
+      canary: put('canary.json', {result:'pass', mode:'engineering_only_not_scientific_data', deployment_config_hash:hash, overflow_rejection:{passed:true}, unauthenticated_rejection:{passed:true}, final_health:{halted:null}, results: ['GEMMA','QWEN','MODEL_X'].flatMap(f => ['short','long-context'].map(kind => ({kind,passed:true,model:`test-${f}`,model_revision:hash})))}),
+      restore: put('restore.json', {result:'pass',mode:'automated_encrypted_backup_restore',verified_bundles:12,verified_calls:330,remote_ciphertext_sha256:'test-only',byte_identical:true,separate_process:true}),
+    };
+    p.analysis.reviewers = []; p.analysis.calibration_evidence_ref = null;
+    p.plan_hash = planHash(p); p.approvals = [];
+    expect(readiness(p).blockers).toEqual(['Missing or stale scientific approval']);
+    p.approvals = [{role:'scientific',reviewer:'Mateo',approved_at:'2026-11-12T00:00:00.000Z',plan_hash:p.plan_hash,evidence_ref:'test-only-not-real-approval'}];
+    expect(compileExperiment(p).manifests).toHaveLength(12);
+    writeFileSync(p.collection_gate.restore.path, '{}');
+    expect(readiness(p).blockers).toContain('Missing or changed restore evidence');
+    p.collection_gate.restore = put('restore.json', null);
+    expect(readiness(p).blockers).toContain('Missing or changed restore evidence');
+    p.collection_gate.restore = put('restore.json',{result:'fail'});
+    expect(readiness(p).blockers).toContain('Encrypted backup/restore verification is incomplete or failed');
+  });
   it('invalidates approvals when text, limits or deployment changes', () => {
     for (const mutate of [(p: any) => p.topic += ' changed', (p: any) => p.limits.maxTokens++, (p: any) => p.campaign.runs[0].bindings[0].revision = 'different']) {
       const p = approvedFixture(); mutate(p); expect(() => compileExperiment(p)).toThrow();
@@ -101,6 +132,16 @@ describe('live transport', () => {
       expect((await provider.invoke(spec)).outcome).toBe('invalid_response');
       await provider.invoke(spec); expect(fetcher).toHaveBeenCalledTimes(1);
     }
+  });
+  it('pins deployment configuration and weights revision and halts after drift', async () => {
+    for (const deployment of [undefined, {config_hash: 'other', model_revision: 'revision'}, {config_hash: 'config', model_revision: 'other'}]) {
+      const fetcher = vi.fn(async () => new Response(JSON.stringify(response({agora_deployment: deployment}))));
+      const provider = new ChatCompletionsProvider([{provider: 'test', url: 'https://example.invalid', expectedConfigHash: 'config', expectedRevision: 'revision'}], 1000, fetcher);
+      expect((await provider.invoke(spec)).outcome).toBe('invalid_response');
+      await provider.invoke(spec); expect(fetcher).toHaveBeenCalledTimes(1);
+    }
+    const provider = new ChatCompletionsProvider([{provider: 'test', url: 'https://example.invalid', expectedConfigHash: 'config', expectedRevision: 'revision'}], 1000, async () => new Response(JSON.stringify(response({agora_deployment: {config_hash: 'config', model_revision: 'revision'}}))));
+    expect((await provider.invoke(spec)).outcome).toBe('success');
   });
   it('archives explicit refusal, does not guess abstentions, and never follows redirects', async () => {
     const fetcher = vi.fn(async (_url: string | URL | Request, _init?: RequestInit) => new Response(JSON.stringify(response({ choices: [{ message: { content: null, refusal: 'I decline' }, finish_reason: 'stop' }] }))));

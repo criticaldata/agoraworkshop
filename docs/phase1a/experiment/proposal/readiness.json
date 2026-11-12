@@ -1,29 +1,6 @@
 {
   "valid": false,
   "blockers": [
-    "Two independent human coders must be named",
-    "Human calibration evidence is missing",
-    "Data policy storage_location is missing",
-    "Data policy backup_location is missing",
-    "Data policy retention is missing",
-    "Missing or stale scientific approval",
-    "Missing or stale infrastructure approval",
-    "Missing or stale reconstruction approval",
-    "Infrastructure must pin endpoint URL: nvidia_gemma",
-    "Infrastructure must pin endpoint URL: nvidia_qwen",
-    "Infrastructure must pin endpoint URL: nvidia_model_x",
-    "GEMMA: scientific freeze requires a real deployment binding",
-    "GEMMA: scientific freeze requires model_id",
-    "GEMMA: scientific freeze requires deployment_id",
-    "GEMMA: scientific freeze requires revision",
-    "GEMMA: scientific freeze requires declared real hosting",
-    "GEMMA: unresolved deployment bindings are allowed only in draft profiles",
-    "QWEN: scientific freeze requires deployment_id",
-    "MODEL_X: scientific freeze requires a real deployment binding",
-    "MODEL_X: scientific freeze requires model_id",
-    "MODEL_X: scientific freeze requires deployment_id",
-    "MODEL_X: scientific freeze requires revision",
-    "MODEL_X: scientific freeze requires declared real hosting",
-    "MODEL_X: unresolved deployment bindings are allowed only in draft profiles"
+    "Missing or stale scientific approval"
   ]
 }

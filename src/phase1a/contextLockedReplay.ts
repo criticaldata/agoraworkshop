@@ -8,7 +8,7 @@ import {
   type ProviderCallSpec,
 } from './index.js';
 
-export const REPLAY_SCHEMA_VERSION = 'wp05-0.1' as const;
+export const REPLAY_SCHEMA_VERSION = 'wp05-0.2' as const;
 
 export type ReplayCellId = 'R1' | 'R2' | 'R3' | 'R4';
 export type ReplayOutcome =
@@ -93,6 +93,8 @@ export interface ReplayPlan {
     notes: string | null;
   }>;
   parentFingerprint: string;
+  /** Hash of the complete confirmed plan, excluding this field itself. */
+  approvalFingerprint: string | null;
 }
 
 export interface ReplayInvocation {
@@ -135,6 +137,7 @@ export interface ReplayAttemptRecord {
   usage: { inputTokens: number | null; outputTokens: number | null } | null;
   contextHash: string;
   rawHash: string;
+  failureReason: string | null;
 }
 
 export interface ReplayTrialRecord {
@@ -215,6 +218,23 @@ function withoutHash(snapshot: Omit<ReplaySnapshot, 'snapshotHash'>): Omit<Repla
   return snapshot;
 }
 
+function replayPlanApprovalPayload(plan: ReplayPlan): Omit<ReplayPlan, 'approvalFingerprint'> {
+  const { approvalFingerprint: _approvalFingerprint, ...payload } = plan;
+  return payload;
+}
+
+function replayPlanApprovalFingerprint(plan: ReplayPlan): string {
+  return hash(replayPlanApprovalPayload(plan));
+}
+
+function approvalIsIntact(plan: ReplayPlan): boolean {
+  return Boolean(plan.approvalFingerprint) && replayPlanApprovalFingerprint(plan) === plan.approvalFingerprint;
+}
+
+function assertApprovalIsIntact(plan: ReplayPlan): void {
+  if (!approvalIsIntact(plan)) throw new Error('Replay plan changed after approval; invalidate it and require re-review before provider calls');
+}
+
 function readStoredRequest(bundle: EvidenceBundle, callId: string): { call: EvidenceBundle['provider_calls'][number]; request: StoredRequest } {
   const call = bundle.provider_calls.find((candidate) => candidate.call_id === callId);
   if (!call) throw new Error(`Unknown parent call ${callId}`);
@@ -283,6 +303,7 @@ export function createReplayPlan(bundle: EvidenceBundle, input: ReplayPlanInput,
     retryPolicy: clone(input.retryPolicy),
     review: { status: 'PENDING', reviewerId: null, meaningPreserved: false, residualIdentityTerms: identityTerms, notes: null },
     parentFingerprint: evidenceFingerprint(bundle),
+    approvalFingerprint: null,
   }) as ReplayPlan;
 }
 
@@ -290,10 +311,20 @@ export function approveReplayPlan(plan: ReplayPlan, approval: ReplayApproval, no
   if (plan.status !== 'DRAFT') throw new Error('Only a draft replay plan can be approved');
   if (!approval.reviewerId.trim()) throw new Error('A reviewer id is required');
   if (!approval.meaningPreserved) throw new Error('Human review must confirm that cue edits preserve the argument meaning');
-  return deepFreeze({
+  if (plan.approvalFingerprint !== null) throw new Error('A draft replay plan cannot already carry an approval fingerprint');
+  const snapshotBase = clone(plan.snapshot) as ReplaySnapshot;
+  const { snapshotHash, ...snapshotWithoutHash } = snapshotBase;
+  if (hash(snapshotWithoutHash) !== snapshotHash) throw new Error('Replay snapshot changed before approval');
+  for (const cell of plan.cells) {
+    const verification = verifyReplayCell(plan.snapshot, cell);
+    if (!verification.valid) throw new Error(`Invalid ${cell.cell} before approval: ${verification.errors.join(', ')}`);
+  }
+  const confirmed = {
     ...clone(plan), status: 'CONFIRMED', confirmedAt: now,
     review: { ...clone(plan.review), status: 'APPROVED', reviewerId: approval.reviewerId, meaningPreserved: true, notes: approval.notes ?? null },
-  }) as ReplayPlan;
+    approvalFingerprint: null,
+  } as ReplayPlan;
+  return deepFreeze({ ...confirmed, approvalFingerprint: replayPlanApprovalFingerprint(confirmed) }) as ReplayPlan;
 }
 
 function cueValues(snapshot: ReplaySnapshot, identityShown: boolean, endorsementShown: boolean) {
@@ -321,6 +352,12 @@ function renderTarget(argument: string, speaker: string, endorsement: string): {
 export function buildReplayCell(snapshot: ReplaySnapshot, cell: ReplayCellId): ReplayCell {
   const identityShown = cell === 'R1' || cell === 'R3';
   const endorsementShown = cell === 'R1' || cell === 'R2';
+  if (identityShown === snapshot.parentCues.identityShown && endorsementShown === snapshot.parentCues.endorsementShown) {
+    return deepFreeze({
+      cell, identityShown, endorsementShown, targetArgument: snapshot.targetArgument,
+      renderedTarget: snapshot.targetArgument, context: clone(snapshot.messages), diffs: [],
+    }) as ReplayCell;
+  }
   const parentCue = cueValues(snapshot, snapshot.parentCues.identityShown, snapshot.parentCues.endorsementShown);
   const replayCue = cueValues(snapshot, identityShown, endorsementShown);
   const parent = renderTarget(snapshot.targetArgument, parentCue.speaker, parentCue.endorsement);
@@ -352,6 +389,12 @@ export function verifyReplayCell(snapshot: ReplaySnapshot, cell: ReplayCell): { 
 function buildReplayCellUnchecked(snapshot: ReplaySnapshot, cell: ReplayCellId): ReplayCell {
   const identityShown = cell === 'R1' || cell === 'R3';
   const endorsementShown = cell === 'R1' || cell === 'R2';
+  if (identityShown === snapshot.parentCues.identityShown && endorsementShown === snapshot.parentCues.endorsementShown) {
+    return {
+      cell, identityShown, endorsementShown, targetArgument: snapshot.targetArgument,
+      renderedTarget: snapshot.targetArgument, context: clone(snapshot.messages), diffs: [],
+    };
+  }
   const parentCue = cueValues(snapshot, snapshot.parentCues.identityShown, snapshot.parentCues.endorsementShown);
   const replayCue = cueValues(snapshot, identityShown, endorsementShown);
   const parent = renderTarget(snapshot.targetArgument, parentCue.speaker, parentCue.endorsement);
@@ -385,8 +428,27 @@ function technical(outcome: ReplayOutcome): boolean {
 }
 
 function validResponse(response: ReplayProviderResponse): void {
+  const outcomes: ReplayOutcome[] = ['success', 'abstained', 'delivered_refusal', 'provider_refusal', 'timeout', 'malformed_response', 'rate_limit', 'provider_error'];
+  if (!response || !outcomes.includes(response.outcome)) throw new Error('Replay provider returned an unknown outcome');
   if ((response.outcome === 'success' || response.outcome === 'abstained' || response.outcome === 'delivered_refusal') && response.content === null) throw new Error(`${response.outcome} requires archived text`);
   if (technical(response.outcome) && response.content !== null) throw new Error(`${response.outcome} cannot carry a delivered message`);
+}
+
+function normalizeResponse(response: ReplayProviderResponse): ReplayProviderResponse {
+  try {
+    validResponse(response);
+    return response;
+  } catch (error) {
+    const candidate = response as Partial<ReplayProviderResponse> | null | undefined;
+    return {
+      outcome: 'malformed_response', content: null, usage: candidate?.usage ?? null,
+      raw: {
+        replayEnvelopeError: error instanceof Error ? error.message : String(error),
+        receivedOutcome: candidate?.outcome ?? null,
+        receivedRaw: candidate?.raw ?? null,
+      },
+    };
+  }
 }
 
 export async function executeReplayPlan(
@@ -396,62 +458,69 @@ export async function executeReplayPlan(
   options: { now?: () => string; onRetryDelay?: (delayMs: number) => Promise<void> } = {},
 ): Promise<ReplaySet> {
   if (plan.status !== 'CONFIRMED' || plan.review.status !== 'APPROVED') throw new Error('Replay plan must be confirmed after human review before provider calls');
-  if (evidenceFingerprint(parent) !== plan.parentFingerprint) throw new Error('Parent run changed after replay planning');
+  assertApprovalIsIntact(plan);
+  const lockedPlan = deepFreeze(clone(plan)) as ReplayPlan;
+  if (evidenceFingerprint(parent) !== lockedPlan.parentFingerprint) throw new Error('Parent run changed after replay planning');
   if (!verifyEvidenceBundle(parent).valid) throw new Error('Parent evidence is invalid');
   const replaySetId = identifier('replay_set');
   const attempts: ReplayAttemptRecord[] = [];
   const trials: ReplayTrialRecord[] = [];
-  const order = orderedTrials(plan);
+  const order = orderedTrials(lockedPlan);
   for (const item of order) {
     const trialId = identifier('replay_trial');
     const trialAttempts: ReplayAttemptRecord[] = [];
     let final: ReplayProviderResponse | null = null;
-    for (let attempt = 1; attempt <= plan.retryPolicy.maxAttempts; attempt += 1) {
+    for (let attempt = 1; attempt <= lockedPlan.retryPolicy.maxAttempts; attempt += 1) {
+      assertApprovalIsIntact(plan);
       const invocation: ReplayInvocation = {
-        replaySetId, planId: plan.planId, snapshotId: plan.snapshot.snapshotId,
-        parentRunId: plan.snapshot.parentRunId, parentOpportunityId: plan.snapshot.parentOpportunityId,
+        replaySetId, planId: lockedPlan.planId, snapshotId: lockedPlan.snapshot.snapshotId,
+        parentRunId: lockedPlan.snapshot.parentRunId, parentOpportunityId: lockedPlan.snapshot.parentOpportunityId,
         cell: item.cell.cell, trial: item.trial, attempt,
-        provider: plan.snapshot.provider, model: plan.snapshot.model, configuration: clone(plan.snapshot.configuration),
-        systemPrompt: plan.snapshot.systemPrompt, userPrompt: plan.snapshot.userPrompt, context: clone(item.cell.context),
+        provider: lockedPlan.snapshot.provider, model: lockedPlan.snapshot.model, configuration: clone(lockedPlan.snapshot.configuration),
+        systemPrompt: lockedPlan.snapshot.systemPrompt, userPrompt: lockedPlan.snapshot.userPrompt, context: clone(item.cell.context),
       };
       let response: ReplayProviderResponse;
       try { response = await provider.invoke(invocation); }
       catch (error) { response = { outcome: 'provider_error', content: null, usage: null, raw: { error: error instanceof Error ? error.message : String(error) } }; }
-      validResponse(response);
+      assertApprovalIsIntact(plan);
+      response = normalizeResponse(response);
       const record: ReplayAttemptRecord = deepFreeze({
         attemptId: identifier('replay_attempt'), trialId, attempt,
         retryParentAttemptId: trialAttempts.at(-1)?.attemptId ?? null,
-        provider: plan.snapshot.provider, model: plan.snapshot.model, outcome: response.outcome,
+        provider: lockedPlan.snapshot.provider, model: lockedPlan.snapshot.model, outcome: response.outcome,
         content: response.content, usage: response.usage, contextHash: hash(invocation.context), rawHash: hash(response.raw),
+        failureReason: typeof response.raw?.replayEnvelopeError === 'string' ? response.raw.replayEnvelopeError : null,
       });
       trialAttempts.push(record); attempts.push(record); final = response;
-      const shouldRetry = plan.retryPolicy.retryableOutcomes.includes(response.outcome) && attempt < plan.retryPolicy.maxAttempts;
+      const shouldRetry = lockedPlan.retryPolicy.retryableOutcomes.includes(response.outcome) && attempt < lockedPlan.retryPolicy.maxAttempts;
       if (!shouldRetry) break;
-      if (options.onRetryDelay) await options.onRetryDelay(plan.retryPolicy.delayMs);
+      if (options.onRetryDelay) await options.onRetryDelay(lockedPlan.retryPolicy.delayMs);
     }
     if (!final) throw new Error('Replay trial produced no attempt');
     const outputId = final.content === null ? null : identifier('replay_output');
     trials.push(deepFreeze({
-      trialId, replaySetId, parentRun: plan.snapshot.parentRunId, parentOpportunity: plan.snapshot.parentOpportunityId,
-      parentSnapshotId: plan.snapshot.snapshotId, cell: item.cell.cell, trial: item.trial, outcome: final.outcome,
+      trialId, replaySetId, parentRun: lockedPlan.snapshot.parentRunId, parentOpportunity: lockedPlan.snapshot.parentOpportunityId,
+      parentSnapshotId: lockedPlan.snapshot.snapshotId, cell: item.cell.cell, trial: item.trial, outcome: final.outcome,
       output: final.content, outputId, context: clone(item.cell.context), contextHash: hash(item.cell.context),
       diff: clone(item.cell.diffs), attemptIds: trialAttempts.map((attempt) => attempt.attemptId),
     }));
   }
+  assertApprovalIsIntact(plan);
   const partial: Omit<ReplaySet, 'checks'> = {
-    schemaVersion: REPLAY_SCHEMA_VERSION, replaySetId, planId: plan.planId, parentRun: plan.snapshot.parentRunId,
-    parentOpportunity: plan.snapshot.parentOpportunityId, parentSnapshotId: plan.snapshot.snapshotId,
-    parentFingerprintBefore: plan.parentFingerprint, parentFingerprintAfter: evidenceFingerprint(parent), orderSeed: plan.orderSeed,
+    schemaVersion: REPLAY_SCHEMA_VERSION, replaySetId, planId: lockedPlan.planId, parentRun: lockedPlan.snapshot.parentRunId,
+    parentOpportunity: lockedPlan.snapshot.parentOpportunityId, parentSnapshotId: lockedPlan.snapshot.snapshotId,
+    parentFingerprintBefore: lockedPlan.parentFingerprint, parentFingerprintAfter: evidenceFingerprint(parent), orderSeed: lockedPlan.orderSeed,
     realizedOrder: order.map(({ cell, trial }) => `${cell.cell}:${trial}`), trials, attempts,
     completedAt: options.now?.() ?? new Date().toISOString(),
   };
   const set = { ...partial, checks: [] } as ReplaySet;
-  return deepFreeze({ ...partial, checks: auditReplaySet(set, plan, parent) }) as ReplaySet;
+  return deepFreeze({ ...partial, checks: auditReplaySet(set, lockedPlan, parent) }) as ReplaySet;
 }
 
 export function auditReplaySet(set: ReplaySet, plan: ReplayPlan, parent: EvidenceBundle, privateMarkers: string[] = []): ReplayCheck[] {
   const checks: ReplayCheck[] = [];
   const add = (id: string, pass: boolean, evidenceIds: string[], detail: string) => checks.push({ id, status: pass ? 'PASS' : 'FAIL', evidenceIds, detail });
+  add('approved_plan_immutable', approvalIsIntact(plan), [plan.planId], approvalIsIntact(plan) ? 'The executed plan matches the human-approved fingerprint.' : 'The plan changed after human approval.');
   add('parent_immutable', set.parentFingerprintBefore === set.parentFingerprintAfter && set.parentFingerprintAfter === evidenceFingerprint(parent), [set.parentRun, set.parentSnapshotId], 'Parent fingerprint is unchanged.');
   const cellErrors = plan.cells.flatMap((cell) => verifyReplayCell(plan.snapshot, cell).errors.map((error) => `${cell.cell}:${error}`));
   add('registered_cues_only', cellErrors.length === 0, plan.cells.map((cell) => cell.cell), cellErrors.join(', ') || 'Only registered cue spans changed.');
@@ -465,12 +534,24 @@ export function auditReplaySet(set: ReplaySet, plan: ReplayPlan, parent: Evidenc
   const identityLeaks = hidden.flatMap((trial) => identityTerms.filter((term) => trial.context.some((message) => message.content.toLocaleLowerCase().includes(term.toLocaleLowerCase()))).map((term) => `${trial.trialId}:${term}`));
   add('hidden_identity', identityLeaks.length === 0, identityLeaks, identityLeaks.length ? 'Residual speaker identity found.' : 'Hidden cells contain no registered speaker identifier.');
   const traceGaps: string[] = [];
+  const linkedAttemptCounts = new Map<string, number>();
   for (const trial of set.trials) {
+    if (trial.attemptIds.length === 0) traceGaps.push(`${trial.trialId}->attempt_empty`);
+    if (new Set(trial.attemptIds).size !== trial.attemptIds.length) traceGaps.push(`${trial.trialId}->attempt_duplicate`);
+    for (const attemptId of trial.attemptIds) linkedAttemptCounts.set(attemptId, (linkedAttemptCounts.get(attemptId) ?? 0) + 1);
     const linked = trial.attemptIds.map((attemptId) => set.attempts.find((attempt) => attempt.attemptId === attemptId));
     if (linked.some((attempt) => !attempt)) traceGaps.push(`${trial.trialId}->attempt`);
+    if (linked.some((attempt) => attempt && attempt.trialId !== trial.trialId)) traceGaps.push(`${trial.trialId}->cross_trial_attempt`);
+    const finalAttempt = linked.at(-1);
+    if (finalAttempt && (finalAttempt.outcome !== trial.outcome || finalAttempt.content !== trial.output)) traceGaps.push(`${trial.trialId}->final_outcome`);
     if ((trial.outcome === 'success' || trial.outcome === 'abstained' || trial.outcome === 'delivered_refusal') && (!trial.outputId || trial.output === null)) traceGaps.push(`${trial.trialId}->output`);
     if (technical(trial.outcome) && (trial.outputId || trial.output !== null)) traceGaps.push(`${trial.trialId}->unexpected_output`);
     if (trial.parentRun !== set.parentRun || trial.parentOpportunity !== set.parentOpportunity || trial.parentSnapshotId !== set.parentSnapshotId) traceGaps.push(`${trial.trialId}->parent`);
+  }
+  for (const attempt of set.attempts) {
+    const links = linkedAttemptCounts.get(attempt.attemptId) ?? 0;
+    if (links === 0) traceGaps.push(`${attempt.attemptId}->orphan_attempt`);
+    if (links > 1) traceGaps.push(`${attempt.attemptId}->multiple_trials`);
   }
   add('trace_complete', traceGaps.length === 0, traceGaps, traceGaps.length ? `Trace gaps: ${traceGaps.join(', ')}` : 'Outcome-specific trace chains are complete.');
   const retryGaps: string[] = [];
@@ -493,15 +574,26 @@ export function buildPhase1aResults(bundle: EvidenceBundle) {
   const rounds = Array.from({ length: 6 }, (_, index) => {
     const number = index + 1;
     const calls = bundle.provider_calls.filter((call) => call.operation_key.startsWith(`round:${number}:`));
+    const expectedOperations = bundle.manifest.participants.map((participant) => ({ participant, operationKey: `round:${number}:${participant.id}` }));
+    const resolved = expectedOperations.map(({ participant, operationKey }) => {
+      const attempts = calls.filter((call) => call.operation_key === operationKey).sort((left, right) => left.attempt - right.attempt);
+      const call = attempts.at(-1);
+      const committed = bundle.events.some((event) => event.event_type === 'operation.committed' && event.payload.operation_key === operationKey);
+      const valid = Boolean(call && call.participant_id === participant.id && !['timeout', 'provider_error', 'invalid_response', 'rate_limit'].includes(call.terminal_status) && committed);
+      return { participantId: participant.id, operationKey, call, valid };
+    });
+    const expectedKeys = new Set(expectedOperations.map(({ operationKey }) => operationKey));
+    const unexpectedCalls = calls.filter((call) => !expectedKeys.has(call.operation_key));
+    const finalCalls = resolved.flatMap((entry) => entry.call ? [entry.call] : []);
     return {
       round: number,
-      outcomes: calls.map((call) => ({ agentId: call.participant_id, outcome: call.terminal_status })),
+      outcomes: finalCalls.map((call) => ({ agentId: call.participant_id, outcome: call.terminal_status })),
       tokenUsage: calls.map((call) => ({
         agentId: call.participant_id,
         inputTokens: call.usage?.inputTokens ?? 'unavailable',
         outputTokens: call.usage?.outputTokens ?? 'unavailable',
       })),
-      checks: [{ id: `round_${number}_complete`, status: (calls.length === 3 ? 'PASS' : 'FAIL') as CheckStatus }],
+      checks: [{ id: `round_${number}_complete`, status: (resolved.every((entry) => entry.valid) && unexpectedCalls.length === 0 ? 'PASS' : 'FAIL') as CheckStatus }],
       evidence: {
         eventIds: bundle.events.filter((event) => event.event_type === `round.${number}.completed`).map((event) => event.event_id),
         messageIds: calls.flatMap((call) => call.context_message_ids),
@@ -544,6 +636,7 @@ export class ScriptedReplayProvider implements ReplayProvider {
 
 export function mapPhase1aOutcome(outcome: Outcome): ReplayOutcome {
   if (outcome === 'invalid_response') return 'malformed_response';
+  if (outcome === 'permission_denied') return 'provider_error';
   if (outcome === 'refused') return 'delivered_refusal';
   if (outcome === 'abstained') return 'abstained';
   return outcome;

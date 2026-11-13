@@ -19,3 +19,6 @@ phase0_1_nvidia_vllm_preflight_*/
 .DS_Store
 .playwright-mcp/
 .worktrees/
+
+__pycache__/
+*.pyc

@@ -158,6 +158,7 @@ ${opts.refresh ? '<meta http-equiv="refresh" content="4">' : ''}
     <a href="/docs">Documentation</a>
     <a href="/runs">Runs</a>
     <a href="/phase1">Phase 1A</a>
+    <a href="/wp06/">WP06 analysis</a>
     ${
       /* Comparison and the raw API answer questions that come after Phase 0. They are
          still served; they are just not offered until someone asks for them. */

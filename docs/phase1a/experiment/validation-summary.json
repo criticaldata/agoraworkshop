@@ -1,0 +1,152 @@
+{
+  "verification_date": "2026-11-12",
+  "composition_variant": "gemma-qwen-model-x-v1",
+  "mode": "synthetic_engineering_rehearsal_plus_non_scientific_live_canaries",
+  "scientific_observations": 0,
+  "tests": {
+    "files": 54,
+    "passed": 757,
+    "failed": 0,
+    "python_gateway_tests": 6,
+    "python_recovery_tests": 5
+  },
+  "plan_hash": "sha256:199b1bff0fccc103fe534b15a54add18c5a1f5fb2cb3fdf1c544c556f13bc9a9",
+  "implementation_hash": "sha256:9d071b1feea016b3d0e8583634ab39d5e53bd24972ad5d94a9dbc77f049d218f",
+  "manifests_hash": "sha256:347fb5b0f8e9c51669bbe74d4c40b0244a3988aa036afee16f34da630412c2b0",
+  "completed_workshops": 12,
+  "provider_calls": 330,
+  "separate_process_resume": "same_12_run_ids_same_330_calls",
+  "real_model_canary": "deployment/canary.json",
+  "encrypted_restore": "deployment/restore.json",
+  "final_rehearsal_restore": "deployment/recovery-final-restore.json",
+  "live_launch_without_approval": "rejected_before_credentials_and_output_creation",
+  "remaining_collection_blockers": [
+    "Missing or stale scientific approval"
+  ],
+  "runs": [
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-A-r1",
+      "cell": "A",
+      "replication": 1,
+      "run_id": "run_ae91e862-34a3-4052-930f-0beb9485f3ed",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "504db0ef091e72c8e61b71d75906bb10b36324fbfb61b20293fed343d4d3a4b4",
+      "analysis_file_sha256": "b9a77fc47ec35cbba821d79678bc558af253335eaa78805990c43b119c364c12"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-B-r1",
+      "cell": "B",
+      "replication": 1,
+      "run_id": "run_7bc2fbb8-8cb7-4f81-800e-8bdd853fb409",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "bcb11888d6f43160f5b1b02679b9a5695f33c84a7fe2ab3145eb927032e75467",
+      "analysis_file_sha256": "9b04f8e3edc974cd3077311b0d5a6d78667d780549a92735bb5823707ca8026e"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-C-r1",
+      "cell": "C",
+      "replication": 1,
+      "run_id": "run_f25b5bb3-b2c2-4c9d-8880-984fd807a783",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "de17b64229265d753e6962de0ccc83d33b3dbbef9f83c3f829ecd744990ee5d5",
+      "analysis_file_sha256": "890f979193889cfb58b3bdeafd85e20d07e56cebd65195b73768101f26d4e6b1"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-D-r1",
+      "cell": "D",
+      "replication": 1,
+      "run_id": "run_8b356077-efc8-4333-acdb-b17a3d0806b6",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "8212d569adc2dc65a56df6f8b9ff55af1a3b05e3efd3a00abe4093dcf01ae08f",
+      "analysis_file_sha256": "2cb1eb8be8715c19ab8ec4aa142c10368c9f3d60a6b8893a7294025e1771101b"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-A-r2",
+      "cell": "A",
+      "replication": 2,
+      "run_id": "run_7ae7eba4-f45c-4df4-b38a-56d641642fda",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "7e7b9509ea8d75f0fe86861fb000dee500c53e0d3d07de12f80997889a812080",
+      "analysis_file_sha256": "23a9e6fe037ec8995778d872d6112d785cb7d30d8c019fa0510cd886f966b7c4"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-B-r2",
+      "cell": "B",
+      "replication": 2,
+      "run_id": "run_255e9596-8266-4e8a-af43-8051a6cb317a",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "182223201f0791fc958f68059bc33f62f69cc70b184c31c4dfd756494b909456",
+      "analysis_file_sha256": "3de3778f3627549b1f154c5ebf55628e5fa7ce68260a8f45fab61c080c5e5e39"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-C-r2",
+      "cell": "C",
+      "replication": 2,
+      "run_id": "run_6d928bfa-6ec6-4f73-a5c8-31c4a86e29b8",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "f64e3c40df672d317da7bab1d7b65b3d3b20ad447711684a5a97ce20fa6be209",
+      "analysis_file_sha256": "4307e9d1398d47088ae3faaf9a7a17eb84dcda2df1b93691dc17998b9eb6b76a"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-D-r2",
+      "cell": "D",
+      "replication": 2,
+      "run_id": "run_f1ad2da1-801e-4822-93c1-e63ec6b9c6db",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "dd160cab2112a36ec94393dd82b97e4bb27529dafa28bc0dc26253bbae48b2a4",
+      "analysis_file_sha256": "0026c6141c3e960308b8ef4f4c1e8889c602d4a7323fa0a31d2320e2b212407f"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-A-r3",
+      "cell": "A",
+      "replication": 3,
+      "run_id": "run_8979743d-3a4c-4850-8328-4afd746ad01c",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "8dc488b739ad2bb6fd98e351cddfc58a8ba7940bcc11e94b4dc05de1650f2b2f",
+      "analysis_file_sha256": "44c178fa3e0e417e77ae9df00c490299811a9cfec7a649f2c625b990b916cc3b"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-B-r3",
+      "cell": "B",
+      "replication": 3,
+      "run_id": "run_58a7c4d1-fc46-4038-93d7-c5afd9d249f2",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "92fc382f6021c4e18693380b2dfde133af08a201c06637274f3c2f504dfe6f6b",
+      "analysis_file_sha256": "acb7ae07d1fab9dbe5596f26b22aa7e951c5046aa6e9aa3633e045576eb515d9"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-C-r3",
+      "cell": "C",
+      "replication": 3,
+      "run_id": "run_5b32764a-7d2a-497e-b17a-4dc203377b8b",
+      "status": "COMPLETE",
+      "calls": 24,
+      "evidence_file_sha256": "3c387209fff7b7f6aa3b4ae2ced454c7fb0a15d27dffa23adbcffe7ab3c005d1",
+      "analysis_file_sha256": "78eacebff422ece45ff6e8c114c48a117fc493dc62f99e72bc867afbdc4b0092"
+    },
+    {
+      "manifest_id": "agora-phase1a-qwen-pilot-20261112-D-r3",
+      "cell": "D",
+      "replication": 3,
+      "run_id": "run_51401cab-8b70-47cc-9d1d-ab26e19408db",
+      "status": "COMPLETE",
+      "calls": 31,
+      "evidence_file_sha256": "9a8bbf734f84bd9f0165cc71e4a5b319de4a4a90c22121593c81896acf6d504e",
+      "analysis_file_sha256": "12076b861c6a3fc7f96ebca2706bf9ad8332a8bdede4693b57b9f0d44140fa17"
+    }
+  ],
+  "review_feedback": "MATEO_REVIEW.md",
+  "off_mac_recovery": "deployment/off-mac-restore.json",
+  "scientific_approval": "explicitly_withheld_in_receipt_message",
+  "final_off_mac_recovery": "deployment/final-off-mac-restore.json"
+}

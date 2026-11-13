@@ -31,6 +31,7 @@ jobs:
           path: artifacts/vitest-results.json
           if-no-files-found: warn
           retention-days: 30
+      - run: npm run test:deployment
       - run: npm run build
       - name: Check patch whitespace
         run: git diff --check

@@ -101,7 +101,7 @@ export function validatePromptRegistry(value: unknown): { valid: boolean; issues
 }
 
 /** New candidate wording for the pilot; historical registry remains reproducible. */
-export function createPilotPromptRegistry(): PromptRegistry {
+export function createPilotPromptRegistry(version: 'pilot-candidate-2' | 'pilot-candidate-3' = 'pilot-candidate-3'): PromptRegistry {
   const registry = createPromptRegistry();
   const focus = [
     'Identify a human limitation and explain why it matters.',
@@ -114,9 +114,11 @@ export function createPilotPromptRegistry(): PromptRegistry {
   for (const p of registry.prompts) {
     if (p.id.startsWith('public-round-')) p.text += ` ${focus[Number(p.id.split('-').at(-1)) - 1]}`;
     if (p.id === 'report-review-2') p.text = registry.prompts.find(other => other.id === 'report-review-1')!.text;
-    p.version = 'pilot-candidate-2'; p.hash = hashCandidate(p);
+    if (version === 'pilot-candidate-3' && p.id.startsWith('report-review-')) p.text = 'Independently review only the supplied draft report about {{topic}}. Assess clarity, internal consistency, and whether its conclusions follow from reasons or evidence stated in the draft. Point to specific passages for each concern. You do not have the public discussion: do not judge what it omitted, whether it faithfully represents participants, or whether a disagreement was resolved. Do not rewrite the draft or use private probe answers.';
+    if (version === 'pilot-candidate-3' && p.id === 'report-revision') p.text = 'Revise the supplied draft report about {{topic}} using the two recorded reviews. Address clarity, internal consistency and reasoning within these materials. Preserve disagreements and uncertainty already stated in the draft; do not invent consensus, new claims or evidence. You do not have the public discussion, so do not infer omitted positions or claim to verify fidelity to it. Do not use private probe answers.';
+    p.version = version; p.hash = hashCandidate(p);
   }
-  registry.version = 'pilot-candidate-2';
+  registry.version = version;
   const { registry_hash: _, ...base } = registry; registry.registry_hash = configHash(base);
   return registry;
 }

@@ -52,7 +52,10 @@ export const ExperimentPlanSchema = z.object({
   }).strict(),
   collection_gate: z.object({
     policy: z.literal('mateo_reviewed_collection_before_human_coding_v1'),
-    calibration: z.literal('two_independent_coders_on_external_material_before_human_analysis'),
+    calibration: z.enum(['two_independent_coders_on_external_material_before_human_analysis', 'two_independent_coders_on_external_material_before_pilot_access']),
+    analysis_freeze: z.literal('codebook_and_analysis_rules_before_collection').optional(),
+    pilot_access: z.literal('operator_custody_until_calibration_evidence_and_release_log').optional(),
+    off_mac_restore: z.object({ path: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict().optional(),
     reconstruction: z.literal('automated_restore_not_independent_human_attestation'),
     canary: z.object({ path: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
     restore: z.object({ path: z.string().min(1), sha256: z.string().regex(/^[0-9a-f]{64}$/) }).strict(),
@@ -133,7 +136,7 @@ export function createExperimentProposal(): ExperimentPlan {
     decision_proposals: {
       D02: 'Simon selected Qwen on 2026-11-12. Proposed C/D composition: Gemma, Qwen, Model X; A/B remain three Gemma instances. Pin Qwen3 32B Q4_K_M from the verified cached Ollama manifest digest; provision a dedicated endpoint and verify its revision, context capacity and thinking/output behavior before approval. Gemma and Model X remain to be bound. This is an explicit amendment to the Gemini protocol and requires Mateo approval.',
       D05: 'Fixed P1/P2/P3 speaking order in all six rounds, as directed at the 13 October meeting. No speaking-order treatment in this pilot.',
-      D06: 'Approve pilot-candidate-2 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.',
+      D06: 'Approve pilot-candidate-3 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.',
       D07: 'Pin an available open-source Model X on the NVIDIA cluster; no Grok treatment in this pilot.',
       D08: 'Rotate report writer P1/P2/P3 across replications; the other two participants independently review the same draft.',
       D09: 'Sequential calls, 120-second timeout, one retry, 62-call and 500000-token stop-before-next-call thresholds per run; 1024 output tokens per request. Unknown usage stops continuation.',
@@ -177,8 +180,9 @@ export function readiness(planInput: unknown): { valid: boolean; blockers: strin
   if (reconstruction?.reviewer === plan.data_policy.operator) blockers.push('Reconstruction must be checked by a second operator');
   for (const endpoint of plan.endpoints) if (!endpoint.expected_url) blockers.push(`Infrastructure must pin endpoint URL: ${endpoint.provider}`);
   if (plan.collection_gate) {
-    const loadEvidence = (kind: 'canary' | 'restore'): any => {
+    const loadEvidence = (kind: 'canary' | 'restore' | 'off_mac_restore'): any => {
       const ref = plan.collection_gate![kind];
+      if (!ref) { blockers.push(`Missing ${kind} evidence`); return null; }
       try {
         const bytes = readFileSync(ref.path);
         if (createHash('sha256').update(bytes).digest('hex') !== ref.sha256) throw new Error('digest mismatch');
@@ -198,6 +202,11 @@ export function readiness(planInput: unknown): { valid: boolean; blockers: strin
         const endpoint = plan.endpoints.find(e => e.provider === binding.provider);
         if (endpoint?.expected_model_revision !== binding.revision) blockers.push(`Endpoint revision differs from binding: ${binding.logical_family}`);
       }
+    }
+    if (plan.collection_gate.calibration === 'two_independent_coders_on_external_material_before_pilot_access') {
+      if (plan.collection_gate.analysis_freeze !== 'codebook_and_analysis_rules_before_collection' || plan.collection_gate.pilot_access !== 'operator_custody_until_calibration_evidence_and_release_log') blockers.push('Pre-collection analysis freeze and pre-access calibration custody must be explicit');
+      const recovery = loadEvidence('off_mac_restore');
+      if (recovery && (recovery.result !== 'pass' || recovery.recovery_host !== 'denem-server' || recovery.operator_mac_required !== false || recovery.verified_bundles !== 12 || recovery.verified_calls !== 330 || recovery.byte_identical !== true || recovery.independent_restore_processes !== true)) blockers.push('Off-Mac recovery verification is incomplete or failed');
     }
     const restore = loadEvidence('restore');
     if (restore && (restore.result !== 'pass' || restore.mode !== 'automated_encrypted_backup_restore' || restore.verified_bundles !== 12 || restore.verified_calls !== 330 || !restore.remote_ciphertext_sha256 || !restore.byte_identical || !restore.separate_process)) blockers.push('Encrypted backup/restore verification is incomplete or failed');

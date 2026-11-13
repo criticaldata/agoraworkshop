@@ -574,12 +574,12 @@
     "prompt_registry": {
       "schema_version": "wp01-prompt-registry-v1",
       "namespace": "phase1a-reimagining-humans-candidate",
-      "version": "pilot-candidate-2",
+      "version": "pilot-candidate-3",
       "status": "candidate",
       "prompts": [
         {
           "id": "common-participant",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Shared participant instruction",
@@ -596,11 +596,11 @@
             "free-form text may vary in length"
           ],
           "status": "candidate",
-          "hash": "sha256:5c5f61a335139f371a6f4dc7e5a17593c39d118c55722a65a357c49724f08dd9"
+          "hash": "sha256:f3208aaa29943647a48588b16bc3e16d2b4155fbfbb44afe876f623a550c0a12"
         },
         {
           "id": "agent-framing",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Neutral agent-facing framing",
@@ -615,11 +615,11 @@
             "abstention wording may be overused"
           ],
           "status": "candidate",
-          "hash": "sha256:7ba4970b617c1d829d0d9418081788a906082e92bba735a662a08d4baeb3cba2"
+          "hash": "sha256:ce726d9b0a51623a26bbe60c2fdec47e5ef7ac5117dfd94c9f687fb626f5dc42"
         },
         {
           "id": "report-anticipation",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Report-arm treatment notice",
@@ -634,11 +634,11 @@
             "participants may interpret “joint” differently"
           ],
           "status": "candidate",
-          "hash": "sha256:459064d28598410781a3391c9f93e8ef9a02f0feae0254409e5ee45ae861a37c"
+          "hash": "sha256:f6d241fec7a0442a022d89707a7c7fa06854af00620893822c67f28b917dfd81"
         },
         {
           "id": "no-report-condition",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "No-report condition notice",
@@ -653,11 +653,11 @@
             "negative wording may be salient"
           ],
           "status": "candidate",
-          "hash": "sha256:6a261409c4ad5ffe50ab6bff84c608e3975cfe856992d6274727c70b8ab875d3"
+          "hash": "sha256:6d736b410abb67708c9d13516f9174711b05fda1b5ac9b5557ced406ef08b35c"
         },
         {
           "id": "host-opening",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "host",
           "scope": "host",
           "function": "Deterministic opening",
@@ -674,11 +674,11 @@
             "opening must remain identical across arms"
           ],
           "status": "candidate",
-          "hash": "sha256:06413b7e4aa52d2d79baeaa23533551dd7ddb76eaf3e813a36936fb3f96bba13"
+          "hash": "sha256:83abb26282b568c394ccf9c2be75037202f3cc5d3806182159b4f98ba58ac43a"
         },
         {
           "id": "public-round-1",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 1 instruction",
@@ -696,11 +696,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:586a612d99ffc83c177beaa62f58f226a3d559100a1d9e32ac0811176d3369d2"
+          "hash": "sha256:b1363aee51ba35ed70aae87bc10bcf7b7c81a421b901bf80439664a277dc23a6"
         },
         {
           "id": "public-round-2",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 2 instruction",
@@ -718,11 +718,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:fe28ae577e884d76b228f3ae4fe84e522bba98682ece8bc582e7b3ff7d9fa888"
+          "hash": "sha256:813c9cf4891bd69f5ed63f49a712dc6d752ff9f6e16a71bfa69f348541b8f71b"
         },
         {
           "id": "public-round-3",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 3 instruction",
@@ -740,11 +740,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:ee35d44b30647a41269ba4409e51c16d7614a8c1416826c6660998b161eca61a"
+          "hash": "sha256:360b9efa3379842f236b7de706df131420e0fd9112a750f54640ed093fd5ce21"
         },
         {
           "id": "public-round-4",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 4 instruction",
@@ -762,11 +762,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:a9b216c61cee7484621113816da6552776262dc3d0b15d19ce2cb99e7fa79263"
+          "hash": "sha256:f0a99f0870456c2c19bed151379094b18a57f7bd70dc7511613f28281126b997"
         },
         {
           "id": "public-round-5",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 5 instruction",
@@ -784,11 +784,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:550c465800cea6aa625b6eff1a57804370021840ed62f004ab84a56ca6fd4f7c"
+          "hash": "sha256:a31e2a2720100df6c26a35c313e097db63ee668f4dfe0234ebd895418f14dde7"
         },
         {
           "id": "public-round-6",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Public round 6 instruction",
@@ -806,11 +806,11 @@
             "round variable must be rendered exactly"
           ],
           "status": "candidate",
-          "hash": "sha256:65b3258ced2856d33e957c0f97ee670f4141658a3855e87490f26312ffd6b59e"
+          "hash": "sha256:705a5501929ea7668d374dfdd9f3b1bfb08d56eaaf2c6dc14927ba9b6548d742"
         },
         {
           "id": "private-t0",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "private",
           "scope": "private",
           "function": "Initial private elicitation",
@@ -827,11 +827,11 @@
             "private/public boundary must be enforced"
           ],
           "status": "candidate",
-          "hash": "sha256:ba8bfd95d8fb4969b395528836487da9f7989280c6ae31d6f98944acf930f338"
+          "hash": "sha256:bacf76ac65c377942934dd77020da9224c0f11f62fdc89d0070df1a0defdb5a0"
         },
         {
           "id": "private-t6",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "private",
           "scope": "private",
           "function": "Post-discussion private elicitation",
@@ -848,11 +848,11 @@
             "private/public boundary must be enforced"
           ],
           "status": "candidate",
-          "hash": "sha256:bbc821a192fa667fd94c90d538b7c2b877527bb3b640bb5365f919ae3d734c25"
+          "hash": "sha256:8092b73c89f66714b64b5431868fc90551375c8701c70a9b2e23ce43dd489acf"
         },
         {
           "id": "private-tR",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "private",
           "scope": "private",
           "function": "Post-report private elicitation",
@@ -869,11 +869,11 @@
             "only report arms may receive this stage"
           ],
           "status": "candidate",
-          "hash": "sha256:bebf1038a689b2d199c483560d5e27ab87cc91991e79b9d858f717ec2f6ded51"
+          "hash": "sha256:b8ceeb625582933d4e6238ae555a3d456a7a8275c34bad3dff979187adf9ac39"
         },
         {
           "id": "report-draft",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "report",
           "scope": "report",
           "function": "Joint report draft",
@@ -890,15 +890,15 @@
             "draft must not import private context"
           ],
           "status": "candidate",
-          "hash": "sha256:9c36b0ad3601ba870dc45977af50268ce1c834dd93ae7b63dcea43780a92b577"
+          "hash": "sha256:e3e2d1646308b360c0eec2c3d0341d5cd6a33da1d7aa8f5d06ca338d0145ec25"
         },
         {
           "id": "report-review-1",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "report",
           "scope": "report",
           "function": "Independent report review one",
-          "text": "Review the draft report about {{topic}} independently. Identify unsupported claims, omitted disagreement and ambiguity. Do not rewrite the draft and do not use private probe answers.",
+          "text": "Independently review only the supplied draft report about {{topic}}. Assess clarity, internal consistency, and whether its conclusions follow from reasons or evidence stated in the draft. Point to specific passages for each concern. You do not have the public discussion: do not judge what it omitted, whether it faithfully represents participants, or whether a disagreement was resolved. Do not rewrite the draft or use private probe answers.",
           "required_variables": [
             "topic"
           ],
@@ -911,15 +911,15 @@
             "review must remain independent"
           ],
           "status": "candidate",
-          "hash": "sha256:45b32a3c18cc2a4b70ebfa35c284faee7761b724e7e8bbd37a2cc696d01fdb04"
+          "hash": "sha256:90fdf0419e90bc0e248262a05408ac2fba8bbe78804c59b600fd9de1205a7647"
         },
         {
           "id": "report-review-2",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "report",
           "scope": "report",
           "function": "Independent report review two",
-          "text": "Review the draft report about {{topic}} independently. Identify unsupported claims, omitted disagreement and ambiguity. Do not rewrite the draft and do not use private probe answers.",
+          "text": "Independently review only the supplied draft report about {{topic}}. Assess clarity, internal consistency, and whether its conclusions follow from reasons or evidence stated in the draft. Point to specific passages for each concern. You do not have the public discussion: do not judge what it omitted, whether it faithfully represents participants, or whether a disagreement was resolved. Do not rewrite the draft or use private probe answers.",
           "required_variables": [
             "topic"
           ],
@@ -932,15 +932,15 @@
             "review must remain independent"
           ],
           "status": "candidate",
-          "hash": "sha256:1cdfdb35eb90cd03656fb972b628df29efff678fc1c1ee4d624dfbd89c6997d3"
+          "hash": "sha256:54b958159d05c5eef084b970d5210536d91dffe7810c39e64f80e2c4ac2bfe60"
         },
         {
           "id": "report-revision",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "report",
           "scope": "report",
           "function": "Final report revision",
-          "text": "Revise the report about {{topic}} using the two recorded reviews. Preserve unresolved disagreement where the discussion does not support resolution. Do not use private probe answers.",
+          "text": "Revise the supplied draft report about {{topic}} using the two recorded reviews. Address clarity, internal consistency and reasoning within these materials. Preserve disagreements and uncertainty already stated in the draft; do not invent consensus, new claims or evidence. You do not have the public discussion, so do not infer omitted positions or claim to verify fidelity to it. Do not use private probe answers.",
           "required_variables": [
             "topic"
           ],
@@ -953,11 +953,11 @@
             "revision must be based on recorded reviews"
           ],
           "status": "candidate",
-          "hash": "sha256:0ae180b34c6805507d208dea21e5aac1a23f2cebeece63ca4eab72967a37328a"
+          "hash": "sha256:65c61f94de3e884ccfeaebcf7fd3e4e9a1a88fd657e6500fbccc6bb89e0e497b"
         },
         {
           "id": "abstention",
-          "version": "pilot-candidate-2",
+          "version": "pilot-candidate-3",
           "kind": "participant",
           "scope": "public",
           "function": "Explicit abstention behavior",
@@ -972,12 +972,12 @@
             "abstention must be distinguishable from provider failure"
           ],
           "status": "candidate",
-          "hash": "sha256:287f1ffbc5262e443dc718c1a31dd9ef39f981fb60fef798f7b285d7bb785df8"
+          "hash": "sha256:8833665883f205bc890ad68a95f60c88363e182489a549df95fea83aaf5c2609"
         }
       ],
-      "registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0"
+      "registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d"
     },
-    "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+    "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
     "planning_counts": {
       "runs": 12,
       "public_opportunities": 216,
@@ -1060,7 +1060,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -1261,8 +1261,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:9ca078bb169b386f8eb502868939f33ad8bad48f57c57b85559eebc96dfe9d81",
-        "manifest_hash": "sha256:99e38a43d8f379a58d7f93dc95fdff3e03a69277cf927f82d99c25b3d1cc472d"
+        "config_hash": "sha256:f0d07923634e05424f6f8e29776e350cb0e02fba6599c6d26c528576203b6629",
+        "manifest_hash": "sha256:6a998f70f123625b9a035977f26d95d9840582f5e6d7cfedd2c5059a19f2f79c"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -1338,7 +1338,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -1539,8 +1539,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:7fac8e8acc423ba912effb7e8c891207db488f7eab126091a9b152262f6444a2",
-        "manifest_hash": "sha256:4e6734ce22300b4fc2e91f1a767b5c078000bb8bf229c07e14dd66831314a5f0"
+        "config_hash": "sha256:3b2a25414aa9c7a52460b88e327d30afd06d34c85592482a31a46b26e36ebb98",
+        "manifest_hash": "sha256:ab3cd81f085bcb53047a3a35807e9265760306fd089b13bfadd32322c953135d"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -1616,7 +1616,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -1817,8 +1817,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:efcb106c5f8b953647f7798547b0dca0ab59807b618ec0260e16ba1ce1de1ee9",
-        "manifest_hash": "sha256:658555c09d1d362383fa73e2217eeaeabc207f9d94f907ae4b4d127c8ad94775"
+        "config_hash": "sha256:5453055bf821a5842c36aacbf937efb25f1e1e34254d9b73acffabd30f201ec5",
+        "manifest_hash": "sha256:f7016f12ecca885819243b072ec84b5cbfd31fd003051a0d292ba57eaf5cb127"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -1894,7 +1894,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -2159,8 +2159,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:565d36e99f62becd71edf0524f67a1ca99d592468fc2d384f215b255922ca5f5",
-        "manifest_hash": "sha256:492b42a940ca13ee68bc21204ae55faaefb08ec718190159082eda6f89a66917"
+        "config_hash": "sha256:ac3331940abbb9e3ac23751359f8c6979f4f1cf669c27b6ea1fba7a34a906c77",
+        "manifest_hash": "sha256:e1a245c63fa864cf9f85854565472c68fe98794b4c58fb6789f2e75009d72bbf"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -2236,7 +2236,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -2501,8 +2501,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:e343c90346c5781f6768c803fc9132d241739170d0173c7034829354329c4b69",
-        "manifest_hash": "sha256:7ffa377fa38716157fc56111c76436c73fa4cf80c6db2e7041f127b60869bd43"
+        "config_hash": "sha256:e5d08227465ea7ccf43a9bc6d27ac600bd6a4668d2d26dc36909ebcfaf6a88c9",
+        "manifest_hash": "sha256:ecf2da8ec8153692aca0284988714972e6fb730407d4d63c54df0541cb1ac864"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -2578,7 +2578,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -2843,8 +2843,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:4302bc7aa900689ba694578dea9f6c0401a04b1829415bdfc72869aef0a0eaeb",
-        "manifest_hash": "sha256:1a07525ef72334796fd7e34ef02d0d925794015042fc25fc999f8996dfbdcad3"
+        "config_hash": "sha256:e7d81f7484cd6519088674f61279e796b1a9da189a3c72e0eaabeb295b553728",
+        "manifest_hash": "sha256:69df1f9754580945b466f88627a9d7b841b172facc711c69c01ff08e060f2983"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -2920,7 +2920,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -3121,8 +3121,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:8848b1515d43a52b6641d6f13d2825a2db84e0cfa5d560c2c32a9fad3ed40a79",
-        "manifest_hash": "sha256:ec763247b09b4cf0c439be7a453df2167c810c29a408789e653daf0aa5c4d89b"
+        "config_hash": "sha256:d6494b1aff3fa6ab81801850b6a8ef78959e2224abac2f107fe0ec8a4d29d39a",
+        "manifest_hash": "sha256:6dc0e281d289c2c424840260f6f6fab1e0b6d236fa2b377e8a79fa47d202d404"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -3198,7 +3198,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -3399,8 +3399,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:779249d4cfffb1f368da4b69cf97cdac987bb913d38d7c79c5227338a3cd72be",
-        "manifest_hash": "sha256:5c0bdac666d0591800a6364d1ac71ad951bb45c00fa47f56a8d0db0c6d104abb"
+        "config_hash": "sha256:672b9416ff75617ef0580881525d7716bf5949b6ab71500484b20f303ad3faf1",
+        "manifest_hash": "sha256:539f9767674150a7ea01afc863f5e30225880db608f1703e91ad3726cb75d7ff"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -3476,7 +3476,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -3677,8 +3677,8 @@
           "report_production_invocations": 0,
           "expected_model_invocations": 24
         },
-        "config_hash": "sha256:ca05a4b11fefad260754f66ba0f3ad1501a6f3d2bc95c8c46d44991702bb6ecf",
-        "manifest_hash": "sha256:f92d3c42406572ba908215c40f3a4a044c0c1366a9cf04a952e16d3ccd75a2b4"
+        "config_hash": "sha256:5c0c3f5f147dd23be548db78ab221fa81b8e40d6d597f089bb6242ddb846fea8",
+        "manifest_hash": "sha256:860f02b5564da11d9135e46ea31dfaaac1cf074c04a49d0bdd0bfff8878fd199"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -3754,7 +3754,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -4019,8 +4019,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:53c3a668d632ad5bfc7c33d009bfc3c249ef55f4c97c5f2a7104e3cc37e61a47",
-        "manifest_hash": "sha256:c79041438936d0034158faa09b476bc60610e8e799ab93ed656290da1e2b48f8"
+        "config_hash": "sha256:6232eaa90ebd52164577f08e7e9600028e84420a8a526fc4676f37d72c28c9ed",
+        "manifest_hash": "sha256:52ffb07b96f83e2368c8c2c1081f59f8553fa9850bd45d43afd1042f1b6e0029"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -4096,7 +4096,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -4361,8 +4361,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:66671ef390e9cb355ed675fc5e6dc09ead6aeba73f2d6ac19a14efb9e6db92fd",
-        "manifest_hash": "sha256:fb33764f496fcb0928722d0aad2c024338e0ad39a1374c17ad6eec524f707c7c"
+        "config_hash": "sha256:5af61aa2901b403e8664878dd750b0fd5eeaf3d310d3dea6769a81454f3df3db",
+        "manifest_hash": "sha256:62353fc8975bc7894b1c69d352a1413bcfe0a5a896e96249de054b6a1c76dc94"
       },
       {
         "schema_version": "wp01-run-manifest-v1",
@@ -4438,7 +4438,7 @@
           }
         ],
         "prompt_registry_namespace": "phase1a-reimagining-humans-candidate",
-        "prompt_registry_hash": "sha256:99fdf45d07fb7f48054cb4e55c3b062b586dcf638c4628ac50b71a23519353f0",
+        "prompt_registry_hash": "sha256:ab28db9e94a5a859cf64b6e5bbdb90bd3e13bec6724025922ff02ca6f0e7a72d",
         "agenda": [
           {
             "id": "T0",
@@ -4703,8 +4703,8 @@
           "report_production_invocations": 4,
           "expected_model_invocations": 31
         },
-        "config_hash": "sha256:5f5da8b43f34f02d452329528e2837b8690dd5615c220a93c4216df2cc54e316",
-        "manifest_hash": "sha256:fb4e7b9bddb8cbd412495719adbcc03cac6963b17e762c2bc831ca7a357a16d5"
+        "config_hash": "sha256:73ca587d75f45372ee37cfc77d5b58ca71326a9aaf249e852f80f4ecaa966bf7",
+        "manifest_hash": "sha256:42562af355dd5314d60442e82263bca7961babc99f4f23d023935130a2957a83"
       }
     ],
     "source_references": [
@@ -4712,11 +4712,12 @@
       "WP01 synthetic fixture: no provider calls or runtime records are generated",
       "AGORA Phase 1A revised October pilot",
       "Simon selected Qwen on 2026-11-12; replaces Gemini in this proposed variant, pending Mateo scientific approval.",
-      "Dedicated deployment: docs/phase1a/experiment/deployment/deployment.json; engineering canary: docs/phase1a/experiment/deployment/canary.json"
+      "Dedicated deployment: docs/phase1a/experiment/deployment/deployment.json; engineering canary: docs/phase1a/experiment/deployment/canary.json",
+      "Mateo WhatsApp 2026-11-12 21:09:56 America/Guayaquil; stanza 3EB029CDC143170C32F9F6: receipt and requested changes, explicitly not scientific approval."
     ],
-    "campaign_hash": "sha256:84df1c800859d72cfedba80919b9ce1071e3e1600af105b8f988db4f92a0ff6a"
+    "campaign_hash": "sha256:8dda9b95d5d31e76458f80b03f69c5039dfe8d49d4129eefd10fae90c61ce84f"
   },
-  "implementation_hash": "sha256:fb55232ee831a48bb124fbc348e5303d5956b57d33c9a7d905f0f0e4bb8d359e",
+  "implementation_hash": "sha256:f909323d64fb278e2e90be51a66656acf78a77ba37ed9a5d751318c73100c701",
   "scientific_reviewer": "Mateo",
   "topic": "Which human limitations should societies address, what changes could address them, and what role and limits should AI agents have?",
   "limits": {
@@ -4822,30 +4823,32 @@
   "data_policy": {
     "operator": "Simon Heilles",
     "storage_location": "/Users/simonheilles/.local/share/agora-pilot/agora-phase1a-qwen-pilot-20261112",
-    "backup_location": "age-encrypted archives at mit-critical-data-1:/data/PROJECTS/simon/agora-pilot/backups; decryption identity remains on Simon’s Mac",
+    "backup_location": "age-encrypted archives at mit-critical-data-1:/data/PROJECTS/simon/agora-pilot/backups; decryption identity currently only on Simon’s Mac; separate recovery-key location and off-Mac restoration remain unverified and block collection",
     "retention": "PROPOSED FOR MATEO: retain raw evidence and encrypted backups for 12 months after collection; review then with Mateo before any deletion. No automatic deletion. Longer retention requires a documented amendment.",
     "access": "named_operators_only_no_public_raw_exports"
   },
   "decision_proposals": {
     "D02": "Dedicated NVIDIA deployment: Gemma 3 27B Q4_K_M and Qwen3 32B Q4_K_M, pinned aliases and manifest SHA-256 digests in all bindings. Qwen replaces Gemini only in this explicit protocol variant selected by Simon. A/B remain three Gemma instances; C/D use Gemma/Qwen/Llama. Engine Ollama 0.40.16, context 32768, thinking disabled, no input truncation or context shifting; effective options and deployment digest archived per response. Technical canaries attached; scientific acceptability remains Mateo’s decision.",
     "D05": "Fixed P1/P2/P3 speaking order in all six rounds, as directed at the 13 October meeting. No speaking-order treatment in this pilot.",
-    "D06": "Approve pilot-candidate-2 wording and adapter-v2 delivery: shared participant instructions at every opportunity, explicit 2/2/2 topic sequence, identical isolated reviewer prompts, no no-report reminder. Review the rendered preview; candidate prose is not approved by software tests.",
+    "D06": "Review pilot-candidate-3: both reviewers receive the draft only and identical instructions limited to clarity, internal consistency, and reasoning/evidence present in the draft. They must not infer omitted positions, transcript fidelity or resolution of disagreements. Revision is likewise limited to the supplied draft and reviews. Human coders alone assess transcript-to-final-report retention and dissent preservation. Shared instructions and the 2/2/2 round sequence remain unchanged. This implements Mateo’s 2026-11-12 requested change but is not yet approved wording.",
     "D07": "Use Llama 3.1 8B Instruct Q4_K_M as Model X with the exact attached manifest digest; no Grok or Phi treatment.",
     "D08": "Rotate report writer P1/P2/P3 across replications; the other two participants independently review the same draft.",
     "D09": "Sequential requests, 120-second timeout, one recorded retry, 62-call and 500000-token stop-before-next-call thresholds per workshop; at most 1024 output tokens. Temperature 0.7, top_p 1, top_k 0, repeat_penalty 1. Shared 32768-token context, thinking false, truncate false, shift false. Unload and release GPU after every call; unavailable GPU returns 429, never commandeered. Unknown usage or completion halts collection. Encrypted backup after stopped campaign, with restoration test; backup failure is an operator error, not a successful launch.",
     "D10": "Exclude Wild West. Simon confirmed the 12-run core-only scope on 2026-11-11.",
-    "D11": "PROPOSED COLLECTION/ANALYSIS SEPARATION, authorized for submission by Simon on 2026-11-12: Mateo approves the codebook and collection before annotator calibration. Before any human scoring, name two independent coders and calibrate them on external material excluded from the 12 workshops; archive calibration and original ratings separately from adjudication. No coders are represented as confirmed and no calibration is claimed completed. Until then, only evidence integrity/coverage/token accounting may be computed. Descriptive run-level findings only.",
+    "D11": "Freeze the exact codebook, definitions, units, missingness, reliability/adjudication rules and descriptive-only analysis under the approved plan/source hashes BEFORE collecting any pilot output. Any substantive amendment requires a new hash and scientific decision; do not tune the codebook to pilot results. Name and calibrate two independent coders on external material BEFORE they see any pilot output, not merely before scoring. Simon retains raw outputs and backups privately until calibration evidence and a dated release record exist. No pilot material may be used for calibration. Original independent ratings remain separate from adjudication. No coders or calibration are claimed complete. Automated integrity/coverage/token accounting may run in operator custody. Transcript-to-report fidelity is assessed only by these human coders.",
     "D12": "No additional cue-replay trials in this campaign. Preserve reconstruction/replay of evidence. Simon confirmed core-only scope on 2026-11-11.",
     "D13": "All three private t0 responses precede report disclosure in B/D; no disclosure in A/C.",
     "D14": "Review exact private-t0, private-t6 and private-tR prompts. Expressed positions only; no inference about latent beliefs.",
     "D15": "Mateo provides explicit scientific approval of this exact plan hash; Simon requested this reviewer on 2026-11-11.",
-    "D16": "PROPOSED OPERATIONAL CHANGE, authorized for submission by Simon on 2026-11-12: accept documented automated encrypted-backup restoration and fresh-process verification of 12 synthetic evidence bundles/330 calls in place of a second human operator’s pre-launch attestation. This is not independent human review. Mateo must explicitly accept this change as part of approving this exact plan."
+    "D16": "PROPOSED OPERATIONAL CHANGE, authorized for submission by Simon on 2026-11-12: accept documented automated encrypted-backup restoration and fresh-process verification of 12 synthetic evidence bundles/330 calls in place of a second human operator’s pre-launch attestation. Off-Mac recovery of those archives must also be demonstrated before collection; the destination for the recovery key is awaiting Simon’s decision. This is not independent human review. Mateo must explicitly accept this change as part of approving this exact plan."
   },
   "approvals": [],
-  "plan_hash": "sha256:17d8c38b793cc1e5ad5aefac1f59654f09b2d904941e54f94c8233507a7b9f2a",
+  "plan_hash": "sha256:23863e0b49b0251762bef043c55ed46938cd6928b9b9cfde70ce76c92e3c1a10",
   "collection_gate": {
     "policy": "mateo_reviewed_collection_before_human_coding_v1",
-    "calibration": "two_independent_coders_on_external_material_before_human_analysis",
+    "calibration": "two_independent_coders_on_external_material_before_pilot_access",
+    "analysis_freeze": "codebook_and_analysis_rules_before_collection",
+    "pilot_access": "operator_custody_until_calibration_evidence_and_release_log",
     "reconstruction": "automated_restore_not_independent_human_attestation",
     "canary": {
       "path": "docs/phase1a/experiment/deployment/canary.json",

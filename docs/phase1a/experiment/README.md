@@ -17,15 +17,15 @@ The 12 workshops contain 216 public opportunities, 90 private checkpoints and 24
 
 The proposed execution order is A1, B1, C1, D1, A2, B2, C2, D2, A3, B3, C3, D3. It is deterministic and not randomized. P1, P2 and P3 speak in that order in each of six rounds. Rounds 1–2 examine human limitations, 3–4 proposed changes, and 5–6 the role and limits of AI agents. All three t0 responses precede any report disclosure. B/D receive the report notice just before round one; A/C receive no report notice or negative reminder. All arms have private t0 and post-round-six checkpoints. Only B/D have a post-report checkpoint.
 
-For B/D, the writer rotates P1, P2, P3 over repetitions. Each other participant independently reviews the same draft, then the writer revises it. Both reviewers receive identical system and user instructions. The current review context contains the draft only, not the original public transcript; review therefore cannot independently verify omitted public material. Mateo must explicitly accept that limitation or request a context-contract change before freeze. Revision sees the draft and both reviews. Private responses are excluded throughout the public/report branch.
+For B/D, the writer rotates P1, P2, P3 over repetitions. Each other participant independently reviews the same draft, then the writer revises it. Both reviewers receive identical system and user instructions. Following Mateo’s 12 November feedback, review keeps the draft-only context and assesses clarity, internal consistency and reasoning supported within that draft. It expressly excludes judgments of omitted discussion, transcript fidelity or resolved disagreements. Human coders assess transcript-to-report fidelity. Revision sees the draft and both reviews. Private responses are excluded throughout the public/report branch.
 
 ## Proposed wording changes
 
-`pilot-candidate-2` and `wp01-runtime-adapter-v2` make the intended prompt delivery explicit:
+`pilot-candidate-3` and `wp01-runtime-adapter-v2` make the intended prompt delivery explicit:
 
 - Shared participant, neutral agent, procedural opening and abstention instructions reach every model call.
 - The six public prompts now express the 2/2/2 topic sequence; it was previously only metadata.
-- Both report reviews use the same wording and neutral reviewer instruction.
+- Both report reviews use identical draft-only wording; revision is bounded by the draft and two reviews. Neither operation may infer omitted public positions. Historical candidate 2 remains reproducible.
 - Public participants are instructed to participate, rather than receiving the old system label describing a workshop host.
 - The unused `no-report-condition` candidate remains in the historical registry but is not delivered. This avoids an additional negative cue in A/C.
 
@@ -45,7 +45,7 @@ On the shared NVIDIA node, follow its GPU reservation file before allocating com
 
 ## Analysis and missingness
 
-WP06 validates each evidence bundle before computing coverage, outcomes, retries and known token totals. Its report codebook defines proposition retention and preservation of public dissent. Two independent human coders must calibrate on material outside the 12 scientific workshops. Original ratings remain alongside a separate adjudication record. A zero dissent denominator is undefined; incomplete or ambiguous evidence is not coded as absent behavior. Coders are not yet confirmed and calibration has not happened. Simon authorized submission of a change on 12 November: Mateo may approve collection first, with naming and calibration mandatory before any human scoring. Only automated integrity, coverage and token accounting are allowed in the meantime. The scientific review must explicitly cover this timing change.
+WP06 validates each evidence bundle before computing coverage, outcomes, retries and known token totals. Its report codebook defines proposition retention and preservation of public dissent. Two independent human coders must calibrate on material outside the 12 scientific workshops. Original ratings remain alongside a separate adjudication record. A zero dissent denominator is undefined; incomplete or ambiguous evidence is not coded as absent behavior. Coders are not yet confirmed and calibration has not happened. Mateo requires the exact codebook and analysis rules to be frozen before collection, and external-material calibration before coders see any pilot output. Calibration may occur after collection only while Simon retains exclusive operator custody. A dated calibration and release record is required before access; see [the review response and freeze rules](MATEO_REVIEW.md). Only automated integrity, coverage and token accounting may run in custody. No calibration or release is claimed complete.
 
 Keep all 12 rows in the campaign roster, including not-started, partial and failed workshops. Stop on the first failed workshop; do not replace it or keep trying until it succeeds. Any subsequent replacement or protocol change requires a new declared plan. Report results per workshop and per condition with missingness. Do not infer private beliefs, causal identity effects, or participant personality from outputs. Private checkpoint texts support a separately reviewed qualitative comparison; this version does not compute a validated numerical position-change score.
 
@@ -53,7 +53,7 @@ WP06 deliberately retains its `PENDING_SCIENTIFIC_APPROVAL` label. A plan approv
 
 ## Review and launch sequence
 
-1. Mateo reviews the exact models, prompts, reviewer-context limitation, deterministic order, budgets, codebook, data policy and collection/analysis amendment. D16 now proposes accepting the attached automated restore verification instead of a second human operator's pre-launch attestation. Simon authorized submitting this proposal; neither Simon's request nor the test pass constitutes Mateo's approval.
+1. Mateo reviews the exact models, prompts, draft-only reviewer scope, deterministic order, budgets, codebook, data policy and collection/analysis amendment. D16 now proposes accepting the attached automated restore verification instead of a second human operator's pre-launch attestation. Simon authorized submitting this proposal; neither Simon's request nor the test pass constitutes Mateo's approval.
 2. Record Mateo's genuine approval of the final `plan_hash`, with timestamp and evidence reference, as the sole `scientific` approval record. Do not seal after adding it: sealing invalidates approvals. If Mateo requests changes, regenerate the proposal and seek approval of the new hash.
 3. Run the operator launcher preflight, then launch only when the approval has been received. The live archive is fixed by `data_policy.storage_location`. The launcher loads credentials from the operator's private configuration and checks the deployment before any scientific call.
 
@@ -69,16 +69,16 @@ python3 src/phase1a/deployment/launch.py docs/phase1a/experiment/proposal/plan.j
 python3 src/phase1a/deployment/launch.py docs/phase1a/experiment/proposal/plan.json --run
 ```
 
-`check` rejects an unapproved plan before credential reads, output creation or model calls. Legacy plans still require the earlier human calibration/infrastructure/reconstruction attestations. The new optional `collection_gate` requires checksum-pinned successful model canaries and encrypted-restore evidence, plus Mateo's approval of this exact policy. It does not manufacture human approvals. Source/dependency or substantive plan changes invalidate the approval; model configuration or revision drift stops collection.
+`check` rejects an unapproved plan before credential reads, output creation or model calls. Legacy plans still require the earlier human calibration/infrastructure/reconstruction attestations. The revised `collection_gate` requires checksum-pinned successful model canaries, encrypted restoration including recovery without the Mac, explicit pre-collection freeze and pre-access custody, plus Mateo’s approval of this exact policy. Off-Mac recovery is still outstanding. It does not manufacture human approvals. Source/dependency or substantive plan changes invalidate the approval; model configuration or revision drift stops collection.
 
-See [OPERATIONS.md](OPERATIONS.md) for service restart, tunnel, backup and failure handling. No experiment, annotation, message to Mateo or approval has been generated by preparation.
+See [OPERATIONS.md](OPERATIONS.md) for service restart, tunnel, backup and failure handling. No scientific experiment or annotation has run. Mateo acknowledged receipt of the review email, requested changes and explicitly withheld scientific approval.
 
 Reusing the same output directory resumes saved workshops without reissuing completed calls. A failed workshop remains failed. A lock prevents two concurrent runners in that directory. After a process crash, verify that its PID is dead and archive the lock before removing it; never unlock an active process. If a request was in flight or a retry sequence was incomplete, continuation is blocked. Reconcile provider usage and preserve the interrupted record; do not erase it or edit the ledger to force a rerun. Different directories are separate executions, so the operator must maintain one designated live archive for the approved campaign.
 
-Exports contain private probes and provider material. Directory access is restricted to the operator; this is filesystem access control, not encryption or a backup. The launcher encrypts a stopped archive with age, uploads only ciphertext to NVIDIA, retrieves it, compares every restored file and verifies each evidence bundle in a fresh process. The rehearsal restore is attached. This protects archived data; live data since the last successful backup remains on the Mac. The private decryption identity stays on the Mac and must be preserved for recovery.
+Exports contain private probes and provider material. Directory access is restricted to the operator; this is filesystem access control, not encryption or a backup. The launcher encrypts a stopped archive with age, uploads only ciphertext to NVIDIA, retrieves it, compares every restored file and verifies each evidence bundle in a fresh process. The rehearsal restore is attached. This protects archived data; live data since the last successful backup remains on the Mac. The private decryption identity currently exists only on the Mac. An independent recovery location is awaiting Simon’s choice; until an off-Mac restoration succeeds, collection is blocked even if scientific approval is supplied.
 
 ## Implementation and validation
 
 This branch integrates PRs #22, #23, #24 and #25, resolving their overlaps. It fixes retry-order verification, preserves stricter t0 boundary validation, aligns WP06 with permission-denied outcomes, and allows explicitly bound Model X deployments and a resolved report allocation at scientific freeze. It adds the review plan, a credential-separated provider transport, a durable campaign runner and a complete roster.
 
-See [validation evidence](VALIDATION.md) for the exact checked build, test counts, rehearsal hashes and access status. The final scientific decision belongs to Mateo; no approval or message to him has been fabricated or sent.
+See [validation evidence](VALIDATION.md) for the exact checked build, test counts, rehearsal hashes and access status. The final scientific decision belongs to Mateo; his receipt message is not an approval.

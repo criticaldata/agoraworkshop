@@ -6,8 +6,8 @@ import { tmpdir } from 'node:os';
 import { compileExperiment, createExperimentProposal, planHash, readiness, sealCampaign } from '../src/phase1a/experiment/plan.js';
 import { ChatCompletionsProvider, resolveEndpoints } from '../src/phase1a/experiment/provider.js';
 import { executeExperiment, hasUnresolvedCall } from '../src/phase1a/experiment/runner.js';
-import { buildSyntheticCampaign, QWEN_CONDITION_MATRIX, validateCampaignManifest } from '../src/phase1a/wp01/index.js';
-import { DeterministicMockProvider, type ProviderCallSpec } from '../src/phase1a/index.js';
+import { buildSyntheticCampaign, createPilotPromptRegistry, validatePromptRegistry, QWEN_CONDITION_MATRIX, validateCampaignManifest } from '../src/phase1a/wp01/index.js';
+import { DeterministicMockProvider, Phase1aRuntime, type ProviderCallSpec } from '../src/phase1a/index.js';
 
 // Test-only attestations. Never exported as actual approval evidence.
 function approvedFixture() {
@@ -54,6 +54,37 @@ describe('Qwen protocol amendment', () => {
     expect(validateCampaignManifest(sealCampaign(c)).issues.join(' ')).toMatch(/composition mismatch/);
   });
 });
+describe('Mateo draft-only review amendment', () => {
+  it('preserves the previous candidate while versioning the new review boundary', () => {
+    const old = createPilotPromptRegistry('pilot-candidate-2');
+    const current = createPilotPromptRegistry();
+    expect(validatePromptRegistry(old).valid).toBe(true);
+    expect(validatePromptRegistry(current).valid).toBe(true);
+    expect(current.registry_hash).not.toBe(old.registry_hash);
+    expect(old.prompts.find(p => p.id === 'report-review-1')!.text).toContain('omitted disagreement');
+    expect(current.version).toBe('pilot-candidate-3');
+  });
+  it('delivers only the same draft to both reviewers and only draft plus reviews to revision', async () => {
+    const manifest = compileExperiment(approvedFixture()).manifests.find(m => m.cell === 'B')!;
+    const runtime = new Phase1aRuntime();
+    const provider = new DeterministicMockProvider();
+    await runtime.run(runtime.createRun(manifest), provider);
+    const reviews = provider.calls.filter(c => ['report:review1', 'report:review2'].includes(c.operationKey));
+    expect(reviews).toHaveLength(2);
+    expect(reviews[0]!.context).toEqual(reviews[1]!.context);
+    expect(reviews[0]!.context).toHaveLength(1);
+    expect(reviews[0]!.userPrompt).toBe(reviews[1]!.userPrompt);
+    for (const review of reviews) {
+      expect(review.userPrompt).toContain('only the supplied draft');
+      expect(review.userPrompt).toContain('do not judge what it omitted');
+      expect(review.userPrompt).toContain('Point to specific passages');
+    }
+    const revision = provider.calls.find(c => c.operationKey === 'report:revised')!;
+    expect(revision.context).toHaveLength(3);
+    expect(revision.context[0]).toEqual(reviews[0]!.context[0]);
+    expect(revision.userPrompt).toContain('do not infer omitted positions');
+  });
+});
 describe('experiment admission', () => {
   it('keeps a draft blocked and compiles every cell only with complete evidence', () => {
     expect(readiness(createExperimentProposal()).valid).toBe(false);
@@ -89,6 +120,24 @@ describe('experiment admission', () => {
     expect(readiness(p).blockers).toEqual(['Missing or stale scientific approval']);
     p.approvals = [{role:'scientific',reviewer:'Mateo',approved_at:'2026-11-12T00:00:00.000Z',plan_hash:p.plan_hash,evidence_ref:'test-only-not-real-approval'}];
     expect(compileExperiment(p).manifests).toHaveLength(12);
+    // New policy requested by Mateo: recovery and pre-access custody must be explicit.
+    p.collection_gate.calibration = 'two_independent_coders_on_external_material_before_pilot_access';
+    p.plan_hash = planHash(p);
+    expect(readiness(p).blockers).toContain('Missing off_mac_restore evidence');
+    expect(readiness(p).blockers).toContain('Pre-collection analysis freeze and pre-access calibration custody must be explicit');
+    p.collection_gate.analysis_freeze = 'codebook_and_analysis_rules_before_collection';
+    p.collection_gate.pilot_access = 'operator_custody_until_calibration_evidence_and_release_log';
+    const recovery = {result:'pass', recovery_host:'denem-server', operator_mac_required:false, verified_bundles:12, verified_calls:330, byte_identical:true, independent_restore_processes:true};
+    p.collection_gate.off_mac_restore = put('recovery.json', recovery);
+    p.plan_hash = planHash(p);
+    expect(readiness(p).blockers).toEqual(['Missing or stale scientific approval']);
+    p.approvals[0]!.plan_hash = p.plan_hash; // Test-only approval, never exported.
+    expect(compileExperiment(p).manifests).toHaveLength(12);
+    p.collection_gate.off_mac_restore = put('recovery.json', {...recovery, operator_mac_required:true});
+    expect(readiness(p).blockers).toContain('Off-Mac recovery verification is incomplete or failed');
+    p.collection_gate.off_mac_restore = put('recovery.json', recovery);
+    writeFileSync(p.collection_gate.off_mac_restore.path, '{}');
+    expect(readiness(p).blockers).toContain('Missing or changed off_mac_restore evidence');
     writeFileSync(p.collection_gate.restore.path, '{}');
     expect(readiness(p).blockers).toContain('Missing or changed restore evidence');
     p.collection_gate.restore = put('restore.json', null);
@@ -97,7 +146,7 @@ describe('experiment admission', () => {
     expect(readiness(p).blockers).toContain('Encrypted backup/restore verification is incomplete or failed');
   });
   it('invalidates approvals when text, limits or deployment changes', () => {
-    for (const mutate of [(p: any) => p.topic += ' changed', (p: any) => p.limits.maxTokens++, (p: any) => p.campaign.runs[0].bindings[0].revision = 'different']) {
+    for (const mutate of [(p: any) => p.topic += ' changed', (p: any) => p.analysis.codebook.definitions.report_retention += ' changed', (p: any) => p.decision_proposals.D11 += ' changed', (p: any) => p.limits.maxTokens++, (p: any) => p.campaign.runs[0].bindings[0].revision = 'different']) {
       const p = approvedFixture(); mutate(p); expect(() => compileExperiment(p)).toThrow();
       p.plan_hash = planHash(p); expect(() => compileExperiment(p)).toThrow(/stale/);
     }

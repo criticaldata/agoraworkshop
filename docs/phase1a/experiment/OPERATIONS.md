@@ -24,13 +24,13 @@ It validates executable/source hashes and GPU identity. It refuses PID reuse, ve
 
 ## Private credentials and tunnel
 
-Local `~/.config/agora-pilot/gateway.credential` and `backup.identity` are mode 0600 under a mode 0700 directory. Do not print, commit, copy into the plan or upload the identity. The cluster holds a gateway credential with matching permissions. Same-user processes on this shared node are not isolated by file permissions: this is not a claim of exclusive host control. Only encrypted backup archives are uploaded; the model necessarily receives inference prompts.
+Local `~/.config/agora-pilot/gateway.credential` and `backup.identity` are mode 0600 under a mode 0700 directory. Do not print, commit, copy into the plan or upload the identity to NVIDIA. A separate private recovery location requires Simon’s choice and a documented off-Mac restoration test. The cluster holds a gateway credential with matching permissions. Same-user processes on this shared node are not isolated by file permissions: this is not a claim of exclusive host control. Only encrypted backup archives are uploaded; the model necessarily receives inference prompts.
 
 The launcher opens a non-multiplexed SSH forward if needed, verifies authenticated health against the reviewed digest, and passes credentials only through the child's environment. An earlier multiplexed Brev tunnel disappeared during a technical call; the working setup explicitly uses `-S none -o ControlMaster=no`. No automatic inference retry hides an ambiguous transport failure.
 
 ## Approval and execution
 
-`docs/phase1a/experiment/proposal/plan.json` is the prepared review file. It has **no approval records**. The sole pending collection gate is Mateo's genuine approval of the exact final plan hash, including D11/D16 timing and operational amendments. Record reviewer `Mateo`, role `scientific`, actual UTC approval time and a real evidence reference. Never invent an attestation. Calibration and independent human coding are still required before scoring; they are not represented as complete.
+`docs/phase1a/experiment/proposal/plan.json` is the prepared review file. It has **no approval records**. Collection is blocked by missing off-Mac restoration evidence and Mateo’s genuine approval of the new exact final plan hash, including D11/D16 timing and operational amendments. Record reviewer `Mateo`, role `scientific`, actual UTC approval time and a real evidence reference. Never invent an attestation. Freeze the codebook and analysis before collection; calibrate coders on external material before any pilot access. Use the separate [calibration/release record](calibration-release.template.json); do not edit an approved plan to add post-collection coder names. No calibration is represented as complete.
 
 Run from repository root:
 
@@ -53,7 +53,7 @@ python3 src/phase1a/deployment/backup.py PRIVATE_ARCHIVE \
   "$HOME/.config/agora-pilot/backup.identity" PRIVATE_BACKUP_REPORT.json
 ```
 
-Only ciphertext resides off the Mac. Preserve the age identity: losing it makes that ciphertext unrecoverable. The tested recovery assumes the identity remains available; this is not disaster-recovery certification against simultaneous loss of the Mac and its key. Raw data is not backed up continuously during the campaign. Retention is proposed as 12 months after collection followed by Mateo review, with no automatic deletion.
+Only ciphertext resides off the Mac. Preserve the age identity: losing it makes that ciphertext unrecoverable. The existing tested recovery assumes the Mac and identity remain available. It does not meet Mateo’s new off-Mac requirement. The revised plan remains blocked until an independent recovery setup is tested. The proposed private key copy on denem-server awaits Simon’s decision. The test must retrieve the encrypted archive without the Mac, verify its digest, decrypt on denem-server, compare restored file hashes and validate all 12 evidence bundles/330 calls in fresh processes. Copying the key alone is insufficient. Raw data is not backed up continuously during the campaign. Retention is proposed as 12 months after collection followed by Mateo review, with no automatic deletion.
 
 ## Failures
 

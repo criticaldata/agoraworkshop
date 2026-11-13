@@ -4717,7 +4717,7 @@
     ],
     "campaign_hash": "sha256:8dda9b95d5d31e76458f80b03f69c5039dfe8d49d4129eefd10fae90c61ce84f"
   },
-  "implementation_hash": "sha256:f909323d64fb278e2e90be51a66656acf78a77ba37ed9a5d751318c73100c701",
+  "implementation_hash": "sha256:9d071b1feea016b3d0e8583634ab39d5e53bd24972ad5d94a9dbc77f049d218f",
   "scientific_reviewer": "Mateo",
   "topic": "Which human limitations should societies address, what changes could address them, and what role and limits should AI agents have?",
   "limits": {
@@ -4823,7 +4823,7 @@
   "data_policy": {
     "operator": "Simon Heilles",
     "storage_location": "/Users/simonheilles/.local/share/agora-pilot/agora-phase1a-qwen-pilot-20261112",
-    "backup_location": "age-encrypted archives at mit-critical-data-1:/data/PROJECTS/simon/agora-pilot/backups; decryption identity currently only on Simon’s Mac; separate recovery-key location and off-Mac restoration remain unverified and block collection",
+    "backup_location": "age-encrypted archives at mit-critical-data-1:/data/PROJECTS/simon/agora-pilot/backups; private age identity on Simon’s Mac and, with Simon’s explicit authorization, denem-server:/home/denem/.config/agora-pilot/backup.identity (0600); recovery uses direct restricted read-only SSH from the VPS to NVIDIA and must pass the pinned off-Mac restore evidence gate",
     "retention": "PROPOSED FOR MATEO: retain raw evidence and encrypted backups for 12 months after collection; review then with Mateo before any deletion. No automatic deletion. Longer retention requires a documented amendment.",
     "access": "named_operators_only_no_public_raw_exports"
   },
@@ -4840,15 +4840,19 @@
     "D13": "All three private t0 responses precede report disclosure in B/D; no disclosure in A/C.",
     "D14": "Review exact private-t0, private-t6 and private-tR prompts. Expressed positions only; no inference about latent beliefs.",
     "D15": "Mateo provides explicit scientific approval of this exact plan hash; Simon requested this reviewer on 2026-11-11.",
-    "D16": "PROPOSED OPERATIONAL CHANGE, authorized for submission by Simon on 2026-11-12: accept documented automated encrypted-backup restoration and fresh-process verification of 12 synthetic evidence bundles/330 calls in place of a second human operator’s pre-launch attestation. Off-Mac recovery of those archives must also be demonstrated before collection; the destination for the recovery key is awaiting Simon’s decision. This is not independent human review. Mateo must explicitly accept this change as part of approving this exact plan."
+    "D16": "PROPOSED OPERATIONAL CHANGE, authorized for submission by Simon on 2026-11-12: accept documented automated encrypted-backup restoration and fresh-process verification of 12 synthetic evidence bundles/330 calls in place of a second human operator’s pre-launch attestation. Off-Mac recovery of those archives must also be demonstrated before collection; Simon authorized a private recovery-key copy on denem-server; direct VPS-to-NVIDIA retrieval, decryption and fresh-process evidence verification must be documented. This is not independent human review. Mateo must explicitly accept this change as part of approving this exact plan."
   },
   "approvals": [],
-  "plan_hash": "sha256:23863e0b49b0251762bef043c55ed46938cd6928b9b9cfde70ce76c92e3c1a10",
+  "plan_hash": "sha256:199b1bff0fccc103fe534b15a54add18c5a1f5fb2cb3fdf1c544c556f13bc9a9",
   "collection_gate": {
     "policy": "mateo_reviewed_collection_before_human_coding_v1",
     "calibration": "two_independent_coders_on_external_material_before_pilot_access",
     "analysis_freeze": "codebook_and_analysis_rules_before_collection",
     "pilot_access": "operator_custody_until_calibration_evidence_and_release_log",
+    "off_mac_restore": {
+      "path": "docs/phase1a/experiment/deployment/off-mac-restore.json",
+      "sha256": "08f8dd553ace6e3374fa2bdd87cf9f15b8cca8ddd2f73d1d41fb7de7d021dbc1"
+    },
     "reconstruction": "automated_restore_not_independent_human_attestation",
     "canary": {
       "path": "docs/phase1a/experiment/deployment/canary.json",

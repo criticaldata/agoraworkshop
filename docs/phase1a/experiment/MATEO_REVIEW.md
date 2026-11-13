@@ -1,6 +1,6 @@
 # Response to Mateo’s review — 12 November 2026
 
-Status: requested changes implemented in the review candidate; off-Mac recovery outstanding; no scientific approval and no collection.
+Status: requested changes implemented in the review candidate; off-Mac recovery verified on denem-server; no scientific approval and no collection.
 
 Source: Mateo’s incoming WhatsApp message at 21:09:56 America/Guayaquil on 12 November 2026, stanza `3EB029CDC143170C32F9F6`, read from the local WhatsApp database. The full source is retained privately; this document paraphrases it. His message confirms receipt and explicitly withholds permission to collect. He accepts the 12-workshop exploratory scope and plans a separate decision on the exact hash after these points and model assignments are settled.
 
@@ -10,7 +10,7 @@ Source: Mateo’s incoming WhatsApp message at 21:09:56 America/Guayaquil on 12 
 | Human coders assess transcript-to-report fidelity | The codebook requires the public trace and final report, exact source spans and independent original ratings; reviewer comments are ineligible evidence. | Approve the frozen codebook and analysis. |
 | Freeze before collection | Codebook bytes/hash, rules, missingness, inference limits and implementation/dependency hash are bound into the approved plan hash. Changed content or source invalidates approval. | Separate scientific decision referencing the final hash. |
 | External calibration before any pilot exposure | Operator-only custody until two coders’ external-material calibration and a dated release record. No pilot outputs, excerpts or summaries may be used for calibration. | Identify/calibrate coders before release; not claimed completed. |
-| Recover archives if Mac unavailable | New launch gate requires independently retrieved, decrypted and verified off-Mac evidence. Existing Mac-based restore does not satisfy it. | Simon chooses recovery-key location; perform the recovery test. |
+| Recover archives if Mac unavailable | Simon authorized the private VPS recovery key. Direct restricted SSH retrieval, decryption, byte comparison and fresh-process validation succeeded on denem-server: 12 bundles/330 calls. | Mateo reviews the attached recovery evidence and operational policy. |
 | Settle models | A/B: three Gemma 3 27B IT instances. C/D: Gemma 3 27B IT, Qwen3 32B, Llama 3.1 8B Instruct. All Q4_K_M, pinned deployment digests. | Mateo approves Qwen substitution and Llama as Model X. |
 
 ## Frozen analysis rules
@@ -33,4 +33,4 @@ File permissions and launch checks do not prove human blinding or independence. 
 
 ## Remaining launch blockers
 
-The plan and prompt preview have been regenerated after the requested changes. They are a new review candidate, not the previously emailed plan. Complete off-Mac recovery, regenerate the final plan hash, then obtain Mateo’s separate scientific decision on that hash and model assignments. No receipt message, scope agreement or software test substitutes for this approval.
+The plan and prompt preview have been regenerated after the requested changes. They are a new review candidate, not the previously emailed plan. Off-Mac recovery is complete and the final plan has been regenerated. Obtain Mateo’s separate scientific decision on that hash and model assignments. No receipt message, scope agreement or software test substitutes for this approval.

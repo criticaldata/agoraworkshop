@@ -1,19 +1,20 @@
 # Pilot deployment and implementation validation — 12 November 2026
 
-**The three dedicated models are prepared and Mateo’s requested prompt/freeze changes are implemented. Collection remains blocked by off-Mac recovery evidence and scientific approval of the new plan. Mateo’s WhatsApp receipt explicitly withheld approval. No scientific workshop has run.**
+**The three dedicated models are prepared and Mateo’s requested prompt/freeze changes are implemented. Off-Mac recovery now passes on denem-server. Only scientific approval of the new plan remains in the prepared collection gate. Mateo’s WhatsApp receipt explicitly withheld approval. No scientific workshop has run.**
 
 | Check | Observed result |
 | --- | --- |
 | TypeScript build | Pass |
 | Automated TypeScript suite | 757 tests, 54 files, 0 failures |
-| Gateway Python suite | 6 tests, 0 failures |
+| Gateway and recovery Python suite | 11 tests, 0 failures |
 | Production dependency audit | 0 vulnerabilities reported |
 | Complete synthetic CLI/SQLite campaign | 12 workshops, 330 calls |
 | Separate-process resume | Same 12 run IDs and 330 calls, no repeated completed call |
 | Encrypted backup and retrieval | Remote SHA-256 matches; decrypted files byte-identical |
 | Fresh-process restored evidence verification | 12 bundles, 330 calls |
+| Independent VPS recovery | Direct NVIDIA retrieval, decryption, byte-identical files, 12 bundles/330 calls |
 | Unapproved launcher | Rejected before credentials, output creation or model calls |
-| Prepared plan readiness | Two blockers: missing/stale scientific approval; missing off-Mac recovery evidence |
+| Prepared plan readiness | One blocker: missing/stale scientific approval |
 
 ## Real deployment canaries
 
@@ -33,10 +34,10 @@ The server starter was also run successfully against the deployed services, veri
 
 ## Evidence and scientific boundary
 
-The [machine-readable summary](validation-summary.json) records the reviewed plan/source/manifest hashes and every final rehearsal evidence/analysis file digest. Full mock archives remain operator-local under `artifacts/phase1a-rehearsal-20261112-mateo-review/`. The [initial restored rehearsal proof](deployment/restore.json) is checksum-pinned by the plan. A [new candidate backup/restore](deployment/mateo-review-restore.json) covers the candidate-3 rehearsal, including its exact plan bytes. No raw private scientific data exists in these engineering fixtures.
+The [machine-readable summary](validation-summary.json) records the reviewed plan/source/manifest hashes and every final rehearsal evidence/analysis file digest. Full mock archives remain operator-local under `artifacts/phase1a-rehearsal-20261113-recovery-final/`. The [initial restored rehearsal proof](deployment/restore.json) is checksum-pinned by the plan. A [new candidate backup/restore](deployment/recovery-final-restore.json) covers the candidate-3 rehearsal, including its exact plan bytes. No raw private scientific data exists in these engineering fixtures.
 
-Tests additionally verify candidate-2 reproducibility, candidate-3 draft-only runtime delivery, analysis/codebook mutation invalidating approval, and rejection of absent, changed or failed off-Mac evidence. Tests cover the explicit Qwen variant while preserving historical Gemini compatibility, four-cell admission, stale approvals, exact endpoint/model/configuration/revision pinning, fail-stop transport, credential separation, t0 integrity, complete roster, durable resume, missingness, and the collection-only gate. The optional gate requires genuine checksum-matching successful technical evidence and still blocks without Mateo. Legacy plans retain the earlier human attestations.
+Recovery tests reject arbitrary SSH commands, path traversal, links, duplicate members and missing/corrupt files. Live negative control confirms the restricted SSH key refuses shell execution. Tests additionally verify candidate-2 reproducibility, candidate-3 draft-only runtime delivery, analysis/codebook mutation invalidating approval, and rejection of absent, changed or failed off-Mac evidence. Tests cover the explicit Qwen variant while preserving historical Gemini compatibility, four-cell admission, stale approvals, exact endpoint/model/configuration/revision pinning, fail-stop transport, credential separation, t0 integrity, complete roster, durable resume, missingness, and the collection-only gate. The optional gate requires genuine checksum-matching successful technical evidence and still blocks without Mateo. Legacy plans retain the earlier human attestations.
 
-After receiving the dossier, Mateo requested draft-only review wording, a pre-collection codebook/analysis freeze, external calibration before coders see any pilot output, and recovery without the Mac. Candidate 3 and the revised gate implement these boundaries. The new recovery test remains outstanding pending the recovery-key location decision. See [the response](MATEO_REVIEW.md). The existing restoration tests use the Mac and do not satisfy off-Mac recovery. **Neither calibration nor an independent human attestation is claimed complete.** Mateo must accept these changes, model choices, exact prompts, draft-only reviewer scope, analysis plan and data policy in his approval of the final hash. Any requested substantive or implementation change invalidates that hash.
+After receiving the dossier, Mateo requested draft-only review wording, a pre-collection codebook/analysis freeze, external calibration before coders see any pilot output, and recovery without the Mac. Candidate 3 and the revised gate implement these boundaries. Simon authorized the private recovery-key copy on denem-server; direct VPS-to-NVIDIA retrieval and restoration succeeded without Mac dependencies. See [the response](MATEO_REVIEW.md). The new [off-Mac proof](deployment/off-mac-restore.json) verifies 12 bundles/330 calls, ciphertext and restored file hashes, private key permissions and fresh verification processes. The [final-plan off-Mac proof](deployment/final-off-mac-restore.json) repeats this for the regenerated plan. Temporary plaintext was removed after each test. **Neither calibration nor an independent human attestation is claimed complete.** Mateo must accept these changes, model choices, exact prompts, draft-only reviewer scope, analysis plan and data policy in his approval of the final hash. Any requested substantive or implementation change invalidates that hash.
 
 Mateo acknowledged the earlier email and explicitly withheld scientific approval. This updated dossier has not been sent in a new message; the existing PR remains draft and unmerged. See [OPERATIONS.md](OPERATIONS.md) for the concrete preflight, launch and recovery commands.

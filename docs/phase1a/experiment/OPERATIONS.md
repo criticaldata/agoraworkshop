@@ -24,13 +24,13 @@ It validates executable/source hashes and GPU identity. It refuses PID reuse, ve
 
 ## Private credentials and tunnel
 
-Local `~/.config/agora-pilot/gateway.credential` and `backup.identity` are mode 0600 under a mode 0700 directory. Do not print, commit, copy into the plan or upload the identity to NVIDIA. A separate private recovery location requires Simon’s choice and a documented off-Mac restoration test. The cluster holds a gateway credential with matching permissions. Same-user processes on this shared node are not isolated by file permissions: this is not a claim of exclusive host control. Only encrypted backup archives are uploaded; the model necessarily receives inference prompts.
+Local `~/.config/agora-pilot/gateway.credential` and `backup.identity` are mode 0600 under a mode 0700 directory. Do not print, commit, copy into the plan or upload the identity to NVIDIA. Simon explicitly authorized the matching private recovery identity on denem-server; the tested setup is documented below. The cluster holds a gateway credential with matching permissions. Same-user processes on this shared node are not isolated by file permissions: this is not a claim of exclusive host control. Encrypted backup archives and non-secret checksum manifests are uploaded; the model necessarily receives inference prompts.
 
 The launcher opens a non-multiplexed SSH forward if needed, verifies authenticated health against the reviewed digest, and passes credentials only through the child's environment. An earlier multiplexed Brev tunnel disappeared during a technical call; the working setup explicitly uses `-S none -o ControlMaster=no`. No automatic inference retry hides an ambiguous transport failure.
 
 ## Approval and execution
 
-`docs/phase1a/experiment/proposal/plan.json` is the prepared review file. It has **no approval records**. Collection is blocked by missing off-Mac restoration evidence and Mateo’s genuine approval of the new exact final plan hash, including D11/D16 timing and operational amendments. Record reviewer `Mateo`, role `scientific`, actual UTC approval time and a real evidence reference. Never invent an attestation. Freeze the codebook and analysis before collection; calibrate coders on external material before any pilot access. Use the separate [calibration/release record](calibration-release.template.json); do not edit an approved plan to add post-collection coder names. No calibration is represented as complete.
+`docs/phase1a/experiment/proposal/plan.json` is the prepared review file. It has **no approval records**. Off-Mac recovery has passed. Collection is blocked only by Mateo’s genuine approval of the new exact final plan hash, including D11/D16 timing and operational amendments. Record reviewer `Mateo`, role `scientific`, actual UTC approval time and a real evidence reference. Never invent an attestation. Freeze the codebook and analysis before collection; calibrate coders on external material before any pilot access. Use the separate [calibration/release record](calibration-release.template.json); do not edit an approved plan to add post-collection coder names. No calibration is represented as complete.
 
 Run from repository root:
 
@@ -53,7 +53,22 @@ python3 src/phase1a/deployment/backup.py PRIVATE_ARCHIVE \
   "$HOME/.config/agora-pilot/backup.identity" PRIVATE_BACKUP_REPORT.json
 ```
 
-Only ciphertext resides off the Mac. Preserve the age identity: losing it makes that ciphertext unrecoverable. The existing tested recovery assumes the Mac and identity remain available. It does not meet Mateo’s new off-Mac requirement. The revised plan remains blocked until an independent recovery setup is tested. The proposed private key copy on denem-server awaits Simon’s decision. The test must retrieve the encrypted archive without the Mac, verify its digest, decrypt on denem-server, compare restored file hashes and validate all 12 evidence bundles/330 calls in fresh processes. Copying the key alone is insufficient. Raw data is not backed up continuously during the campaign. Retention is proposed as 12 months after collection followed by Mateo review, with no automatic deletion.
+Simon authorized a recovery identity at `denem-server:/home/denem/.config/agora-pilot/backup.identity`. Its directory is 0700 and file is 0600. The private identity is never uploaded to NVIDIA or committed to Git. The VPS has a separate SSH key restricted on NVIDIA to listing/reading AGORA ciphertext and checksum manifests. Shell execution, forwarding and arbitrary paths are not allowed. The NVIDIA host key is pinned in the private recovery configuration. Cloudflared provides the direct Brev SSH transport; the Mac is not a relay.
+
+The verifier is installed at `/home/denem/.local/share/agora-recovery/verifier` with Node 22.23.4. User-local tools are age 1.1.1 (Ubuntu package `1.1.1-1ubuntu0.24.04.3`) and cloudflared 2026.11.0 (SHA-256 `51f7c68b57ed7269164075d7e789efce5b59355982f06392deeb037d982a51fd`). Existing system tools and other services were not replaced. The pinned recovery evidence records the script, verifier and SSH configuration hashes.
+
+Log in to denem-server from any authorized device; no Mac file or session is required. Run there:
+
+```sh
+ssh -F ~/.config/agora-pilot/recovery_ssh_config -T agora-backups list
+cd ~/.local/share/agora-recovery/verifier
+python3 src/phase1a/deployment/recover.py ARCHIVE_FILENAME.tar.gz.age \
+  ~/.local/state/agora-recovery/recovery-report.json
+```
+
+Choose an actual `agora-YYYYMMDDTHHMMSSffffffZ.tar.gz.age` filename from the listing with a matching `.manifest.json`. Each new backup now publishes that manifest after the encrypted archive is verified. Recovery fetches both directly from NVIDIA, checks the ciphertext digest, decrypts, compares every file hash, and verifies each evidence bundle in a fresh Node process. Path traversal, links, duplicate members and missing/corrupt files are rejected. Default temporary plaintext is removed when verification completes. For actual recovery, add `--destination /home/denem/PRIVATE_NEW_DIRECTORY` to retain the verified archive in a new private directory. A failed restore may leave an incomplete destination for diagnosis; never treat it as valid without the successful report.
+
+The [pinned pre-launch rehearsal proof](deployment/off-mac-restore.json) covers 12 bundles/330 calls. The additional [final-plan recovery proof](deployment/final-off-mac-restore.json) covers the regenerated plan itself. These are automated tests, not a second human attestation. Recovery still requires access to denem-server and the NVIDIA host; simultaneous loss of both hosts is outside this setup. Preserve the private recovery key and source snapshot. If Brev changes the host or transport, re-establish verified access and repeat the recovery test before collection. Raw data is not backed up continuously during the campaign. Retention is proposed as 12 months after collection followed by Mateo review, with no automatic deletion.
 
 ## Failures
 

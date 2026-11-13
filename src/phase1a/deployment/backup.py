@@ -70,7 +70,15 @@ def backup(source, identity, output):
         roster = json.loads((restored/'roster.json').read_text())
         report = {'mode': 'automated_encrypted_backup_restore', 'result': 'pass', 'verified_at': datetime.now(timezone.utc).isoformat(), 'source': str(source), 'remote_ciphertext': 'mit-critical-data-1:'+remote, 'remote_ciphertext_sha256': digest, 'recipient': recipient, 'byte_identical': True, 'separate_process': True, 'verified_bundles': len(bundles), 'verified_calls': sum(len(json.loads(p.read_text()).get('provider_calls', [])) for p in bundles), 'files': before}
         output.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
-        output.write_text(json.dumps(report, indent=2)+'\n'); output.chmod(0o600)
+        manifest = temp/'manifest.json'
+        manifest.write_text(json.dumps(report, indent=2)+'\n')
+        # Publish non-secret checksum metadata for independent VPS retrieval.
+        manifest_remote = remote + '.manifest.json'
+        run(['scp', '-q', str(manifest), 'mit-critical-data-1:' + manifest_remote])
+        manifest_hash = run(['ssh', '-T', '-o', 'BatchMode=yes', 'mit-critical-data-1', 'sha256sum ' + manifest_remote], text=True).stdout.split()[0]
+        if manifest_hash != hashlib.sha256(manifest.read_bytes()).hexdigest():
+            raise RuntimeError('Remote recovery manifest checksum mismatch')
+        output.write_bytes(manifest.read_bytes()); output.chmod(0o600)
         print(json.dumps({k:v for k,v in report.items() if k != 'files'}))
 
 if __name__ == '__main__':

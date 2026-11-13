@@ -1,7 +1,6 @@
 {
   "valid": false,
   "blockers": [
-    "Missing or stale scientific approval",
-    "Missing off_mac_restore evidence"
+    "Missing or stale scientific approval"
   ]
 }

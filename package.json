@@ -19,7 +19,7 @@
     "phase1a:analyze": "tsx src/phase1a/wp06/cli.ts",
     "phase1a:preview": "tsx src/phase1a/wp06/preview/server.ts",
     "phase1a:experiment": "tsx src/phase1a/experiment/cli.ts",
-    "test:deployment": "python3 -m unittest discover -s tests -p 'phase1aGateway_test.py'"
+    "test:deployment": "python3 -m unittest discover -s tests -p 'phase1a*_test.py'"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.115.0",

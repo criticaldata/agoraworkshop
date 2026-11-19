@@ -121,3 +121,29 @@ footer{padding-block:30px;font-size:14px}
 @media(max-width:650px){.experiment-matrix{grid-template-columns:110px 1fr 1fr}.matrix-corner,.matrix-axis{font-size:10px}.experiment-matrix article{min-height:170px;padding:16px}.experiment-matrix h3{margin-top:25px;font-size:22px}.experiment-matrix p{font-size:13px}.architecture-strip,.contributor-paths{grid-template-columns:1fr}.phase-status{padding-inline:24px}.run-pipeline article{grid-template-columns:62px 1fr}}
 @media(max-width:500px){.onboarding-map.five-steps{grid-template-columns:1fr}.onboarding-map.five-steps a:nth-child(5){grid-column:auto}.experiment-matrix{grid-template-columns:90px 1fr 1fr;overflow-x:auto}.matrix-axis.row-axis{writing-mode:vertical-rl;transform:rotate(180deg);justify-content:center}.experiment-matrix article{min-height:220px}.experiment-matrix h3{font-size:20px}.experiment-matrix p{font-size:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*:before,*:after{transition:none!important;animation:none!important}.reveal{opacity:1;transform:none}.ring-pulse,.ring-chord{opacity:1;stroke-dashoffset:0;stroke-dasharray:none}.stage-1{opacity:1}.stage-2{opacity:0}}
+
+/* Current evidence: one dated overview, separate from methods and future research. */
+.current-status .section-index time{display:block;margin-top:12px;font-size:13px;color:var(--muted);letter-spacing:.04em}
+.pilot-facts{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));margin:0 0 36px;border-block:1px solid var(--line)}
+.pilot-facts>div{display:flex;flex-direction:column-reverse;justify-content:flex-end;padding:24px 22px;border-right:1px solid var(--line)}
+.pilot-facts>div:first-child{padding-left:0}.pilot-facts>div:last-child{border:0}
+.pilot-facts dt{font-size:16px;color:var(--muted)}.pilot-facts dd{margin:0 0 8px;color:var(--terra);font:48px/1.1 var(--serif)}
+.evidence-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:26px}
+.evidence-grid article{padding:28px;background:var(--white);border:1px solid var(--line);border-top:3px solid var(--terra)}
+.evidence-grid article:nth-child(2){border-top-color:var(--green)}.evidence-grid article:nth-child(3){border-top-color:var(--gold)}
+.evidence-grid .evidence-label{margin:0 0 26px;font-size:13px;font-weight:700;letter-spacing:.055em;color:var(--muted)}
+.evidence-grid h3{margin:0 0 20px;font:32px/1.12 var(--serif)}.evidence-grid p:not(.evidence-label){font-size:16px;line-height:1.7;color:var(--muted)}.evidence-grid p:last-child{margin-bottom:0}
+.status-next{display:flex;align-items:center;gap:32px;justify-content:space-between;margin-top:32px;padding-top:28px;border-top:1px solid var(--line)}
+.status-next>div{max-width:720px}.status-next h3{margin:0 0 12px;font:27px/1.2 var(--serif)}.status-next p{margin:0;color:var(--muted);font-size:16px}
+.status-next .button{flex:none;flex-direction:column;gap:2px;padding:16px 24px}.access-note{font-size:13px;font-weight:400}
+.workshop-ring figcaption{flex-wrap:wrap}
+@media(max-width:1050px){.evidence-grid{gap:16px}.evidence-grid article{padding:22px}.status-next{align-items:flex-start;flex-direction:column}}
+@media(max-width:760px){.evidence-grid{grid-template-columns:1fr}.pilot-facts{grid-template-columns:repeat(2,minmax(0,1fr))}.pilot-facts>div{padding:20px}.pilot-facts>div:first-child{padding-left:20px}.pilot-facts>div:nth-child(2){border-right:0}.pilot-facts>div:nth-child(-n+2){border-bottom:1px solid var(--line)}.evidence-grid h3{font-size:30px}.current-status .section-heading{margin-bottom:32px}}
+
+@media(min-width:761px) and (max-width:1250px){
+  .research-home .menu-button{display:flex;align-items:center;gap:8px;margin-left:auto;border:0;background:transparent;font-size:14px}
+  .research-home .menu-button i{width:15px;height:1px;background:var(--ink);box-shadow:0 5px var(--ink)}
+  .research-home .primary-nav{display:none;position:absolute;top:100%;left:0;right:0;padding:24px;background:var(--paper);border-bottom:1px solid var(--line)}
+  .research-home .primary-nav.open{display:flex;flex-direction:column}
+  .research-home .primary-nav a{font-size:17px}
+}

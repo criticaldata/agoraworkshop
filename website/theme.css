@@ -1,0 +1,16 @@
+/* Shared palette and typography from the AGORA introduction film. */
+:root {
+  --paper:#faf8f1; --paper-2:#e7eafe; --white:#fff; --ink:#183943; --muted:#557078;
+  --line:#c8d8d8; --terra:#365be7; --green:#007f88; --gold:#b34e2d; --navy:#183943;
+  --serif:"Avenir Next",Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  --sans:"Avenir Next",Inter,ui-sans-serif,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+}
+.site-header {background:rgba(250,248,241,.97)}
+.wordmark strong {font:800 26px/1 var(--sans);letter-spacing:-.04em;color:var(--terra)}
+.wordmark small {font-size:7px;letter-spacing:.06em}
+.agora-mark path,.agora-mark circle {stroke:var(--terra);stroke-width:1.8}
+.button {border-radius:9px;font-size:14px;min-height:48px;gap:18px}
+.button.primary:hover {background:#2948bd}
+a:focus-visible,button:focus-visible,video:focus-visible,summary:focus-visible {outline:3px solid #365be7;outline-offset:5px}
+.contact-layout input,.contact-layout select,.contact-layout textarea {border-radius:9px;border-color:#819a9f}
+.contact-layout h2 {font-weight:650}

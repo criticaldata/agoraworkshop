@@ -1,148 +1,91 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="AGORA puts AI agents together to study emergent multi-agent behaviour, then applies those insights to a simulation of academic publishing." />
-    <meta property="og:title" content="AGORA — Agentic Game for Research and Academia" />
-    <meta property="og:description" content="A research program for observing what emerges when AI agents interact inside simulated institutions." />
-    <title>AGORA — Agentic Game for Research and Academia</title>
-    <link rel="icon" href="./assets/brand/favicon.svg?v=1" type="image/svg+xml" />
-    <link rel="stylesheet" href="./styles.css?v=23" />
-    <script src="./script.js?v=22" defer></script>
-  </head>
-  <body class="research-home">
-    <a class="skip-link" href="#main">Skip to content</a>
-
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="What happens when AI agents work together? AGORA studies how ideas change through discussion, and how rules and incentives shape collective knowledge." />
+  <meta property="og:title" content="AGORA — What happens when AI agents work together?" />
+  <meta property="og:description" content="Meet the research program, watch the introduction, and explore early observations from our twelve-workshop pilot." />
+  <meta property="og:image" content="https://criticaldata.github.io/agoraworkshop/assets/video/agora-introduction-v09-poster.jpg" />
+  <meta property="og:type" content="website" />
+  <meta name="theme-color" content="#FAF8F1" />
+  <title>AGORA — Agentic Game of Research and Academia</title>
+  <link rel="icon" href="./assets/brand/favicon.svg?v=1" type="image/svg+xml" />
+  <link rel="stylesheet" href="./styles.css?v=24" />
+  <link rel="stylesheet" href="./theme.css?v=1" />
+  <link rel="stylesheet" href="./home.css?v=1" />
+  <script src="./script.js?v=22" defer></script>
+</head>
+<body class="research-home">
+  <a class="skip-link" href="#main">Skip to content</a>
     <header class="site-header">
-      <a class="wordmark" href="#home" aria-label="AGORA home">
+      <a class="wordmark" href="./index.html#home" aria-label="AGORA home">
         <svg class="agora-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9 10 35h28L24 9Z" /><path d="M24 9v18M10 35l14-8 14 8" /><circle cx="24" cy="9" r="4" /><circle cx="10" cy="35" r="4" /><circle cx="38" cy="35" r="4" /><circle cx="24" cy="27" r="4" /></svg>
-        <span class="brand-type"><strong>Agora</strong><small>AGENTIC GAME FOR RESEARCH AND ACADEMIA</small></span>
+        <span class="brand-type"><strong>Agora</strong><small>AGENTIC GAME OF RESEARCH AND ACADEMIA</small></span>
       </a>
       <button class="menu-button" type="button" data-menu-button aria-expanded="false" aria-label="Open navigation">MENU <i aria-hidden="true"></i></button>
       <nav class="primary-nav" data-nav aria-label="Primary navigation">
-        <a href="#about">About</a>
-        <a href="#current-status">Progress</a>
-        <a href="#why">Why it matters</a>
-        <a href="#how">How it works</a>
-        <a href="#directions">Research</a>
-        <a href="#team">Team</a>
-        <a href="./resources.html">Resources</a>
-        <a href="./onboarding.html">Onboarding</a>
+        <a href="#about">The idea</a><a href="#how">Our approach</a><a href="#current-status">First observations</a><a href="#team">Team</a><a href="./resources.html">Resources</a><a class="nav-contact" href="./contact.html">Get in touch ↗</a>
       </nav>
       <a class="mit-lockup" href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer" aria-label="MIT Critical Data"><img src="./assets/brand/mit-critical-data.png" alt="MIT Critical Data" /></a>
     </header>
-
-    <main id="main">
-      <section class="hero" id="home">
-        <div class="hero-grid">
-          <div class="hero-copy">
-            <h1>A mirror for how <em>science gets made.</em></h1>
-            <p class="lede">AGORA studies how AI agents influence one another, how ideas change through interaction, and how shared rules shape collective outcomes. Our first workshop pilot opens a window onto these dynamics; the wider research ambition extends to academic publishing.</p>
-            <div class="hero-actions"><a class="button primary" href="#current-status">Explore our progress</a><a class="button quiet" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">View on GitHub ↗</a></div>
-          </div>
-
-          <figure class="workshop-ring">
-            <svg viewBox="0 0 600 340" role="img" aria-label="Conceptual illustration of public and private exchanges between agents; not the three-participant pilot configuration.">
-              <circle class="ring-track" cx="300" cy="170" r="120" />
-              <circle class="ring-pulse" cx="300" cy="170" r="120" />
-              <path class="ring-chord chord-a" d="M 404 110 Q 460 170 404 230" />
-              <path class="ring-chord chord-b" d="M 300 290 Q 180 290 196 230 Q 150 170 196 110" />
-              <g class="ring-node mod"><circle class="node-halo" cx="300" cy="50" r="26" /><circle class="node-dot" cx="300" cy="50" r="19" /><text class="node-label" x="300" y="55">Mod</text></g>
-              <g class="ring-node a1"><circle class="node-halo" cx="404" cy="110" r="26" /><circle class="node-dot" cx="404" cy="110" r="19" /><text class="node-label" x="404" y="115">1</text></g>
-              <g class="ring-node a2"><circle class="node-halo" cx="404" cy="230" r="26" /><circle class="node-dot" cx="404" cy="230" r="19" /><text class="node-label" x="404" y="235">2</text></g>
-              <g class="ring-node a3"><circle class="node-halo" cx="300" cy="290" r="26" /><circle class="node-dot" cx="300" cy="290" r="19" /><text class="node-label" x="300" y="295">3</text></g>
-              <g class="ring-node a4"><circle class="node-halo" cx="196" cy="230" r="26" /><circle class="node-dot" cx="196" cy="230" r="19" /><text class="node-label" x="196" y="235">4</text></g>
-              <g class="ring-node a5"><circle class="node-halo" cx="196" cy="110" r="26" /><circle class="node-dot" cx="196" cy="110" r="19" /><text class="node-label" x="196" y="115">5</text></g>
-              <g class="ring-stage stage-1"><text x="300" y="176" class="stage-text">All participants receive the message</text></g>
-              <g class="ring-stage stage-2"><text x="300" y="176" class="stage-text">Groups exchange messages privately</text></g>
-            </svg>
-            <figcaption><span>Conceptual illustration</span><span><i class="legend-dot public"></i>Public exchange</span><span><i class="legend-dot private"></i>Private group</span></figcaption>
-          </figure>
+  <main id="main">
+    <section class="intro" id="home" aria-labelledby="intro-title">
+      <div class="intro-copy">
+        <p class="eyebrow">Agentic Game of Research and Academia</p>
+        <h1 id="intro-title">What happens when AI agents <span>work together?</span></h1>
+        <p class="intro-lede">Ideas evolve. Objections surface. A shared answer takes shape. AGORA studies the interactions behind that answer.</p>
+        <p class="intro-detail">We bring AI agents into controlled discussions to understand how they challenge, influence and cooperate with one another.</p>
+        <div class="intro-actions"><a class="button primary" href="#how">Explore the approach <span aria-hidden="true">↓</span></a><a class="inline-link" href="./contact.html">Talk to the team <span aria-hidden="true">↗</span></a></div>
+      </div>
+      <figure class="intro-film" id="film">
+        <div class="film-heading"><span class="film-label">MEET AGORA</span><span>2 min 45 · English</span></div>
+        <div class="film-frame">
+          <video controls playsinline preload="metadata" poster="./assets/video/agora-introduction-v09-poster.jpg" aria-label="AGORA introduction: the idea, approach and first observations">
+            <source src="./assets/video/agora-introduction-v09.mp4" type="video/mp4" />
+            <track src="./assets/video/agora-introduction-v09.vtt" kind="subtitles" srclang="en" label="English" default />
+            <p><a href="./assets/video/agora-introduction-v09.mp4">Download the AGORA introduction</a>.</p>
+          </video>
         </div>
-      </section>
+        <figcaption><p>The idea, the experiments, and what we’ve seen so far.</p><a href="./assets/video/agora-introduction-v09-transcript.txt">Read the transcript <span aria-hidden="true">↗</span></a></figcaption>
+        <p class="music-credit">Music: “Origami” by <a href="https://www.scottbuckley.com.au/library/origami/" target="_blank" rel="noreferrer">Scott Buckley</a>, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">CC BY 4.0</a>. Edited and mixed with narration.</p>
+      </figure>
+    </section>
 
-      <section class="section about" id="about">
-        <header class="section-heading"><p class="section-index">01 / WHAT IS AGORA</p><h2>Simulate academia to understand ourselves.</h2></header>
-        <div class="about-grid">
-          <div class="about-copy"><p>Our long-term ambition is a connected simulation of authors, reviewers, editors, journals, and reputations. The workshop provides a contained starting point for studying how interactions shape the knowledge a group produces.</p><p>The aim is not to automate scientific discovery. It is to use an artificial publishing world as a mirror for the human one.</p></div>
-          <div class="principles">
-            <article><span>01</span><div><h3>Recreate the ecosystem</h3><p>Model authors, journals, review, publication, citations, and reputation as one social system.</p></div></article>
-            <article><span>02</span><div><h3>Watch norms emerge</h3><p>Observe prestige bias, herding, gatekeeping, and strategies that were never explicitly programmed.</p></div></article>
-            <article><span>03</span><div><h3>Compare possible worlds</h3><p>Change the rules, then see how a different institution changes what gets rewarded.</p></div></article>
-          </div>
-        </div>
-      </section>
+    <section class="home-section idea" id="about" aria-labelledby="idea-title">
+      <div class="section-top"><p class="eyebrow">01 / THE IDEA</p><h2 id="idea-title">Make collective AI behavior <span>observable.</span></h2></div>
+      <div class="idea-layout">
+        <div class="idea-copy" id="why"><p class="large-copy">Can agents challenge an idea, converge too quickly, or find ways of cooperating we didn’t program?</p><p>AGORA is a research program built around these questions. We preserve the exchanges that lead to a shared answer, so researchers can follow how a proposal changes and what gets left behind.</p><a class="inline-link" href="./resources.html">Explore the research documents ↗</a></div>
+        <article class="ambition-card" id="directions"><p class="eyebrow">THE LONGER-TERM AMBITION</p><h3>Different rules.<br />Different possible worlds.</h3><p>We want to simulate academic publishing: authors, reviewers, editors, and reputations. By changing the rules and incentives, we can study how institutions shape the knowledge a group produces.</p><div class="role-chain" aria-label="Proposed academic publishing roles"><span>Author</span><i aria-hidden="true">→</i><span>Reviewer</span><i aria-hidden="true">→</i><span>Editor</span></div><p class="scope-note">The workshop pilot is our starting point. The wider publishing ecosystem is a research ambition.</p></article>
+      </div>
+    </section>
 
-      <section class="section current-status" id="current-status" aria-labelledby="current-status-title">
-        <header class="section-heading">
-          <p class="section-index">RESEARCH UPDATE <time datetime="2026-11-19">19 NOVEMBER 2026</time></p>
-          <h2 id="current-status-title">Where we are now.</h2>
-          <p>The first pilot is collected and available for inspection. We can trace how discussions become reports; independent human validation is the next step.</p>
-        </header>
-        <dl class="pilot-facts" aria-label="Completed pilot at a glance">
-          <div><dt>Simulated workshops</dt><dd>12</dd></div>
-          <div><dt>Agents per workshop</dt><dd>3</dd></div>
-          <div><dt>Public rounds per workshop</dt><dd>6</dd></div>
-          <div><dt>Original final reports</dt><dd>6</dd></div>
-        </dl>
-        <div class="evidence-grid">
-          <article>
-            <p class="evidence-label">EXPLORATORY OBSERVATIONS</p>
-            <h3>What we observe</h3>
-            <p>Initial reading has identified concerns that disappear from final reports, ideas that become narrower, and preferences whose reasoning is not fully carried forward.</p>
-            <p>A polished report can suggest agreement while leaving unresolved objections behind. These are examples to validate, not established rates or causal findings.</p>
-          </article>
-          <article>
-            <p class="evidence-label">VALIDATION PENDING</p>
-            <h3>How we evaluate</h3>
-            <p>We follow proposals and objections through the discussion and compare their final status with the report. The pilot varies model composition and reporting conditions.</p>
-            <p>Independent annotators will apply a shared codebook after calibration, recording source evidence and agreement between raters. Validated behavioural scores are not yet available.</p>
-          </article>
-          <article>
-            <p class="evidence-label">MITIGATION UNDER STUDY</p>
-            <h3>What we can correct</h3>
-            <p>We explored giving reports more space after short or truncated outputs. Some regenerated reports improved on inspection, but omissions persisted and other changes limit attribution.</p>
-            <p>We have not demonstrated a general fix for lost objections, conformity, or misleading consensus. Regenerated reports remain separate from the primary evidence.</p>
-          </article>
+    <section class="method-band" id="how" aria-labelledby="method-title">
+      <div class="home-section">
+        <div class="section-top"><p class="eyebrow">02 / OUR APPROACH</p><h2 id="method-title">A discussion we can <span>trace, step by step.</span></h2></div>
+        <p class="section-intro">Our first pilot puts three AI participants into a workshop on human limitations, possible social changes, and the role of AI.</p>
+        <div class="method-grid">
+          <article><span class="step-number">01</span><h3>Start individually.</h3><p>Collect each participant’s response before the group discussion, with the experimental conditions recorded.</p><div class="step-visual participants" aria-hidden="true"><i></i><i></i><i></i></div></article>
+          <article><span class="step-number">02</span><h3>Let ideas meet.</h3><p>Run six public discussion rounds. Keep every turn so proposals and objections can be followed through the exchange.</p><div class="step-visual round-dots" aria-hidden="true"><i>1</i><i>2</i><i>3</i><i>4</i><i>5</i><i>6</i></div></article>
+          <article><span class="step-number">03</span><h3>Follow what survives.</h3><p>Collect individual responses again. In the report conditions, compare the final report with the discussion that produced it.</p><div class="step-visual report-lines" aria-hidden="true"><i></i><i></i><i></i></div></article>
         </div>
-        <div class="status-next">
-          <div><h3>From visible failures to tested interventions.</h3><p>Next: complete independent annotation, establish a validated baseline, then test whether a specific change reduces information loss in a controlled comparison.</p></div>
-          <a class="button primary" href="https://agora-production-046a.up.railway.app/wp06/" target="_blank" rel="noreferrer">Inspect the pilot <span class="access-note">Access required</span></a>
-        </div>
-      </section>
+        <div class="design-note"><span class="eyebrow">THE COMPARISON</span><p>Same-model and mixed-model groups, each with or without an announced report. Four conditions, with three workshops in each.</p></div>
+      </div>
+    </section>
 
-      <section class="section why" id="why">
-        <header class="section-heading"><p class="section-index">02 / WHY THE WORKSHOP</p><h2>Put agents together. See what emerges.</h2><p>Some risks exist only between agents. The workshop creates a controlled, auditable room where different models can influence one another without a human steering each turn.</p></header>
-        <div class="theme-grid">
-          <article><span>01</span><h3>Emergence</h3><p>What behaviours appear only once agents can communicate, imitate, and coordinate?</p></article>
-          <article><span>02</span><h3>Goal pressure</h3><p>Do they solve the task, game the reward, exploit a shortcut, or redefine the goal?</p></article>
-          <article><span>03</span><h3>Accountability</h3><p>Can we reconstruct how the group reached an unexpected or dangerous outcome?</p></article>
-        </div>
-      </section>
-
-      <section class="section how" id="how">
-        <header class="section-heading"><p class="section-index">03 / HOW IT WORKS</p><h2>Configure. Trace. Compare.</h2><p>The workshop makes the interaction process inspectable. Its records connect experimental conditions, discussion turns, and report production.</p></header>
-        <div class="simple-steps">
-          <article><span>01</span><h3>Configure</h3><p>Specify participants, models, information access, and reporting conditions in a versioned protocol.</p></article>
-          <i>→</i>
-          <article><span>02</span><h3>Trace</h3><p>Preserve the sequence of exchanges and report stages so researchers can inspect the evidence behind an outcome.</p></article>
-          <i>→</i>
-          <article><span>03</span><h3>Compare</h3><p>Compare conditions using shared criteria, keep original and supplementary records separate, and make missing evidence visible.</p></article>
-        </div>
-      </section>
-
-      <section class="section directions" id="directions">
-        <header class="section-heading"><p class="section-index">04 / RESEARCH DIRECTIONS</p><h2>Study the system, not just the model.</h2><p>Beyond the workshop pilot, the research agenda asks how roles, incentives, and institutions shape collective behaviour. These directions describe future experiments, not completed findings.</p></header>
-        <div class="direction-grid">
-          <article><span>01</span><h3>Peer review</h3><p>Trace how scientific concerns are formed, transferred, challenged, lost, or amplified.</p></article>
-          <article><span>02</span><h3>Counterfactual worlds</h3><p>Compare different incentive rules without asking a real journal to experiment on itself.</p></article>
-          <article><span>03</span><h3>Institutional reflection</h3><p>Use the artificial ecosystem to make the habits of human publishing easier to see and question.</p></article>
-        </div>
-      </section>
+    <section class="home-section observations" id="current-status" aria-labelledby="observations-title">
+      <div class="section-top"><p class="eyebrow">03 / FIRST OBSERVATIONS <time datetime="2026-11-19">19 November 2026</time></p><h2 id="observations-title">Follow the idea.<br /><span>Look beyond the final answer.</span></h2></div>
+      <dl class="home-facts" aria-label="Completed pilot"><div><dt>workshops completed</dt><dd>12</dd></div><div><dt>AI participants per workshop</dt><dd>3</dd></div><div><dt>public discussion turns</dt><dd>216</dd></div><div><dt>original final reports</dt><dd>6</dd></div></dl>
+      <p class="section-intro">Two examples show why keeping the full exchange matters. They are exploratory case observations, with independent human annotation still ahead.</p>
+      <div class="case-grid">
+        <article class="case-card proposal"><p class="case-label">B3 / A PROPOSAL EVOLVES</p><h3>From adjusting an assessment to flagging it for review.</h3><div class="quote-path"><blockquote>“adjust its assessment accordingly”</blockquote><span aria-hidden="true">↓</span><blockquote>“flag cases where further human review is warranted”</blockquote></div><p>A housing-assistance proposal narrowed during the discussion. Participants then questioned whether overloaded caseworkers could provide the oversight it needed.</p><p class="case-note">In both versions of the proposal, human caseworkers retained final authority. The proposal changed, with important concerns still unresolved.</p></article>
+        <article class="case-card warning"><p class="case-label">B2 / A WARNING LOSES DETAIL</p><h3>The broad concern survives. A specific mechanism doesn’t.</h3><div class="warning-exchange"><p><span>IN THE DISCUSSION</span>An agent warns that making manipulation harder could push attackers toward more vulnerable people.</p><span aria-hidden="true">↓</span><p><span>IN THE FINAL REPORT · PARAPHRASE</span>A broad concern about vulnerable populations remains; that specific retargeting mechanism does not.</p></div><p class="case-note">The original report is truncated. This example does not establish why the mechanism was omitted.</p></article>
+      </div>
+      <div class="evidence-next"><div><p class="eyebrow">04 / WHAT COMES NEXT</p><h3>Turn observations into evidence we can test.</h3><p>Independent annotators will examine the records using shared criteria. Then we can compare conditions and test specific changes. We do not yet have validated effect sizes or a demonstrated general fix.</p></div><a class="inline-link" href="https://agora-production-046a.up.railway.app/wp06/" target="_blank" rel="noreferrer">Inspect the pilot ↗<small>Research platform · access required</small></a></div>
+    </section>
 
       <section class="section team" id="team">
-        <header class="section-heading"><p class="section-index">05 / RESEARCH TEAM</p><h2>Built as an open research collaboration.</h2><p>AGORA brings research design and instrument engineering together through MIT Critical Data and its wider community.</p></header>
+        <header class="section-heading"><p class="section-index">05 / THE PEOPLE</p><h2>A shared research effort.</h2><p>Researchers and builders working together through MIT Critical Data and its wider community.</p></header>
         <div class="team-grid">
           <article class="team-profile principal"><figure><img src="./assets/team/leo-celi.jpg" alt="Leo Anthony Celi" loading="lazy" /></figure><div><span class="team-role">Principal Investigator</span><h3>Leo Anthony Celi</h3><p>MIT Critical Data</p><nav><a href="https://scholar.google.com/citations?user=kssA7YwAAAAJ&amp;hl=en" target="_blank" rel="noreferrer">Scholar ↗</a><a href="https://www.linkedin.com/in/leo-anthony-celi-b25131/" target="_blank" rel="noreferrer">LinkedIn ↗</a></nav></div></article>
           <article class="team-profile"><figure><img src="./assets/team/mateo-gavilanes.jpeg" alt="Isaac Mateo Gavilanes Chavez" loading="lazy" /></figure><div><span class="team-role">Research design</span><h3>Isaac Mateo Gavilanes Chavez</h3><p>Technical proposal and study design</p><nav><a href="https://scholar.google.com/citations?user=Ji1mE78AAAAJ&amp;hl=es" target="_blank" rel="noreferrer">Scholar ↗</a><a href="https://www.linkedin.com/in/ACoAAFCatZYBoY-ysMaO68JsqcT9DlFLV0vs3gc" target="_blank" rel="noreferrer">LinkedIn ↗</a></nav></div></article>
@@ -155,23 +98,12 @@
         </div>
       </section>
 
-      <section class="section resources" id="resources">
-        <header class="section-heading"><p class="section-index">06 / RESOURCES</p><h2>Explore the work.</h2><p>Follow the research, inspect the open-source instrument, or view recorded workshops.</p></header>
-        <div class="resource-list">
-          <a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><span>01 / SOURCE</span><h3>AGORA repository</h3><p>Code, research materials, and project history.</p><b>↗</b></a>
-          <a href="https://github.com/criticaldata/agoraworkshop/tree/master/docs/phase1a" target="_blank" rel="noreferrer"><span>02 / RESEARCH</span><h3>Research documentation</h3><p>Study design, methods, and open questions.</p><b>↗</b></a>
-          <a href="https://agora-production-046a.up.railway.app" target="_blank" rel="noreferrer"><span>03 / FIRST EXPERIMENT</span><h3>AGORA Workshop</h3><p>A controlled experiment in emergent multi-agent behaviour.</p><b>↗</b></a>
-          <a href="./resources.html"><span>04 / LIBRARY</span><h3>Project resources</h3><p>Core documents, working platforms, recorded calls, and meeting summaries.</p><b>→</b></a>
-          <a href="./onboarding.html"><span>05 / START HERE</span><h3>Guided onboarding</h3><p>A structured path through the project with short knowledge checks.</p><b>→</b></a>
-        </div>
-      </section>
-
-      <section class="contact" id="contact">
-        <div><p class="section-index">07 / GET INVOLVED</p><h2>Help us rethink the institutions that shape knowledge.</h2><p>Contribute to independent annotation, research methods, or replication, and help turn exploratory observations into evidence others can challenge.</p></div>
-        <div class="contact-actions"><a class="button light" href="./contact.html">Contact the AGORA team →</a><a class="text-link" href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">Explore the repository ↗</a></div>
-      </section>
-    </main>
-
-    <footer><a class="wordmark footer-mark" href="#home"><svg class="agora-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9 10 35h28L24 9Z" /><path d="M24 9v18M10 35l14-8 14 8" /><circle cx="24" cy="9" r="4" /><circle cx="10" cy="35" r="4" /><circle cx="38" cy="35" r="4" /><circle cx="24" cy="27" r="4" /></svg><span class="brand-type"><strong>Agora</strong><small>AGENTIC GAME FOR RESEARCH AND ACADEMIA</small></span></a><a class="footer-mit" href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer"><img src="./assets/brand/mit-critical-data.png" alt="MIT Critical Data" /></a><div><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">GitHub</a><a href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">MIT Critical Data</a></div><small>Open research · 2026</small></footer>
-  </body>
+    <section class="home-section explore" id="resources" aria-labelledby="explore-title">
+      <div class="section-top"><p class="eyebrow">06 / EXPLORE THE WORK</p><h2 id="explore-title">Take a closer look.</h2></div>
+      <div class="explore-grid"><a href="./resources.html"><span>READ</span><h3>The research library ↗</h3><p>Core documents, methods, recorded calls and project resources.</p></a><a href="./onboarding.html"><span>GET STARTED</span><h3>Guided onboarding ↗</h3><p>A structured introduction for people joining the collaboration.</p></a><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer"><span>BUILD</span><h3>The open-source project ↗</h3><p>Inspect the instrument, explore the code, and follow its development.</p></a></div>
+    </section>
+    <section class="home-contact" id="contact" aria-labelledby="contact-title"><div><p class="eyebrow">CURIOUS?</p><h2 id="contact-title">Let’s explore AGORA.</h2><p>See an experiment. Bring a research question.<br />Explore a collaboration.</p></div><a class="button primary" href="./contact.html">Get in touch <span aria-hidden="true">↗</span></a></section>
+  </main>
+    <footer><a class="wordmark footer-mark" href="#home"><svg class="agora-mark" viewBox="0 0 48 48" aria-hidden="true"><path d="M24 9 10 35h28L24 9Z" /><path d="M24 9v18M10 35l14-8 14 8" /><circle cx="24" cy="9" r="4" /><circle cx="10" cy="35" r="4" /><circle cx="38" cy="35" r="4" /><circle cx="24" cy="27" r="4" /></svg><span class="brand-type"><strong>Agora</strong><small>AGENTIC GAME OF RESEARCH AND ACADEMIA</small></span></a><a class="footer-mit" href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer"><img src="./assets/brand/mit-critical-data.png" alt="MIT Critical Data" /></a><div><a href="https://github.com/criticaldata/agoraworkshop" target="_blank" rel="noreferrer">GitHub</a><a href="https://criticaldata.mit.edu" target="_blank" rel="noreferrer">MIT Critical Data</a></div><small>Open research · 2026</small></footer>
+</body>
 </html>

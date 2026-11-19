@@ -1,0 +1,149 @@
+WEBVTT
+
+00:00:00.750 --> 00:00:02.179
+Agora.
+
+00:00:02.179 --> 00:00:05.347
+Agentic Game of Research and Academia.
+
+00:00:05.347 --> 00:00:10.104
+A research program asking what emerges when AI agents
+work together.
+
+00:00:11.017 --> 00:00:16.529
+Can they challenge an idea, converge too quickly, or
+develop ways of cooperating we did
+
+00:00:16.529 --> 00:00:17.239
+not program?
+
+00:00:17.239 --> 00:00:22.929
+Agora makes these interactions observable, so we can
+study the process behind a shared
+
+00:00:22.929 --> 00:00:23.392
+answer.
+
+00:00:24.317 --> 00:00:29.933
+The longer-term ambition is to simulate research itself:
+authors, reviewers, and editors
+
+00:00:29.933 --> 00:00:32.117
+working under different incentives.
+
+00:00:32.117 --> 00:00:37.378
+We want to compare possible systems, and ask how their
+rules shape what gets written,
+
+00:00:37.378 --> 00:00:38.925
+challenged, and rewarded.
+
+00:00:39.850 --> 00:00:42.626
+We started with a smaller experiment.
+
+00:00:42.626 --> 00:00:48.810
+Three AI participants explored human limitations,
+possible changes to society, and the
+
+00:00:48.810 --> 00:00:50.248
+role AI should play.
+
+00:00:50.248 --> 00:00:55.749
+We recorded their individual responses, six rounds of
+discussion, and, in designated
+
+00:00:55.749 --> 00:00:58.828
+conditions, a report with reviews and revision.
+
+00:00:59.750 --> 00:01:05.021
+Across twelve workshops, we varied two things: whether
+participants used the same model
+
+00:01:05.021 --> 00:01:08.788
+family or different models, and whether a report was
+announced.
+
+00:01:08.788 --> 00:01:14.468
+Three repetitions per condition produced two hundred
+sixteen public turns and six final
+
+00:01:14.468 --> 00:01:14.990
+reports.
+
+00:01:15.917 --> 00:01:21.229
+Prompts, messages, model settings, and execution records
+are preserved.
+
+00:01:21.229 --> 00:01:26.471
+That lets us follow a proposal through the conversation,
+compare it with the report, and
+
+00:01:26.471 --> 00:01:27.722
+inspect what changed.
+
+00:01:28.650 --> 00:01:34.167
+In one workshop, agents proposed adjusting housing-
+assistance assessments to account for
+
+00:01:34.167 --> 00:01:35.747
+historical discrimination.
+
+00:01:35.747 --> 00:01:41.147
+After objections, the proposal narrowed to diagnostic
+flags for human review.
+
+00:01:41.147 --> 00:01:46.049
+Another agent then challenged whether overloaded
+caseworkers could deliver that
+
+00:01:46.049 --> 00:01:46.669
+oversight.
+
+00:01:46.669 --> 00:01:51.936
+The proposal changed during the debate, with important
+concerns still unresolved.
+
+00:01:52.850 --> 00:01:57.885
+In another workshop, an agent warned that making
+manipulation harder could redirect
+
+00:01:57.885 --> 00:02:00.505
+attackers toward the most vulnerable people.
+
+00:02:00.505 --> 00:02:05.841
+The final report retained a broad warning about
+vulnerability, but not that specific
+
+00:02:05.841 --> 00:02:06.476
+mechanism.
+
+00:02:06.476 --> 00:02:10.347
+The summary alone could not recover the original
+objection.
+
+00:02:11.283 --> 00:02:15.479
+These are early case observations, not general findings.
+
+00:02:15.479 --> 00:02:18.465
+Some original reports were cut short.
+
+00:02:18.465 --> 00:02:23.973
+Independent human annotation and further controlled
+experiments are needed to test which
+
+00:02:23.973 --> 00:02:25.601
+patterns hold up, and why.
+
+00:02:26.517 --> 00:02:32.251
+That is what Agora makes possible: studying what
+survives, changes, or disappears when
+
+00:02:32.251 --> 00:02:33.601
+agents work together.
+
+00:02:33.601 --> 00:02:38.443
+Want to see an experiment, explore a research question,
+or collaborate?
+
+00:02:38.443 --> 00:02:40.919
+Get in touch with the Agora team.

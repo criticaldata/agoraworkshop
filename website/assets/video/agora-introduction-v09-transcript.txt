@@ -1,0 +1,34 @@
+AGORA — WEBSITE INTRODUCTION V09
+English narration / presenter script
+19 November 2026
+
+00:00–00:10 | THE NAME
+Agora. Agentic Game of Research and Academia. A research program asking what emerges when AI agents work together.
+
+00:10–00:23 | THE QUESTION
+Can they challenge an idea, converge too quickly, or develop ways of cooperating we did not program? Agora makes these interactions observable, so we can study the process behind a shared answer.
+
+00:23–00:39 | THE AMBITION
+The longer-term ambition is to simulate research itself: authors, reviewers, and editors working under different incentives. We want to compare possible systems, and ask how their rules shape what gets written, challenged, and rewarded.
+
+00:39–00:59 | HOW WE START
+We started with a smaller experiment. Three AI participants explored human limitations, possible changes to society, and the role AI should play. We recorded their individual responses, six rounds of discussion, and, in designated conditions, a report with reviews and revision.
+
+00:59–01:15 | THE PILOT
+Across twelve workshops, we varied two things: whether participants used the same model family or different models, and whether a report was announced. Three repetitions per condition produced two hundred sixteen public turns and six final reports.
+
+01:15–01:28 | THE APPROACH
+Prompts, messages, model settings, and execution records are preserved. That lets us follow a proposal through the conversation, compare it with the report, and inspect what changed.
+
+01:28–01:52 | PILOT OBSERVATION / B3
+In one workshop, agents proposed adjusting housing-assistance assessments to account for historical discrimination. After objections, the proposal narrowed to diagnostic flags for human review. Another agent then challenged whether overloaded caseworkers could deliver that oversight. The proposal changed during the debate, with important concerns still unresolved.
+
+01:52–02:10 | PILOT OBSERVATION / B2
+In another workshop, an agent warned that making manipulation harder could redirect attackers toward the most vulnerable people. The final report retained a broad warning about vulnerability, but not that specific mechanism. The summary alone could not recover the original objection.
+
+02:10–02:26 | WHAT WE CAN SAY
+These are early case observations, not general findings. Some original reports were cut short. Independent human annotation and further controlled experiments are needed to test which patterns hold up, and why.
+
+02:26–02:45 | LET’S EXPLORE AGORA
+That is what Agora makes possible: studying what survives, changes, or disappears when agents work together. Want to see an experiment, explore a research question, or collaborate? Get in touch with the Agora team.
+

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { CONDITION_MATRIX, ConditionSchema, ModelFamilySchema, type Condition, type ConditionId, type ModelFamily } from '../conditions/matrix.js';
+import { CONDITION_MATRIX, QWEN_CONDITION_MATRIX, ConditionSchema, ModelFamilySchema, type Condition, type ConditionId, type ModelFamily } from '../conditions/matrix.js';
 
 export const DEFAULT_PROTOCOL_REVISION = 'phase1a-reimagining-humans-october-draft';
 
@@ -14,6 +14,7 @@ export const StudyContractSchema = z.object({
   schema_version: z.literal('wp01-study-contract-v1'),
   study_id: z.string().trim().min(1),
   protocol_revision: z.string().trim().min(1),
+  composition_variant: z.enum(['gemma-gemini-model-x-v1', 'gemma-qwen-model-x-v1']).optional(),
   lifecycle: LifecycleSchema,
   design_factors: z.object({
     composition: z.literal('specified_group_composition'),
@@ -77,6 +78,11 @@ export const StudyContractSchema = z.object({
     if (!a || !b || JSON.stringify(a.composition) !== JSON.stringify(b.composition) || a.report_required === b.report_required) {
       ctx.addIssue({ code: 'custom', path: ['conditions'], message: `${left}/${right} must differ only by report_required` });
     }
+  }
+  const matrix = contract.composition_variant === 'gemma-qwen-model-x-v1' ? QWEN_CONDITION_MATRIX : CONDITION_MATRIX;
+  for (const expected of matrix) {
+    const actual = contract.conditions.find(condition => condition.id === expected.id);
+    if (!actual || actual.report_required !== expected.report_required || JSON.stringify(actual.composition) !== JSON.stringify(expected.composition)) ctx.addIssue({ code: 'custom', path: ['conditions'], message: 'Composition does not match declared variant' });
   }
   if (contract.lifecycle === 'FROZEN' && contract.report_policy.notice_timing === 'UNRESOLVED') {
     ctx.addIssue({ code: 'custom', path: ['report_policy', 'notice_timing'], message: 'a frozen contract requires a resolved report notice timing' });

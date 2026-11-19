@@ -30,7 +30,6 @@ export function validateDeploymentBinding(value: unknown, profile: DeploymentPro
   const issues: string[] = [];
   if (profile === 'scientific') {
     if (binding.source !== 'real') issues.push('scientific freeze requires a real deployment binding');
-    if (binding.logical_family === 'MODEL_X') issues.push('MODEL_X remains unresolved until a scientific decision selects its deployment');
     for (const field of ['provider', 'model_id', 'endpoint_ref', 'deployment_id', 'revision'] as const) {
       if (!binding[field]) issues.push(`scientific freeze requires ${field}`);
     }

@@ -75,6 +75,7 @@ import {
 } from '../analytics/interaction.js';
 import { authConfigFromEnv, createAuthMiddleware, describeAuth } from './auth.js';
 import { phase1Router } from './phase1.js';
+import { wp06Router } from './wp06.js';
 
 const CONFIG_DIR = resolve(process.env.AGORA_CONFIG_DIR ?? './configs');
 
@@ -112,6 +113,8 @@ const app = express();
 // before anything it sent is read.
 const authConfig = authConfigFromEnv();
 app.use(createAuthMiddleware(authConfig));
+
+app.use('/wp06', wp06Router(authConfig));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));

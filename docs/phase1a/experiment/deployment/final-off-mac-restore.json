@@ -1,0 +1,23 @@
+{
+  "result": "pass",
+  "mode": "off_mac_encrypted_backup_restore",
+  "verified_at": "2026-11-13T04:39:29.924830+00:00",
+  "recovery_host": "denem-server",
+  "observed_hostname": "srv1703941",
+  "operator_mac_required": false,
+  "retrieval": "direct_VPS_to_NVIDIA_restricted_SSH",
+  "archive": "agora-20261113T043825300901Z.tar.gz.age",
+  "remote_ciphertext_sha256": "653b3fd15206b19a9b77a95abb12068ded0c99f27258e5abcc71f10c933615f9",
+  "manifest_sha256": "8fa37d48754da9937b7040a9ec6bacde58f35639ca9ba67a487f6bf6bfb8838c",
+  "byte_identical": true,
+  "verified_bundles": 12,
+  "verified_calls": 330,
+  "independent_restore_processes": true,
+  "verifier_implementation_hash": "sha256:9d071b1feea016b3d0e8583634ab39d5e53bd24972ad5d94a9dbc77f049d218f",
+  "recovery_script_sha256": "f6e1ddc5f5242585cf572dd7726d91863cac1192bc56f69dcccad1b077acc084",
+  "ssh_config_sha256": "8843b9f841f480c85a2f903cb2bc5fe54a8b63ac81551548a50ecda0ec78ddb7",
+  "identity_mode": "0o600",
+  "recipient": "age175eewzdrsqegyapkcf34ncqx42w5ctfjaysudepq3x7w6r9k4crsw70mzy",
+  "restored_plan_hash": "sha256:199b1bff0fccc103fe534b15a54add18c5a1f5fb2cb3fdf1c544c556f13bc9a9",
+  "plaintext_retained": false
+}

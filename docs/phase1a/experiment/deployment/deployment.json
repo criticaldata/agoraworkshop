@@ -1,0 +1,85 @@
+{
+  "backend_url": "http://127.0.0.1:18501",
+  "context_window": 32768,
+  "models": {
+    "agora-gemma3-27b:20261112": {
+      "family": "GEMMA",
+      "source_model": "gemma3:27b-it-q4_K_M",
+      "manifest_digest": "sha256:6be2e2ba6843b9255820e2de2cbbe75cfdef0294ac7a531572e654d6e0eefe7d",
+      "details": {
+        "parent_model": "dhiltgen/gemma3:27b-it-q4_K_M-llamacpp",
+        "format": "gguf",
+        "family": "gemma3",
+        "families": [
+          "gemma3",
+          "clip"
+        ],
+        "parameter_size": "27.0B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 5376,
+        "runner": "llamacpp"
+      },
+      "native_context": {
+        "gemma3.context_length": 131072
+      }
+    },
+    "agora-qwen3-32b:20261112": {
+      "family": "QWEN",
+      "source_model": "qwen3:32b",
+      "manifest_digest": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "qwen3",
+        "families": [
+          "qwen3"
+        ],
+        "parameter_size": "32.8B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 40960,
+        "embedding_length": 5120,
+        "runner": "ggml"
+      },
+      "native_context": {
+        "qwen3.context_length": 40960
+      }
+    },
+    "agora-llama31-8b:20261112": {
+      "family": "MODEL_X",
+      "source_model": "llama3.1:8b-instruct-q4_K_M",
+      "manifest_digest": "sha256:46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+      "details": {
+        "parent_model": "",
+        "format": "gguf",
+        "family": "llama",
+        "families": [
+          "llama"
+        ],
+        "parameter_size": "8.0B",
+        "quantization_level": "Q4_K_M",
+        "context_length": 131072,
+        "embedding_length": 4096,
+        "runner": "ggml"
+      },
+      "native_context": {
+        "llama.context_length": 131072
+      }
+    }
+  },
+  "gpu_index": 0,
+  "gpu_uuid": "GPU-270435a0-df58-5bed-f3be-76207ee93a77",
+  "lease_file": "/home/nvidia/GPUS.txt",
+  "lease_owner": "agora_simon",
+  "engine_version": "0.40.16",
+  "engine_sha256": "a0c1e355537b0c037f2190edd339197fe3eb00387a46d6e26be695250262a790",
+  "gateway_sha256": "02cc521dbc4afc2c652b5edb80d8598d38f6e7a7ccc93341a57f987c5250d43a",
+  "policy": {
+    "thinking": false,
+    "truncate": false,
+    "shift": false,
+    "top_k": 0,
+    "repeat_penalty": 1,
+    "keep_alive": 0
+  }
+}

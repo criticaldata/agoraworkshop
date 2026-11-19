@@ -1,0 +1,30 @@
+{
+  "status": "TEMPLATE_NOT_COMPLETED",
+  "approved_plan_hash": null,
+  "codebook_hash": null,
+  "operator": "Simon Heilles",
+  "external_materials": [],
+  "coders": [
+    {
+      "coder_id": null,
+      "calibration_completed_at": null,
+      "calibration_evidence_ref": null,
+      "no_prior_pilot_access_attestation_ref": null,
+      "first_pilot_access_at": null
+    },
+    {
+      "coder_id": null,
+      "calibration_completed_at": null,
+      "calibration_evidence_ref": null,
+      "no_prior_pilot_access_attestation_ref": null,
+      "first_pilot_access_at": null
+    }
+  ],
+  "original_ratings_ref": null,
+  "calibration_disagreements_and_resolution_ref": null,
+  "scientific_acceptance_of_calibration_ref": null,
+  "protocol_deviations": [],
+  "release_authorized_by": null,
+  "released_at": null,
+  "released_artifacts": []
+}

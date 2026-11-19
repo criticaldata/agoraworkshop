@@ -1,0 +1,367 @@
+{
+  "schema_version": "agora-deployment-canary-v1",
+  "mode": "engineering_only_not_scientific_data",
+  "started_at": "2026-11-12T21:45:35.390Z",
+  "deployment_config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+  "engine_version": "0.40.16",
+  "gateway_sha256": "02cc521dbc4afc2c652b5edb80d8598d38f6e7a7ccc93341a57f987c5250d43a",
+  "results": [
+    {
+      "family": "GEMMA",
+      "model": "agora-gemma3-27b:20261112",
+      "model_revision": "sha256:6be2e2ba6843b9255820e2de2cbbe75cfdef0294ac7a531572e654d6e0eefe7d",
+      "kind": "short",
+      "passed": true,
+      "elapsed_ms": 8910,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 50,
+        "outputTokens": 8
+      },
+      "finish_reason": "stop",
+      "response_sha256": "8c9d7faeeaf7cc1822a69437735a5a6afbe1604286a5f045ca3d612888e9a8e3",
+      "content": "Confirmed, I can respond.\n\n\n\n",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794519943533353642",
+          "object": "chat.completion",
+          "model": "agora-gemma3-27b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "Confirmed, I can respond.\n\n\n\n"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 50,
+            "completion_tokens": 8,
+            "total_tokens": 58
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:6be2e2ba6843b9255820e2de2cbbe75cfdef0294ac7a531572e654d6e0eefe7d",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    },
+    {
+      "model": "agora-gemma3-27b:20261112",
+      "kind": "long-context",
+      "attempt": 1,
+      "outcome": "rate_limit",
+      "usage": {
+        "inputTokens": 0,
+        "outputTokens": 0
+      },
+      "passed": false,
+      "retried": true
+    },
+    {
+      "family": "GEMMA",
+      "model": "agora-gemma3-27b:20261112",
+      "model_revision": "sha256:6be2e2ba6843b9255820e2de2cbbe75cfdef0294ac7a531572e654d6e0eefe7d",
+      "kind": "long-context",
+      "passed": true,
+      "elapsed_ms": 21049,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 24053,
+        "outputTokens": 9
+      },
+      "finish_reason": "stop",
+      "response_sha256": "7d47682418d8adf25dd7c62cccd233e46fbd0b9319958fef86010bffe13abba6",
+      "content": "ORCHID-4729",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794519964439213386",
+          "object": "chat.completion",
+          "model": "agora-gemma3-27b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "ORCHID-4729"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 24053,
+            "completion_tokens": 9,
+            "total_tokens": 24062
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:6be2e2ba6843b9255820e2de2cbbe75cfdef0294ac7a531572e654d6e0eefe7d",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    },
+    {
+      "family": "QWEN",
+      "model": "agora-qwen3-32b:20261112",
+      "model_revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+      "kind": "short",
+      "passed": true,
+      "elapsed_ms": 11552,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 55,
+        "outputTokens": 5
+      },
+      "finish_reason": "stop",
+      "response_sha256": "353d5568e6517d17fb22cb93dac0edbcdac5326fa261de825e95fa52076f48bd",
+      "content": "I can respond.",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794519976454898372",
+          "object": "chat.completion",
+          "model": "agora-qwen3-32b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "I can respond."
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 55,
+            "completion_tokens": 5,
+            "total_tokens": 60
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    },
+    {
+      "family": "QWEN",
+      "model": "agora-qwen3-32b:20261112",
+      "model_revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+      "kind": "long-context",
+      "passed": true,
+      "elapsed_ms": 35677,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 24057,
+        "outputTokens": 9
+      },
+      "finish_reason": "stop",
+      "response_sha256": "75ccffb9e2ca787e12d927e0c51cf2664d9f05145ca5fca884f755cd8dfc0863",
+      "content": "ORCHID-4729",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794520012110744670",
+          "object": "chat.completion",
+          "model": "agora-qwen3-32b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "ORCHID-4729"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 24057,
+            "completion_tokens": 9,
+            "total_tokens": 24066
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:030ee887880fc378860c2dd35101da424377520441ae4bfe7be6deff8ade7840",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    },
+    {
+      "family": "MODEL_X",
+      "model": "agora-llama31-8b:20261112",
+      "model_revision": "sha256:46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+      "kind": "short",
+      "passed": true,
+      "elapsed_ms": 27078,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 49,
+        "outputTokens": 7
+      },
+      "finish_reason": "stop",
+      "response_sha256": "85b3b868319de581d6e709262b898ab912887f1c9970907b75b3f4c7f05f3341",
+      "content": "I can provide a response.",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794520038955866961",
+          "object": "chat.completion",
+          "model": "agora-llama31-8b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "I can provide a response."
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 49,
+            "completion_tokens": 7,
+            "total_tokens": 56
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    },
+    {
+      "family": "MODEL_X",
+      "model": "agora-llama31-8b:20261112",
+      "model_revision": "sha256:46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+      "kind": "long-context",
+      "passed": true,
+      "elapsed_ms": 11319,
+      "outcome": "success",
+      "usage": {
+        "inputTokens": 24049,
+        "outputTokens": 7
+      },
+      "finish_reason": "stop",
+      "response_sha256": "32d14daa42dfcb792051b62f7d6bdef7d943431148f4079f74de7286a3dc86c5",
+      "content": "ORCHID-4729",
+      "raw": {
+        "http_status": 200,
+        "response": {
+          "id": "agora-1794520050021847917",
+          "object": "chat.completion",
+          "model": "agora-llama31-8b:20261112",
+          "choices": [
+            {
+              "index": 0,
+              "message": {
+                "role": "assistant",
+                "content": "ORCHID-4729"
+              },
+              "finish_reason": "stop"
+            }
+          ],
+          "usage": {
+            "prompt_tokens": 24049,
+            "completion_tokens": 7,
+            "total_tokens": 24056
+          },
+          "agora_deployment": {
+            "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+            "model_revision": "sha256:46e0c10c039e019119339687c3c1757cc81b9da49709a3b3924863ba87ca666e",
+            "effective_options": {
+              "num_ctx": 32768,
+              "num_predict": 1024,
+              "temperature": 0.7,
+              "top_p": 1,
+              "top_k": 0,
+              "repeat_penalty": 1
+            },
+            "think": false,
+            "truncate": false,
+            "shift": false
+          }
+        },
+        "transport_stop": null
+      }
+    }
+  ],
+  "result": "pass",
+  "overflow_rejection": {
+    "model": "agora-gemma3-27b:20261112",
+    "status": 400,
+    "passed": true
+  },
+  "unauthenticated_rejection": {
+    "status": 403,
+    "passed": true
+  },
+  "final_health": {
+    "config_hash": "sha256:d6c83391357ccd877c62d115a8c559d3b12b78398ced4a7172a233209fb4ce33",
+    "halted": null
+  },
+  "finished_at": "2026-11-12T21:47:44.827Z"
+}

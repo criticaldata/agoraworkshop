@@ -1,6 +1,6 @@
 import { z } from 'zod';
 
-export const MODEL_FAMILIES = ['GEMMA', 'GEMINI', 'MODEL_X'] as const;
+export const MODEL_FAMILIES = ['GEMMA', 'GEMINI', 'QWEN', 'MODEL_X'] as const;
 export const ModelFamilySchema = z.enum(MODEL_FAMILIES);
 export type ModelFamily = z.infer<typeof ModelFamilySchema>;
 export const ModelFamilyReferenceSchema = z.object({ family: ModelFamilySchema }).strict();
@@ -23,6 +23,11 @@ export const CONDITION_MATRIX: readonly Condition[] = [
   { id: 'C', composition: ['GEMMA', 'GEMINI', 'MODEL_X'], report_required: false },
   { id: 'D', composition: ['GEMMA', 'GEMINI', 'MODEL_X'], report_required: true },
 ];
+
+/** Explicit alternative; historical Gemini campaigns keep their original matrix. */
+export const QWEN_CONDITION_MATRIX: readonly Condition[] = CONDITION_MATRIX.map(condition => ({
+  ...condition, composition: condition.composition.map(family => family === 'GEMINI' ? 'QWEN' : family),
+}));
 
 export function conditionById(id: ConditionId): Condition {
   return CONDITION_MATRIX.find(condition => condition.id === id)!;

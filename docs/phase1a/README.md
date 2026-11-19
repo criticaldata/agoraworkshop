@@ -15,7 +15,9 @@ WP02–WP06 consume. WP02 now implements the versioned WP01 runtime adapter and
 provider-neutral orchestration boundary. WP03 implements the workshop/report plan
 and context rules. WP04 has an append-only SQLite evidence baseline with
 metadata-tampering and abrupt-restart tests. WP05 implements context-locked replay.
-WP06 analysis and every scientific gate remain pending.
+WP06 provides offline run-level evidence summaries and source-linked report
+annotation, adjudication and reliability tooling with a draft codebook. Scientific
+codebook approval, calibration, campaign analysis and every scientific gate remain pending.
 
 ## Scientific boundary
 
@@ -34,6 +36,8 @@ arms (`AFTER_T0_BEFORE_PUBLIC`). The prior `BEFORE_T0` sequence remains only as
 consolidation note. The overall scientific freeze remains pending.
 
 ## Deliverables
+
+- [WP06 descriptive analysis](wp06/README.md)
 
 - [WP01 README](wp01/README.md)
 - [WP03 workshop and report workflow](wp03/README.md)

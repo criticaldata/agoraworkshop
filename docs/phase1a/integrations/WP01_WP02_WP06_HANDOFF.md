@@ -6,7 +6,9 @@ WP01 supplies validated study, decision, prompt, deployment, agenda, manifest,
 and source-link contracts through `src/phase1a/wp01/index.ts`. WP02 consumes
 them through `wp01-runtime-adapter-v1`; WP03 supplies the deterministic workflow;
 WP04 persists and verifies evidence; WP05 consumes committed evidence for replay.
-WP06 remains an explicit analysis handoff.
+WP06 consumes the exported evidence bundle for offline descriptive run summaries;
+report annotation, adjudication and reliability tooling now use a draft codebook.
+Scientific approval and calibration remain pending.
 
 | Consumer | Immediate input | Integration requirement |
 |---|---|---|
@@ -14,7 +16,7 @@ WP06 remains an explicit analysis handoff.
 | WP03 | `RunStage[]`, agenda, report policy, candidate prompt references and decision status | own the workshop and report workflow; implement `t0(P1,P2,P3) -> report/no-report notice -> public round 1`, then six rounds, `t6` and report-arm `tR`, without provider routing |
 | WP04 | scope and `SourceMessageLink` | implemented isolation, append-only SQLite snapshots, restart and metadata-integrity checks; live access review pending |
 | WP05 | hashes, manifests, provenance | implemented context-locked replay from committed evidence; scientific replay plan approval pending |
-| WP06 | analysis units, probes, reports, decisions | keep codebook and claims separate from WP01 mechanics |
+| WP06 | exported evidence, planned opportunities, probe/report stages, provenance | descriptive summaries and draft report annotation/reliability implemented; scientific codebook approval, calibration and claims pending |
 
 The handoff asserts an offline engineering baseline only. It does not assert live
 provider qualification, scientific freeze, a completed pilot or behavioral findings.

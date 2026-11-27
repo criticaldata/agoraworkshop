@@ -40,6 +40,8 @@ failure evidence.
 - [WP01 study contract and decision register](docs/phase1a/wp01/README.md)
 - [Phase 1A architecture decision records](docs/phase1a/adr/README.md)
 - [WP03 workshop and report workflow](docs/phase1a/wp03/README.md)
+- [WP06 offline descriptive analysis](docs/phase1a/wp06/README.md)
+- [WP06 pathway and analysis interface](docs/phase1a/wp06/PREVIEW.md) — `/wp06/` in the web app
 - [WP05 context-locked replay contract](specs/phase1a/context-locked-replay.md)
 - [Requirement-to-test matrix](specs/phase1a/requirement-test-matrix.md)
 
@@ -83,6 +85,7 @@ npm run dev            # then open http://localhost:3000
 | Route | For |
 | --- | --- |
 | `/` | Plain-language overview for reviewers who do not read code. Plots the real trace of the most recent run rather than an illustration. |
+| `/wp06/` | Researcher-authenticated WP06 pathway, evidence inspection and analysis JSON export. |
 | `/docs` | Architecture, data model, execution model, current limits, and the proposed work in the order it should be done. |
 | `/runs` | Operator view. Runs are grouped by settings fingerprint, because runs sharing one are the ones worth comparing. |
 | `/runs/:id` | Checks first, then statistics, timeline, and every individual turn. |
@@ -472,6 +475,7 @@ without sharing the ability to spend tokens.
 | --- | --- |
 | `/`, `/docs`, `/healthz` | Open. |
 | `/runs`, run pages, read APIs | Open by default; behind the credential when `AGORA_AUTH_SCOPE=all`. |
+| `/wp06/`, its assets and analysis APIs | Always requires the researcher credential, including under `AGORA_AUTH_SCOPE=write`. |
 | Starting a run, rerunning, exporting | Always requires the credential, and must originate from this instance. |
 
 Three properties are deliberate. It **fails closed** — with no credential configured,

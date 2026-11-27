@@ -9,6 +9,7 @@ import {
   type PromptCandidate,
   type RunManifest,
 } from '../wp01/index.js';
+import { markCanonicalWp01Admission } from './admission.js';
 
 export const WP01_RUNTIME_ADAPTER_VERSION = 'wp01-runtime-adapter-v1' as const;
 
@@ -86,7 +87,7 @@ export function adaptWp01Run(
     ? ['ENGINEERING ONLY: synthetic deployments, candidate prompts, and unresolved scientific-freeze decisions']
     : [];
 
-  return createManifest({
+  return markCanonicalWp01Admission(createManifest({
     manifestId: run.run_id,
     experimentId: campaign.campaign_id,
     contractVersion: campaign.study_contract.protocol_revision,
@@ -124,7 +125,7 @@ export function adaptWp01Run(
     limits: structuredClone(admission.limits),
     variations,
     approvedAt: admission.approvedAt,
-  });
+  }));
 }
 
 export function wp01AdapterInputHash(campaign: CampaignManifest, runId: string, admission: Wp01RuntimeAdmission): string {

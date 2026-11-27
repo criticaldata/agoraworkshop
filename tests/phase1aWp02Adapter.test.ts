@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DeterministicMockProvider, Phase1aRuntime, verifyEvidenceBundle } from '../src/phase1a/index.js';
+import { DeterministicMockProvider, Phase1aRuntime, type Phase1aProvider, verifyEvidenceBundle } from '../src/phase1a/index.js';
 import { buildSyntheticCampaign, SELECTED_REPORT_NOTICE_TIMING } from '../src/phase1a/wp01/index.js';
 import { adaptWp01Run, WP01_RUNTIME_ADAPTER_VERSION } from '../src/phase1a/wp02/index.js';
 
@@ -70,6 +70,76 @@ describe('WP01 to WP02 versioned runtime adapter', () => {
     const bundle = runtime.evidence(runId);
     expect(bundle.events.some((event) => event.event_type === 'report_requirement.disclosed')).toBe(false);
     expect(provider.calls.some((call) => call.operationKey.startsWith('round:'))).toBe(false);
+    expect(verifyEvidenceBundle(bundle)).toEqual({ valid: true, errors: [] });
+  });
+
+  it.each(
+    (['A', 'B', 'C', 'D'] as const).flatMap((cell) => [
+      ['null', cell, null],
+      ['empty', cell, ''],
+      ['whitespace', cell, '   \n\t'],
+    ] as const),
+  )('[P06] [S04-t0-%s] rejects malformed success in cell %s before commit or disclosure', async (_case, cell, content) => {
+    const run = campaign.runs.find((candidate) => candidate.condition_id === cell && candidate.replicate === 1)!;
+    const calls: string[] = [];
+    const provider: Phase1aProvider = {
+      invoke: async (spec) => {
+        calls.push(spec.operationKey);
+        return {
+          outcome: 'success',
+          provider: spec.provider,
+          model: spec.model,
+          content,
+          usage: null,
+          finishReason: 'stop',
+          raw: { fixture: 'invalid-t0-content' },
+        };
+      },
+    };
+    const runtime = new Phase1aRuntime();
+    const runId = runtime.createRun(adaptWp01Run(campaign, run.run_id, admission));
+
+    expect(await runtime.run(runId, provider)).toBe('FAILED');
+
+    const bundle = runtime.evidence(runId);
+    expect(calls).toEqual(['t0:P1', 't0:P1']);
+    expect(bundle.provider_calls).toHaveLength(2);
+    expect(bundle.provider_calls.every((call) => call.operation_key === 't0:P1' && call.terminal_status === 'invalid_response')).toBe(true);
+    expect(bundle.artifacts.some((artifact) => artifact.kind === 'checkpoint.t0')).toBe(false);
+    expect(bundle.events.some((event) => event.event_type === 'operation.committed')).toBe(false);
+    expect(bundle.events.filter((event) => event.event_type === 'retry.scheduled')).toHaveLength(1);
+    expect(bundle.events.some((event) => event.event_type === 'report_requirement.disclosed')).toBe(false);
+    expect(calls.some((key) => key.startsWith('round:'))).toBe(false);
+    expect(bundle.provider_calls.some((call) => call.operation_key.startsWith('round:'))).toBe(false);
+    expect(verifyEvidenceBundle(bundle)).toEqual({ valid: true, errors: [] });
+  });
+
+  it('rejects a malformed provider envelope at t0 without committing the checkpoint', async () => {
+    const run = campaign.runs.find((candidate) => candidate.condition_id === 'D')!;
+    const provider = {
+      invoke: async (spec: Parameters<Phase1aProvider['invoke']>[0]) => ({
+        outcome: 'success',
+        provider: spec.provider,
+        model: spec.model,
+        content: 'substantive answer',
+        usage: { inputTokens: -1, outputTokens: 4 },
+        finishReason: 'stop',
+        raw: null,
+      }),
+    } as unknown as Phase1aProvider;
+    const runtime = new Phase1aRuntime();
+    const runId = runtime.createRun(adaptWp01Run(campaign, run.run_id, admission));
+
+    expect(await runtime.run(runId, provider)).toBe('FAILED');
+
+    const bundle = runtime.evidence(runId);
+    expect(bundle.provider_calls[0]?.terminal_status).toBe('invalid_response');
+    expect(bundle.events.some((event) => event.event_type === 'operation.committed')).toBe(false);
+    expect(bundle.events.some((event) => event.event_type === 'report_requirement.disclosed')).toBe(false);
+    const raw = bundle.artifacts.find((artifact) => artifact.artifact_id === bundle.provider_calls[0]?.raw_artifact_ref);
+    expect(raw?.content).toContain('wp02_boundary_rejection');
+    expect(raw?.content).toContain('invalid_usage');
+    expect(raw?.content).toContain('raw_not_object');
     expect(verifyEvidenceBundle(bundle)).toEqual({ valid: true, errors: [] });
   });
 
